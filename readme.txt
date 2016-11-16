@@ -1,3 +1,9 @@
+http://stackoverflow.com/questions/17552457/how-do-i-upload-eclipse-projects-to-github
+git init
+git remote add origin https://github.com/[username]/[reponame].git
+git commit -a -m "Initial commit"
+git push -u origin --all
+
 sbt eclipse
 reload
 eclipse with-source=true
