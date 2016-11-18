@@ -41,20 +41,20 @@ object StreamBuilder {
    * us the JDKs default or use commons.math random generator.
    */
   val defr = new JDKRandomGenerator();
-  val defj = new Random();
+  val defj = new scala.util.Random();
 
   // Define function with the same input but different return types. 
   // http://stackoverflow.com/questions/17888978/scala-trait-same-method-and-argument-with-different-return-types
   //Not used  http://stackoverflow.com/questions/3307427/scala-double-definition-2-methods-have-the-same-type-erasure
   //def uniform( r: Random, max: Int ): Stream[ Int ] = Stream.continually( r.nextInt( max ) )
-  trait DiscreteImpl[ T ] { def apply( r: Random ): T }
-  implicit object DiscreteInt extends DiscreteImpl[ Int ] { def apply( r: Random ) = r.nextInt }
-  implicit object DiscreteLong extends DiscreteImpl[ Long ] { def apply( r: Random ) = r.nextLong }
-  implicit object DiscreteFloat extends DiscreteImpl[ Float ] { def apply( r: Random ) = r.nextFloat }
-  implicit object DiscreteDouble extends DiscreteImpl[ Double ] { def apply( r: Random ) = r.nextDouble }
-  implicit object DiscreteBoolean extends DiscreteImpl[ Boolean ] { def apply( r: Random ) = r.nextBoolean }
-  implicit object DiscreteChar extends DiscreteImpl[ Char ] { def apply( r: Random ) = r.nextPrintableChar }
-  def uniform[ T ]( r: Random = defj )( implicit impl: DiscreteImpl[ T ] ): Stream[ T ] = Stream.continually( impl( r ) )
+  trait DiscreteImpl[ T ] { def apply( r: scala.util.Random ): T }
+  implicit object DiscreteInt extends DiscreteImpl[ Int ] { def apply( r: scala.util.Random ) = r.nextInt }
+  implicit object DiscreteLong extends DiscreteImpl[ Long ] { def apply( r: scala.util.Random ) = r.nextLong }
+  implicit object DiscreteFloat extends DiscreteImpl[ Float ] { def apply( r: scala.util.Random ) = r.nextFloat }
+  implicit object DiscreteDouble extends DiscreteImpl[ Double ] { def apply( r: scala.util.Random ) = r.nextDouble }
+  implicit object DiscreteBoolean extends DiscreteImpl[ Boolean ] { def apply( r: scala.util.Random ) = r.nextBoolean }
+  implicit object DiscreteChar extends DiscreteImpl[ Char ] { def apply( r: scala.util.Random ) = r.nextPrintableChar }
+  def uniform[ T ]( r: scala.util.Random = defj )( implicit impl: DiscreteImpl[ T ] ): Stream[ T ] = Stream.continually( impl( r ) )
 
   // Cannot use defaults here
   trait DiscreteLenImpl[ T ] { def apply( r: Random, length: Int ): T }
@@ -93,26 +93,67 @@ object StreamBuilder {
 
   }
 
-/**
+  import java.util.NavigableMap;
+  import java.util.Random;
+  import java.util.TreeMap;
+
+  /**
+   * Rejecton Sampling 
+   * http://stackoverflow.com/questions/30203362/how-to-generate-a-random-weighted-distribution-of-elements
+   * http://en.wikipedia.org/wiki/Rejection_sampling
+   */
+  /*
+  class RandomCollection[ E ]( random: Random = new Random() ) {
+
+    val map = scala.collection.mutable.Map[ Double, E ]();
+    var total: Double = 0
+
+    def ceiling( weight: Double): Option[E] = {
+      val from = segments.from( x )
+      if ( from.isEmpty ) None
+      else Some( segments( from.firstKey ) )
+    }
+
+    def add( weight: Double, result: E ) {
+      if ( weight <= 0 ) return
+      total = total + weight
+      map += ( total -> result )
+    }
+
+    def next(): E = {
+      val value = random.nextDouble() * total;
+      //return map.ceilingEntry(value).getValue();
+      map( value )
+    }
+  }
+  */
+  def bimodal() = {
+
+  }
+
+  /**
    * Generates a stream of linearly spaced values between a and b (inclusive).
    * The returned vector will have length elements, defaulting to 100.
    */
-  def linspace(a : Double, b : Double, length : Int = 100) : Stream[Double] = {
-    val increment = (b - a) / (length - 1)
-    Stream.iterate(a) {  acc => acc + increment }.take(length)
-    }
+  def linspace( a: Double, b: Double, length: Int = 100 ): Stream[ Double ] = {
+    val increment = ( b - a ) / ( length - 1 )
+    Stream.iterate( a ) { acc => acc + increment }.take( length )
+  }
 
-/**
+  /**
    * Generates a stream of linearly spaced by `increment` values starting from a.
    */
-  def linspace(a : Double, increment: Double) : Stream[Double] = Stream.iterate(a) {  acc => acc + increment }
+  def linspace( a: Double, increment: Double ): Stream[ Double ] = Stream.iterate( a ) { acc => acc + increment }
 
+  // https://twitter.github.io/scala_school/advanced-types.html
   /**
    * Returns stream of Seq containing each element in `s`
    */
-  def combine[ T ]( s: Seq[ Stream[ T ] ] ): Stream[ Seq[ T ] ] = s.map( _.head ) #:: combine( s.map( _.tail ) )
+  //def combine[ T ]( s: Seq[ Stream[ T ] ] ): Stream[ Seq[ T ] ] = s.map( _.head ) #:: combine( s.map( _.tail ) )
   //def combine[T](s:Seq[Stream[T]]):Stream[Seq[T]] = s.flatMap(_.headOption) #:: combine( s.map(_.tail) )
-
+  //def combine[  T, T1 <: T, T2 <: T  ]( s: Seq[ Stream[ T1 ] ] )( implicit ev: T1 =:= T2 ): Stream[ Seq[ T ] ] = s.map( _.head ) #:: combine( s.map( _.tail ) )
+  def combine[  T, T1 <: T]( s: Seq[ Stream[ T1 ] ] )( implicit ev: T1 =:= T ): Stream[ Seq[ T ] ] = s.map( _.head ) #:: combine( s.map( _.tail ) )
+  
   /*
   def extract[T](s: Stream[T]) = {
     s match {
@@ -138,8 +179,8 @@ object StreamBuilder {
 
   //def combine[ T ]( s1: Stream[ T ], s2: Stream[ T ] ): Stream[ Seq[ T ] ] = combine( Array( s1, s2 ) )
   //def combine[ T1, T2]( s1: Stream[ T1 ], s2: Stream[ T2 ] )(implicit ev: T1=:=T2): Stream[ Seq[ T1 ] ] = combine( Array( s1, s2 ) )
- // http://blog.bruchez.name/2015/11/generalized-type-constraints-in-scala.html
-  def combine[ T, T1 <:T, T2 <: T]( s1: Stream[ T1], s2: Stream[ T2 ] )(implicit ev: T1=:=T2): Stream[ Seq[ T ] ] = combine( Array( s1, s2 ) )
+  // http://blog.bruchez.name/2015/11/generalized-type-constraints-in-scala.html
+  def combine[ T, T1 <: T, T2 <: T ]( s1: Stream[ T1 ], s2: Stream[ T2 ] )( implicit ev: T1 =:= T2 ): Stream[ Seq[ T ] ] = combine( Array( s1, s2 ) )
 
   def main( args: Array[ String ] ): Unit = {
 
@@ -189,32 +230,43 @@ object StreamBuilder {
     //val s13 = combine( s1, s6 )
     //println( s13.take( 10 ).toList.map( a => a.mkString( "<", ",", ">" ) ).mkString( "{", ",", "}" ) )
 
-    // TODO: not safe, how do we avoid AnyVal?
-    val s14 = combine( List( s4, s5, s6 ) )
+    val l14 =  List( s4, s5, s6 )
+    val s14 = combine( l14 )
     println( s14.take( 10 ).toList.map( a => a.mkString( "<", ",", ">" ) ).mkString( "{", ",", "}" ) )
 
     val s15 = Stream.from( 1 )
     val s16 = combine( List( s15, s1, s3 ) )
     println( s16.take( 10 ).toList.map( a => a.mkString( "<", ",", ">" ) ).mkString( "{", ",", "}" ) )
-
-    val s17 = linspace(0.0, 1.0, 10)
-    println( s17.take( 12 ).toList.mkString( "{", ",", "}" ) )
-
-    val s18 = linspace(0.0, 1/9.0)
-    println( s18.take( 12 ).toList.mkString( "{", ",", "}" ) )
-   
-    // append streams (note the take)
-    val s19  = s15.take(5) #::: Stream.from(2, 2)
-    println( s19.take( 10 ).toList.mkString( "{", ",", "}" ) )
     
+    // TODO: not safe, how do we avoid AnyVal?
+    // http://stackoverflow.com/questions/40677849/enforce-scala-seq-to-use-a-single-tpe-only-no-lub
+    //val l17 = List( s4, s1, s3 )
+    //val l17 = List( s4, s1, s2 )
+    //val l17 = List( s4, s1, s7 )
+    val l17 = List( s4, s1, s8 )
+    val s17 = combine( l14 )
+    println("----------------------")
+    println( s8.take( 10 ).toList.mkString( "{", ",", "}" ) )
+    println( s17.take( 10 ).toList.map( a => a.mkString( "<", ",", ">" ) ).mkString( "{", ",", "}" ) )
+
+    val s18 = linspace( 0.0, 1.0, 10 )
+    println( s18.take( 12 ).toList.mkString( "{", ",", "}" ) )
+
+    val s19 = linspace( 0.0, 1 / 9.0 )
+    println( s19.take( 12 ).toList.mkString( "{", ",", "}" ) )
+
     // append streams (note the take)
-    val s20 = s19.take(15) append Stream.from(1, -1)
-    println( s20.take( 20 ).toList.mkString( "{", ",", "}" ) )
+    val s20 = s15.take( 5 ) #::: Stream.from( 2, 2 )
+    println( s20.take( 10 ).toList.mkString( "{", ",", "}" ) )
+
+    // append streams (note the take)
+    val s21 = s19.take( 15 ) append Stream.from( 1, -1 )
+    println( s21.take( 20 ).toList.mkString( "{", ",", "}" ) )
 
     // append combined streams (note the take)
-    val s21 =  combine( List( s4, s5 ) ).take(5) #:::  combine( List( s5, s6 ) )
-    println( s21.take( 10 ).toList.map( a => a.mkString( "<", ",", ">" ) ).mkString( "{", ",", "}" ) )
-    
+    val s22 = combine( List( s4, s5 ) ).take( 5 ) #::: combine( List( s5, s6 ) )
+    println( s22.take( 10 ).toList.map( a => a.mkString( "<", ",", ">" ) ).mkString( "{", ",", "}" ) )
+
   }
 
 }
