@@ -1,12 +1,13 @@
 package pt.inescn.scratchpad
 
 import scala.util.Random
-import org.apache.commons.math3.distribution.NormalDistribution;
-import org.apache.commons.math3.distribution.ParetoDistribution;
-import org.apache.commons.math3.distribution.UniformIntegerDistribution;
-import org.apache.commons.math3.distribution.WeibullDistribution;
-import org.apache.commons.math3.random.JDKRandomGenerator;
-import org.apache.commons.math3.random.RandomGenerator;
+import org.apache.commons.math3.distribution.UniformRealDistribution
+import org.apache.commons.math3.distribution.NormalDistribution 
+import org.apache.commons.math3.distribution.ParetoDistribution 
+import org.apache.commons.math3.distribution.UniformIntegerDistribution 
+import org.apache.commons.math3.distribution.WeibullDistribution 
+import org.apache.commons.math3.random.JDKRandomGenerator 
+import org.apache.commons.math3.random.RandomGenerator 
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -98,39 +99,57 @@ object StreamBuilder {
   import java.util.TreeMap;
 
   /**
-   * Rejecton Sampling 
+   * Rejection Sampling 
    * http://stackoverflow.com/questions/30203362/how-to-generate-a-random-weighted-distribution-of-elements
    * http://en.wikipedia.org/wiki/Rejection_sampling
    */
-  /*
-  class RandomCollection[ E ]( random: Random = new Random() ) {
-
-    val map = scala.collection.mutable.Map[ Double, E ]();
-    var total: Double = 0
-
-    def ceiling( weight: Double): Option[E] = {
-      val from = segments.from( x )
-      if ( from.isEmpty ) None
-      else Some( segments( from.firstKey ) )
+  class RandomCollection[ E ](random: Random = new Random(), classes : Map[Double, E]) {
+    
+    //val map = scala.collection.immutable.TreeMap[ Double, E ]() ++ classes;
+    val tmap = scala.collection.immutable.TreeMap[ Double, E ]()
+    val (total, map) = classes.foldLeft((0.0, tmap)) {
+      case ( (acc, m), (k,v)) =>  
+       val nacc = acc + k
+       (nacc, m + (nacc -> v))
     }
 
+    def ceiling( weight: Double): Option[E] = {
+      val from = map.from( weight )
+      if ( from.isEmpty ) None
+      else Some( map( from.firstKey ) )
+    }
+
+    def floor(weight: Double): Option[E] = {
+      val to = map.to(weight)
+      if (to.isEmpty) None
+      else Some(map(to.lastKey))
+    }
+    /*
     def add( weight: Double, result: E ) {
       if ( weight <= 0 ) return
       total = total + weight
       map += ( total -> result )
     }
-
+*/
     def next(): E = {
       val value = random.nextDouble() * total;
       //return map.ceilingEntry(value).getValue();
       map( value )
     }
   }
-  */
-  def bimodal() = {
-
+  
+  // TODO
+  def bimodal[E]( r: RandomGenerator = defr, classes : Map[Double, E]): Stream[ E ] = {
+    val d = new UniformRealDistribution( r, 0.0, 1.0 )
+    val w = new RandomCollection[E](defr, classes)
+    return Stream.continually{ 
+      val value = d.sample * w.total 
+      w.ceiling(value).get
+     }
   }
 
+  // TODO Multi-modal for a mix of distributions
+  
   /**
    * Generates a stream of linearly spaced values between a and b (inclusive).
    * The returned vector will have length elements, defaulting to 100.
@@ -145,6 +164,7 @@ object StreamBuilder {
    */
   def linspace( a: Double, increment: Double ): Stream[ Double ] = Stream.iterate( a ) { acc => acc + increment }
 
+  // TODO: return indexed sequence
   // https://twitter.github.io/scala_school/advanced-types.html
   /**
    * Returns stream of Seq containing each element in `s`
@@ -153,6 +173,12 @@ object StreamBuilder {
   //def combine[T](s:Seq[Stream[T]]):Stream[Seq[T]] = s.flatMap(_.headOption) #:: combine( s.map(_.tail) )
   //def combine[  T, T1 <: T, T2 <: T  ]( s: Seq[ Stream[ T1 ] ] )( implicit ev: T1 =:= T2 ): Stream[ Seq[ T ] ] = s.map( _.head ) #:: combine( s.map( _.tail ) )
   def combine[  T, T1 <: T]( s: Seq[ Stream[ T1 ] ] )( implicit ev: T1 =:= T ): Stream[ Seq[ T ] ] = s.map( _.head ) #:: combine( s.map( _.tail ) )
+  
+  // http://stackoverflow.com/questions/34118720/how-should-an-invariant-list-be-implemented-in-scala
+  // http://alvinalexander.com/scala/how-why-make-mutable-collections-invariant-in-scala
+  // http://like-a-boss.net/2012/09/17/variance-in-scala.html
+  // http://eed3si9n.com/stricter-scala-with-ynolub
+  // http://www.lihaoyi.com/post/StrategicScalaStylePracticalTypeSafety.html
   
   /*
   def extract[T](s: Stream[T]) = {
@@ -180,8 +206,18 @@ object StreamBuilder {
   //def combine[ T ]( s1: Stream[ T ], s2: Stream[ T ] ): Stream[ Seq[ T ] ] = combine( Array( s1, s2 ) )
   //def combine[ T1, T2]( s1: Stream[ T1 ], s2: Stream[ T2 ] )(implicit ev: T1=:=T2): Stream[ Seq[ T1 ] ] = combine( Array( s1, s2 ) )
   // http://blog.bruchez.name/2015/11/generalized-type-constraints-in-scala.html
-  def combine[ T, T1 <: T, T2 <: T ]( s1: Stream[ T1 ], s2: Stream[ T2 ] )( implicit ev: T1 =:= T2 ): Stream[ Seq[ T ] ] = combine( Array( s1, s2 ) )
-
+  def combine[ T, T1 <: T, T2 <: T ]( s1: Stream[ T1 ], s2: Stream[ T2 ] )( implicit ev: T1 =:= T2 ): Stream[ Seq[ T ] ] = combine( Array( s1, s2 ) )  
+  
+  import scala.reflect.ClassTag
+  
+  def ensureSingleType[T : ClassTag](c:Seq[T]) = {
+    val tmp : T = c(0)
+    tmp
+  }
+  
+  // TODO: 
+  def separate[T](s: Stream[ Seq[T] ], select: Seq[Int]) : Tuple2[ Option[Stream[Seq[T]]], Option[Stream[Seq[T]]] ] = ???
+  
   def main( args: Array[ String ] ): Unit = {
 
     //val r = new Random(1234)
@@ -243,9 +279,10 @@ object StreamBuilder {
     //val l17 = List( s4, s1, s3 )
     //val l17 = List( s4, s1, s2 )
     //val l17 = List( s4, s1, s7 )
+    //val l17 = List[Double]( s4, s1, s8 )
     val l17 = List( s4, s1, s8 )
     val s17 = combine( l14 )
-    println("----------------------")
+    //println("----------------------")
     println( s8.take( 10 ).toList.mkString( "{", ",", "}" ) )
     println( s17.take( 10 ).toList.map( a => a.mkString( "<", ",", ">" ) ).mkString( "{", ",", "}" ) )
 
@@ -255,6 +292,33 @@ object StreamBuilder {
     val s19 = linspace( 0.0, 1 / 9.0 )
     println( s19.take( 12 ).toList.mkString( "{", ",", "}" ) )
 
+    val w0 =  Map(0.1 -> "A", (0.3 ->  "B"), (0.6 ->  "C"))
+    val w1 = new RandomCollection[String]( r, w0 )
+/*    w1.add(0.1 ,  "A")
+    w1.add(0.3 ,  "B")
+    w1.add(0.6 ,  "C")*/
+    println("----------------------")
+    println(w1.ceiling(0.0))
+    println(w1.ceiling(0.01))
+    println(w1.ceiling(0.09999999))
+    println(w1.ceiling(0.1))
+    
+    println(w1.ceiling(0.1000001))
+    println(w1.ceiling(0.2))
+    println(w1.ceiling(0.4))
+    
+    println(w1.ceiling(0.400000001))
+    println(w1.ceiling(0.5))
+    println(w1.ceiling(1.0))
+
+    val s200 = bimodal(r, w0)
+    val as = s200.take(100).count { x => x == "A" }
+    println(s"#A's = ${as}")
+    val bs = s200.take(100).count { x => x == "B" }
+    println(s"#B's = ${bs}")
+    val cs = s200.take(100).count { x => x == "C" }
+    println(s"#C's = ${cs}")
+    
     // append streams (note the take)
     val s20 = s15.take( 5 ) #::: Stream.from( 2, 2 )
     println( s20.take( 10 ).toList.mkString( "{", ",", "}" ) )
@@ -267,6 +331,18 @@ object StreamBuilder {
     val s22 = combine( List( s4, s5 ) ).take( 5 ) #::: combine( List( s5, s6 ) )
     println( s22.take( 10 ).toList.map( a => a.mkString( "<", ",", ">" ) ).mkString( "{", ",", "}" ) )
 
+    // Issues with invariance
+    /*
+    val t = Set[Double](1,2, 3.0, "Hello")
+    val t0 : List[Any] = List(1,2, 3.0, "Hello")
+    val t1 : List[Any] = List[Int](1,2, 3.0, "Hello")
+    val t2 : Array[Any] = Array(1,2, 3.0, "Hello")
+    val t4 : Array[Any] = Array[Int](1,2, 3.0, "Hello")
+    val t5 : Seq[Double] = List(1,2, 3.0, "Hello")
+    val t6 = scala.collection.mutable.ArrayBuffer(1,2, 3.0, "Hello")
+    val t7 = ensureSingleType(List(1,2,""))
+    println( t.toStream.take( 12 ).toList.mkString( "{", ",", "}" ) )
+    */
   }
 
 }
