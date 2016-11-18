@@ -105,13 +105,14 @@ object StreamBuilder {
    */
   class RandomCollection[ E ](random: Random = new Random(), classes : Map[Double, E]) {
     
-    //val map = scala.collection.immutable.TreeMap[ Double, E ]() ++ classes;
     val tmap = scala.collection.immutable.TreeMap[ Double, E ]()
-    val (total, map) = classes.foldLeft((0.0, tmap)) {
+    // calculate cumulative proportions
+    val (total, nmap) = classes.foldLeft((0.0, tmap)) {
       case ( (acc, m), (k,v)) =>  
        val nacc = acc + k
        (nacc, m + (nacc -> v))
     }
+    val map = if (total != 1.0) tmap else nmap
 
     def ceiling( weight: Double): Option[E] = {
       val from = map.from( weight )
@@ -124,22 +125,9 @@ object StreamBuilder {
       if (to.isEmpty) None
       else Some(map(to.lastKey))
     }
-    /*
-    def add( weight: Double, result: E ) {
-      if ( weight <= 0 ) return
-      total = total + weight
-      map += ( total -> result )
-    }
-*/
-    def next(): E = {
-      val value = random.nextDouble() * total;
-      //return map.ceilingEntry(value).getValue();
-      map( value )
-    }
   }
   
-  // TODO
-  def bimodal[E]( r: RandomGenerator = defr, classes : Map[Double, E]): Stream[ E ] = {
+  def discreteMultiModal[E]( r: RandomGenerator = defr, classes : Map[Double, E]): Stream[ E ] = {
     val d = new UniformRealDistribution( r, 0.0, 1.0 )
     val w = new RandomCollection[E](defr, classes)
     return Stream.continually{ 
@@ -148,7 +136,11 @@ object StreamBuilder {
      }
   }
 
-  // TODO Multi-modal for a mix of distributions
+  // TODO: need standard Double output bimodal - must be based on basic multi-model continuous
+  
+  // TODO: Multi-modal for a mix of distributions (mixture model)
+  //  Both double and discrete
+  // TODO: general discrete distributions, see current biModal
   
   /**
    * Generates a stream of linearly spaced values between a and b (inclusive).
@@ -294,9 +286,6 @@ object StreamBuilder {
 
     val w0 =  Map(0.1 -> "A", (0.3 ->  "B"), (0.6 ->  "C"))
     val w1 = new RandomCollection[String]( r, w0 )
-/*    w1.add(0.1 ,  "A")
-    w1.add(0.3 ,  "B")
-    w1.add(0.6 ,  "C")*/
     println("----------------------")
     println(w1.ceiling(0.0))
     println(w1.ceiling(0.01))
@@ -311,7 +300,7 @@ object StreamBuilder {
     println(w1.ceiling(0.5))
     println(w1.ceiling(1.0))
 
-    val s200 = bimodal(r, w0)
+    val s200 = discreteMultiModal(r, w0)
     val as = s200.take(100).count { x => x == "A" }
     println(s"#A's = ${as}")
     val bs = s200.take(100).count { x => x == "B" }
