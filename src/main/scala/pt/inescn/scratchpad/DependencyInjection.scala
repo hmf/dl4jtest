@@ -66,6 +66,9 @@ class IBarUsingFooBazAble(implicit val fooAble: FooAble, implicit val bazAble: B
   def bar() = s"IBar calls IFoo: ${fooAble.foo()} and IBaz : ${bazAble.baz()}"
 }
 
+/**
+ * sbt "run-main pt.inescn.scratchpad.DependencyInjection"
+ */
 object DependencyInjection {
   def main( args: Array[ String ] ) {
 

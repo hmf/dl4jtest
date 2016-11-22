@@ -2,7 +2,20 @@ package pt.inescn.scratchpad
 
 import scala.language.higherKinds
 
-import _FCT._
+/**
+ * Generic definition of a Monad used as a template for creating implicit and explicit data
+ * transformations
+ * @tparam M Type of the data transformation or container
+ * @author Patrick Nicolas
+ * @since December 21, 2013 0.98.1
+ * @version 0.98.1
+ * @see Scala for Machine Learning Chapter 1 Getting started / Monads and higher kinds
+ */
+trait _Monad[ M[ _ ] ] {
+  def unit[ T ]( t: T ): M[ T ]
+  def map[ T, U ]( m: M[ T ] )( f: T => U ): M[ U ]
+  def flatMap[ T, U ]( m: M[ T ] )( f: T => M[ U ] ): M[ U ]
+}
 
 /*
  * Cake pattern
@@ -19,130 +32,69 @@ import _FCT._
  * M - Metrics for evaluation
  */
 
-trait PreProcessor[ T, D ] {
-  def preProcess( prcessing: T, data: D ): D = ???
+import scala.util.Try //Success or Failure
 
+/*
+ * http://stackoverflow.com/questions/9594358/how-to-elegantly-implement-the-pipeline-pattern-using-scala
+ * https://github.com/pthariensflame/scala-pipes
+ * 
+ */
+
+trait Data[ D ]
+trait PrePorcessedData[ D ]
+//trait Model[P[ _, _ ] <:< PreProcessor[_,_] ]
+
+/**
+ * Normalization, Sampling, MovingAverage
+ */
+trait PreProcessor[ T, D ] {
+  def preProcess( prcessing: T, data: D ): Try[ D ] = ???
 }
 
 trait Learner[ T, P, D, R, M ] {
+  def fit( params: P, data: D ): Try[ R ] = ???
+  def predict( params: P, testData: D ): Try[ M ] = ???
+}
 
-  def fit( params: P, data: D ): R = ???
-  def evaluate( params: P, testData: D ): M = ???
-
+trait Evaluator[ T, P, D, R, M ] {
+  def evaluate( params: P, testData: D ): Try[ M ] = ???
 }
 
 class ModelA[ T, P, D, R, M ]( p: PreProcessor[ T, D ] ) extends Learner[ T, P, D, R, M ] {
-
 }
 
-class MLPipe[ D ]( data: D ) {
-  def execute(): D = ???
-}
-
-/*
- * @see https://github.com/prnicolas/ScalaMl 
- * @see https://github.com/prnicolas/ScalaMl/tree/master/src/main/scala/org/scalaml/workflow
- * @see http://www.lihaoyi.com/post/StrategicScalaStylePracticalTypeSafety.html
- */
-
-trait PipeOperator[ -T, +U ] {
-  def |>( data: T ): Option[ U ]
-}
-
-/*
- *  core, stats, workflow
- * 
- */
+import scala.collection.GenTraversableOnce
 
 /**
- * <p>Generic definition of a Monad used as a template for creating transforms.</p>
- * @author Patrick Nicolas
- * @since December 21, 2013
- * @note Scala for Machine Learning Chapter 2 Hello World!/Designing a workflow /
- * Monadic data transformation
+ * @see https://medium.com/@anicolaspp/operator-in-scala-cbca7b939fc0#.c29s6e8w3
+ * @see https://github.com/loverdos/scalapipes
+ *         Uses "extend" + apply instead of an implicit conversion
+ * @see http://stackoverflow.com/questions/34646526/pipeline-operator-in-scala
  */
-trait Monad[ M[ _ ] ] {
-  def apply[ T ]( t: T ): M[ T ]
-  def map[ T, U ]( m: M[ T ] )( f: T => U ): M[ U ]
-  def flatMap[ T, U ]( m: M[ T ] )( f: T => M[ U ] ): M[ U ]
+class Pipe[ A ]( a: A ) {
+  def |>[ B ]( f: A => B ) = f( a )
+  def $$[B](f: A => B): A = {f(a); a}
+  def #!(str: String = ""): A = {print(str) ; println(a); a}
 }
 
 /**
- * <p>Monadic container which implements/adapter the most commonly used
- * Scala higher order methods.This class should not be used directly as they
- * do not validate any method argument and internal state.</p>
- * @param _fct element contained and managed by the monadic wrapper
- * @constructor Create a monadic container for data transformation.
- * @author Patrick Nicolas
- * @since December 23, 2013
- * @note Scala for Machine Learning Chapter 2 Hello World!/Designing a workflow /
- * Monadic data transformation
- * 
- * @see https://github.com/carrot-garden/quant_ScalaMl/blob/master/src/main/scala/org/scalaml/core/Monad.scala
- * @see https://github.com/prnicolas/ScalaMl/blob/master/src/main/scala/org/scalaml/core/functional/Monad.scala
+ * @see https://medium.com/@anicolaspp/operator-in-scala-cbca7b939fc0#.c29s6e8w3
  */
-class _FCT[ +T ]( val _fct: T ) {
-
-  /**
-   * Access the element of type T contained in this instance
-   * @return element of type T
-   */
-  def apply: T = _fct
-  /**
-   * Implementation of the map method
-   * @param  c function that converts from type T to type U
-   */
-  def map[ U ]( c: T => U ): _FCT[ U ] = new _FCT[ U ]( c( _fct ) )
-  /**
-   * Implementation of flatMap
-   * @param  c function that converts from type T to a monadic container of type U
-   */
-  def flatMap[ U ]( f: T => _FCT[ U ] ): _FCT[ U ] = f( _fct )
-  /**
-   * Implementation of filter for the monadic container
-   * @param  p function that test a condition on the element
-   */
-  def filter( p: T => Boolean ): _FCT[ T ] = if ( p( _fct ) ) new _FCT[ T ]( _fct ) else zeroFCT( _fct )
-  /**
-   * implementation of the reduce method
-   * @param f reducer/aggregator/accumulator function applied to the element
-   */
-  def reduceLeft[ U ]( f: ( U, T ) => U )( implicit c: T => U ): U = f( c( _fct ), _fct )
-  /**
-   * implementation of fold
-   * @param f reducer/aggregator/accumulator function applied to the element
-   */
-  def foldLeft[ U ]( zero: U )( f: ( U, T ) => U )( implicit c: T => U ): U = f( c( _fct ), _fct )
-  /**
-   * implementation of the foreach loop
-   * @param p immutable method that process the element of the monadic container
-   */
-  def foreach( p: T => Unit ): Unit = p( _fct )
+object Pipe {
+  def apply[ A ]( v: A ) = new Pipe( v )
+  
+  def map[A, B](f: A => B)(items: Seq[A]): Seq[B] = { items.map(f) }
+  def flatMap[A, B](f: A => GenTraversableOnce[B])(items: Seq[A]): Seq[B] = items.flatMap(f)
+  def filter[A](f: A => Boolean)(items: Seq[A]): Seq[A] = items.filter(f)
 }
 
 /**
- * Companion object for _FCT that define the constructor apply and the zero
- * value. Its main purpose is to define a constructor and the Zero method.
+ * https://medium.com/@anicolaspp/operator-in-scala-cbca7b939fc0#.c29s6e8w3
  */
-object _FCT {
-  /**
-   * Define the zero value for the FCT monad.
-   * @param fct contained (i.e. data transformation) element
-   * @return an instance of the container with a contained element, fct
-   */
-  def zeroFCT[ T ]( fct: T ): _FCT[ T ] = new _FCT[ T ]( fct )
-
-  /**
-   * Generic constructor for the container class.
-   * @param item wrapped in the monadic container
-   * @return an instance of the monadic container.
-   */
-  def apply[ T ]( t: T ): _FCT[ T ] = new _FCT[ T ]( t )
+object PipeOps {
+  implicit def toPipe[ A ]( a: A ) = Pipe( a )
 }
 
-class Transform[ -T, +U ]( val op: PipeOperator[ T, U ] ) extends _FCT[ Function[ T, Option[ U ] ] ]( op.|> ) {
-  def |>( data: T ): Option[ U ] = _fct( data )
-}
 
 /**
  *  Cross validation
@@ -154,27 +106,43 @@ class Transform[ -T, +U ]( val op: PipeOperator[ T, U ] ) extends _FCT[ Function
  *  Learner
  *  . fit -> evaluate
  *
+ *   sbt "run-main pt.inescn.scratchpad.ExperimentBuilder"
  */
 object ExperimentBuilder {
+   
+  def modN(n: Int)(x: Int) = ((x % n) == 0)
+  val t =  modN(2) _
+  def s(x:Int) : Boolean =  modN(2) (x)
+  def u = (x:Int) =>  modN(2) (x)
+  
+  def f = Pipe.filter { x: Int => x % 2 == 0 } _
+  def g = (y:Seq[Int]) => Pipe.filter { x: Int => x % 2 == 0 } (y)
 
   def main( args: Array[ String ] ) {
-    val op = new PipeOperator[ Int, Double ] {
-      def |>( n: Int ): Option[ Double ] = Some( Math.sin( n.toDouble ) )
-    }
-
-    def g( f: Int => Option[ Double ] ): ( Int => Long ) = {
-      ( n: Int ) =>
-        {
-          f( n ) match {
-            case Some( x ) => x.toLong
-            case None      => -1L
-          }
-        }
-    }
     
-    val gof = new Transform[ Int, Double ]( op ).map( g( _ ) )
-    println(gof)
-    gof.foreach(println)
+    import PipeOps._
+    
+     val r1 = 5 |> (x => x + 1)
+     println(r1)
+     
+     // TODO: no pipe conversion here. 
+      val r2 = List(1,2,3,4,5) map (x => x + 1)
+      println(r2)
+      List(6,7,8,9) map (x => x + 1) $$ (println _)
+      
+      val r3 = List(1,2,3,4,5) filter (x => x % 2 == 0)
+      println(r3)
+      val r3_ = List(1,2,3,4,5) filter { x : Int => x % 2 == 0 }  #! ("r3 = ") //doesn't work, prints a lambda ID
+      println(r3_)
+      
+      val r4 = List(1,2,3,4,5) |> f $$ (println)
+      println(r4)
+      
+      val r5 = List(1,2,3,4,5) |> g #! ("r5 = ") //doesn't work, prints a lambda ID
+      println(r5)
+      
+      val e1 = List(1,2,3,4).flatMap { x => if ((x % 2) == 0) Some(x) else None }
+      println(e1)
+      
   }
-
 }

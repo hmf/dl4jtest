@@ -2,6 +2,16 @@ package pt.inescn.scratchpad
 
 import scala.language.higherKinds
 
+/*
+ * @see https://github.com/prnicolas/ScalaMl 
+ * @see https://github.com/prnicolas/ScalaMl/tree/master/src/main/scala/org/scalaml/workflow
+ * @see http://www.lihaoyi.com/post/StrategicScalaStylePracticalTypeSafety.html
+ *
+ *  core, stats, workflow
+ * 
+ */
+
+
 trait APipeOperator[ -T, +U ] {
   def |>( data: T ): Option[ U ]
 }
