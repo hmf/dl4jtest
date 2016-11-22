@@ -156,6 +156,9 @@ object StreamBuilder {
    */
   def linspace( a: Double, increment: Double ): Stream[ Double ] = Stream.iterate( a ) { acc => acc + increment }
 
+  // https://groups.google.com/forum/#!topic/scala-user/QDMBgh9Z_vY
+  // https://github.com/Jasper-M/implicitlogic/tree/master/src/main/scala/implicitlogic
+  
   // TODO: return indexed sequence
   // https://twitter.github.io/scala_school/advanced-types.html
   /**
@@ -164,7 +167,12 @@ object StreamBuilder {
   //def combine[ T ]( s: Seq[ Stream[ T ] ] ): Stream[ Seq[ T ] ] = s.map( _.head ) #:: combine( s.map( _.tail ) )
   //def combine[T](s:Seq[Stream[T]]):Stream[Seq[T]] = s.flatMap(_.headOption) #:: combine( s.map(_.tail) )
   //def combine[  T, T1 <: T, T2 <: T  ]( s: Seq[ Stream[ T1 ] ] )( implicit ev: T1 =:= T2 ): Stream[ Seq[ T ] ] = s.map( _.head ) #:: combine( s.map( _.tail ) )
-  def combine[  T, T1 <: T]( s: Seq[ Stream[ T1 ] ] )( implicit ev: T1 =:= T ): Stream[ Seq[ T ] ] = s.map( _.head ) #:: combine( s.map( _.tail ) )
+ // def combine[  T, T1 <: T]( s: Seq[ Stream[ T1 ] ] )( implicit ev: T1 =:= T ): Stream[ Seq[ T ] ] = s.map( _.head ) #:: combine( s.map( _.tail ) )
+  
+  import implicitlogic._
+  //def combine[T](s: Seq[Stream[T]])(implicit ev: Not[(AnyVal <:< T) Or (AnyRef <:< T)]): Stream[Seq[T]] = s.map( _.head ) #:: combine( s.map( _.tail ) )
+  def combine[T](s: Seq[Stream[T]])(implicit ev: Not[(AnyVal <:< T) Or (AnyRef <:< T)]): Stream[Seq[T]] = s.map( _.head ) #:: combine( s.map( _.tail ) )
+  
   
   // http://stackoverflow.com/questions/34118720/how-should-an-invariant-list-be-implemented-in-scala
   // http://alvinalexander.com/scala/how-why-make-mutable-collections-invariant-in-scala
@@ -268,15 +276,15 @@ object StreamBuilder {
     
     // TODO: not safe, how do we avoid AnyVal?
     // http://stackoverflow.com/questions/40677849/enforce-scala-seq-to-use-a-single-tpe-only-no-lub
-    //val l17 = List( s4, s1, s3 )
-    //val l17 = List( s4, s1, s2 )
-    //val l17 = List( s4, s1, s7 )
-    //val l17 = List[Double]( s4, s1, s8 )
-    val l17 = List( s4, s1, s8 )
-    val s17 = combine( l14 )
-    //println("----------------------")
-    println( s8.take( 10 ).toList.mkString( "{", ",", "}" ) )
-    println( s17.take( 10 ).toList.map( a => a.mkString( "<", ",", ">" ) ).mkString( "{", ",", "}" ) )
+    //val l17 = List( s4, s5)  // Ok
+    //val l17 = List( s4, s1)  // failed as required
+    //val l17 = List( s4, s1, s3 ) // failed as required
+    //val l17 = List( s4, s1, s2 ) // failed as required
+    //val l17 = List( s4, s1, s7 ) // failed as required
+    //val l17 = List[Double]( s4, s1, s8 ) // equivalent
+    /*val l17 = List( s4, s1, s8 )
+    val s17 = combine( l17 )
+    println( s17.take( 10 ).toList.map( a => a.mkString( "<", ",", ">" ) ).mkString( "{", ",", "}" ) )*/
 
     val s18 = linspace( 0.0, 1.0, 10 )
     println( s18.take( 12 ).toList.mkString( "{", ",", "}" ) )

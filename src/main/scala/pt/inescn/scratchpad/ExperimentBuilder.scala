@@ -1,58 +1,8 @@
 package pt.inescn.scratchpad
 
-trait FooAble {
-  def foo() = "here is your Foo"
-}
+import scala.language.higherKinds
 
-trait MyFooAble extends FooAble {
-  override def foo() = "here is my Foo"
-}
-
-trait BazAble {
-  def baz() = "baz too"
-}
-
-class BarUsingFooAble {
-  this: FooAble => //see type annotation
-
-  def bar() = "Bar calls Foo: " + foo()
-}
-
-class BarUsingFooBazAble {
-  this: FooAble with BazAble =>
-
-  def bar() = s"Bar calls Foo: ${foo()} and Baz: ${baz()}"
-}
-
-trait FooAbleComponent {
-  val fooAble: AFooAble
-  class AFooAble {
-    def foo() = "here is a foo"
-  }
-}
-
-trait BazAbleComponent {
-  val bazAble: ABazAble
-  class ABazAble {
-    def baz() = "a baz too"
-  }
-}
-
-class ABarUsingFooAble {
-  this: FooAbleComponent with BazAbleComponent =>
-
-  def bar() = s"bar calls foo: ${fooAble.foo()} and baz: ${bazAble.baz()}"
-}
-
-/*
-object BarHelper {
-  implicit object IFooAble extends FooAble {}
-}
-
-class IBarUsingFooAble(implicit val fooAble: FooAble) {
-  def bar() = s"IBar calls IFoo: ${fooAble.foo()}"
-}
-*/
+import _FCT._
 
 /*
  * Cake pattern
@@ -89,11 +39,20 @@ class MLPipe[ D ]( data: D ) {
   def execute(): D = ???
 }
 
+/*
+ * @see https://github.com/prnicolas/ScalaMl 
+ * @see https://github.com/prnicolas/ScalaMl/tree/master/src/main/scala/org/scalaml/workflow
+ * @see http://www.lihaoyi.com/post/StrategicScalaStylePracticalTypeSafety.html
+ */
+
 trait PipeOperator[ -T, +U ] {
   def |>( data: T ): Option[ U ]
 }
 
-import scala.language.higherKinds
+/*
+ *  core, stats, workflow
+ * 
+ */
 
 /**
  * <p>Generic definition of a Monad used as a template for creating transforms.</p>
@@ -108,8 +67,6 @@ trait Monad[ M[ _ ] ] {
   def flatMap[ T, U ]( m: M[ T ] )( f: T => M[ U ] ): M[ U ]
 }
 
-import _FCT._
-
 /**
  * <p>Monadic container which implements/adapter the most commonly used
  * Scala higher order methods.This class should not be used directly as they
@@ -120,6 +77,9 @@ import _FCT._
  * @since December 23, 2013
  * @note Scala for Machine Learning Chapter 2 Hello World!/Designing a workflow /
  * Monadic data transformation
+ * 
+ * @see https://github.com/carrot-garden/quant_ScalaMl/blob/master/src/main/scala/org/scalaml/core/Monad.scala
+ * @see https://github.com/prnicolas/ScalaMl/blob/master/src/main/scala/org/scalaml/core/functional/Monad.scala
  */
 class _FCT[ +T ]( val _fct: T ) {
 
@@ -180,6 +140,10 @@ object _FCT {
   def apply[ T ]( t: T ): _FCT[ T ] = new _FCT[ T ]( t )
 }
 
+class Transform[ -T, +U ]( val op: PipeOperator[ T, U ] ) extends _FCT[ Function[ T, Option[ U ] ] ]( op.|> ) {
+  def |>( data: T ): Option[ U ] = _fct( data )
+}
+
 /**
  *  Cross validation
  *  . split data -> call learner -> collect learner evaluation -> aggregate -> evaluate aggregate evaluations
@@ -192,21 +156,25 @@ object _FCT {
  *
  */
 object ExperimentBuilder {
+
   def main( args: Array[ String ] ) {
-
-    val barWithFoo = new BarUsingFooAble with FooAble
-    println( barWithFoo.bar() )
-
-    val barWithMyFoo = new BarUsingFooAble with MyFooAble
-    println( barWithMyFoo.bar() )
-
-    val barWithFooBaz = new BarUsingFooBazAble with MyFooAble with BazAble
-    println( barWithFooBaz.bar() )
-
-    val aBarWithFoo = new ABarUsingFooAble with FooAbleComponent with BazAbleComponent {
-      val bazAble = new ABazAble() //or any other implementation
-      val fooAble = new AFooAble() //or any other implementation
+    val op = new PipeOperator[ Int, Double ] {
+      def |>( n: Int ): Option[ Double ] = Some( Math.sin( n.toDouble ) )
     }
-    println( aBarWithFoo.bar() )
+
+    def g( f: Int => Option[ Double ] ): ( Int => Long ) = {
+      ( n: Int ) =>
+        {
+          f( n ) match {
+            case Some( x ) => x.toLong
+            case None      => -1L
+          }
+        }
+    }
+    
+    val gof = new Transform[ Int, Double ]( op ).map( g( _ ) )
+    println(gof)
+    gof.foreach(println)
   }
+
 }

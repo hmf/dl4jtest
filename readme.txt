@@ -120,3 +120,39 @@ Anomaly Detection
 2. https://github.com/deeplearning4j/dl4j-examples/blob/master/dl4j-examples/src/main/java/org/deeplearning4j/examples/unsupervised/deepbelief/DeepAutoEncoderExample.java
    . sbt "run-main org.dl4j.examples.DeepAutoEncoderExample"
    
+   
+TODO
+-----
+
+StreamBuilder
+.............
+. Take multi discrete distribution that return E. Make E array of distributions
+  Returned E is sampled
+. Use above to implementnet and test binomial distributions
+. Make example above for mixed distributions
+. Start with labelled distributions using above functions
+  Use combine 
+. Add TODO to use HLists via Shapeless for combine
+. TODO Add support for filtering in streams - supports segmentation
+. TODO Add exponential, polynomial and other types of space functions
+  Use linspace as base. Pass the function that does the jumps. Show examples
+
+Others
+. TODO Add comprehension to generate parameters using streams or lazy stuff or tailed can stuff
+. Add support to filter generation - limit testing set
+. Add random search and others auto- ml
+. TODO: add filtering based on multiple signals/streams
+
+
+Pattern Examples
+. http://gigiigig.github.io/tlp-step-by-step/introduction.html
+. https://apocalisp.wordpress.com/2010/06/08/type-level-programming-in-scala/
+. http://www.michaelpollmeier.com/presentations/2013-11-28-typelevel-programming-scala/#/
+. http://slick.lightbend.com/talks/scalaio2014/Type-Level_Computations.pdf
+. http://stackoverflow.com/questions/4415511/scala-type-programming-resources
+. http://downloads.typesafe.com/website/presentations/ScalaDaysSF2015/T4_Barnes_Typelevel_Prog.pdf
+  https://www.youtube.com/watch?v=_-J4YRI1rAw
+. http://rudairandamacha.blogspot.pt/2012/02/type-level-programming.html
+  https://www.youtube.com/watch?v=WZOzxAP8NpI
+    
+
