@@ -75,17 +75,21 @@ class Pipe[ A ]( a: A ) {
   def |>[ B ]( f: A => B ) = f( a )
   def $$[B](f: A => B): A = {f(a); a}
   def #!(str: String = ""): A = {print(str) ; println(a); a}
+  
+ // def map[A, B, C](f: C => B)(implicit ev: A =:= List[C]): Seq[B] = { a.map(f) }
+  def map[B, C](f: B => C)(implicit ev: A =:= List[B]): Seq[C] = a.map(f)
+  /*
+  def map[A, B](f: A => B)(items: Seq[A]): Seq[B] = { items.map(f) }
+  def flatMap[A, B](f: A => GenTraversableOnce[B])(items: Seq[A]): Seq[B] = items.flatMap(f)
+  def filter[A](f: A => Boolean)(items: Seq[A]): Seq[A] = items.filter(f)
+  */
 }
 
 /**
  * @see https://medium.com/@anicolaspp/operator-in-scala-cbca7b939fc0#.c29s6e8w3
  */
 object Pipe {
-  def apply[ A ]( v: A ) = new Pipe( v )
-  
-  def map[A, B](f: A => B)(items: Seq[A]): Seq[B] = { items.map(f) }
-  def flatMap[A, B](f: A => GenTraversableOnce[B])(items: Seq[A]): Seq[B] = items.flatMap(f)
-  def filter[A](f: A => Boolean)(items: Seq[A]): Seq[A] = items.filter(f)
+  def apply[ A ]( v: A ) = new Pipe( v )  
 }
 
 /**
@@ -110,13 +114,22 @@ object PipeOps {
  */
 object ExperimentBuilder {
    
+  /* examples:  http://www.codecommit.com/blog/scala/function-currying-in-scala
+   * def add(x:Int, y:Int, z:Int) = x + y + z
+  *  val addFive = add(5, _:Int, _:Int)
+  *  addFive(3, 1)    // 9
+  *  
+  * def add(x:Int, y:Int, z:Int) = x + y + z
+  * val addFive = (a:Int, b:Int) => add(5, a, b)
+  * addFive(3, 1)    // 9
+  */
   def modN(n: Int)(x: Int) = ((x % n) == 0)
   val t =  modN(2) _
   def s(x:Int) : Boolean =  modN(2) (x)
   def u = (x:Int) =>  modN(2) (x)
   
-  def f = Pipe.filter { x: Int => x % 2 == 0 } _
-  def g = (y:Seq[Int]) => Pipe.filter { x: Int => x % 2 == 0 } (y)
+  def f(y: Seq[Int]) = y.filter { x: Int => x % 2 == 0 }
+  def g = (y:Seq[Int]) => y.filter { x: Int => x % 2 == 0 }
 
   def main( args: Array[ String ] ) {
     
@@ -125,9 +138,10 @@ object ExperimentBuilder {
      val r1 = 5 |> (x => x + 1)
      println(r1)
      
-     // TODO: no pipe conversion here. 
+     // No pipe conversion here. Using standard List map
       val r2 = List(1,2,3,4,5) map (x => x + 1)
       println(r2)
+      // Here the result is converted into a Pipe
       List(6,7,8,9) map (x => x + 1) $$ (println _)
       
       val r3 = List(1,2,3,4,5) filter (x => x % 2 == 0)
@@ -135,13 +149,14 @@ object ExperimentBuilder {
       val r3_ = List(1,2,3,4,5) filter { x : Int => x % 2 == 0 }  #! ("r3 = ") //doesn't work, prints a lambda ID
       println(r3_)
       
+      // conversion occur due to the pipe operator
       val r4 = List(1,2,3,4,5) |> f $$ (println)
       println(r4)
       
       val r5 = List(1,2,3,4,5) |> g #! ("r5 = ") //doesn't work, prints a lambda ID
       println(r5)
       
-      val e1 = List(1,2,3,4).flatMap { x => if ((x % 2) == 0) Some(x) else None }
+      val e1 = List(1,2,3,4) flatMap { x => if ((x % 2) == 0) Some(x) else None }
       println(e1)
       
   }
