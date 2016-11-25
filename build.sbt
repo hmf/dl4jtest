@@ -69,5 +69,5 @@ libraryDependencies += "org.datavec" % "datavec-data-audio" % "0.6.0"
 libraryDependencies += "org.deeplearning4j" % "deeplearning4j-core" % "0.6.0"
 
 
-scalacOptions ++= Seq("-unchecked", "-deprecation")
+scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 

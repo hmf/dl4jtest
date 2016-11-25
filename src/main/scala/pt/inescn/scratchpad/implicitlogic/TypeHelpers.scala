@@ -1,8 +1,6 @@
 package pt.inescn.scratchpad.implicitlogic
 
-object TypeHelpers {
-  
-}
+// http://hacking-scala.org/post/73854628325/advanced-type-constraints-with-type-classes
 
 /*
  * Copyright 2016 Jasper Moeys

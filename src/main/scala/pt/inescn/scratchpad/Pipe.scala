@@ -1,77 +1,29 @@
 package pt.inescn.scratchpad
 
-import scala.language.higherKinds
-
-/**
- * Generic definition of a Monad used as a template for creating implicit and explicit data
- * transformations
- * @tparam M Type of the data transformation or container
- * @author Patrick Nicolas
- * @since December 21, 2013 0.98.1
- * @version 0.98.1
- * @see Scala for Machine Learning Chapter 1 Getting started / Monads and higher kinds
- */
-trait _Monad[ M[ _ ] ] {
-  def unit[ T ]( t: T ): M[ T ]
-  def map[ T, U ]( m: M[ T ] )( f: T => U ): M[ U ]
-  def flatMap[ T, U ]( m: M[ T ] )( f: T => M[ U ] ): M[ U ]
-}
-
-/*
- * Cake pattern
- * Mario
- * Spark MLLib pipes
- * Scalding
- * Cascading
- * https://github.com/mandar2812/DynaML
- * 
- * T - Transform
- * D - Data
- * P - Parameters
- * R - Results (prediction, regression, clusters, etc.)
- * M - Metrics for evaluation
- */
-
-import scala.util.{Try, Success, Failure} //Success or Failure
-
-/*
- * http://stackoverflow.com/questions/9594358/how-to-elegantly-implement-the-pipeline-pattern-using-scala
- * https://github.com/pthariensflame/scala-pipes
- * 
- */
-
-trait Data[ D ]
-trait PrePorcessedData[ D ]
-//trait Model[P[ _, _ ] <:< PreProcessor[_,_] ]
-
-/**
- * Normalization, Sampling, MovingAverage
- */
-trait PreProcessor[ T, D ] {
-  def preProcess( prcessing: T, data: D ): Try[ D ] = ???
-}
-
-trait Learner[ T, P, D, R, M ] {
-  def fit( params: P, data: D ): Try[ R ] = ???
-  def predict( params: P, testData: D ): Try[ M ] = ???
-}
-
-trait Evaluator[ T, P, D, R, M ] {
-  def evaluate( params: P, testData: D ): Try[ M ] = ???
-}
-
-class ModelA[ T, P, D, R, M ]( p: PreProcessor[ T, D ] ) extends Learner[ T, P, D, R, M ] {
-}
-
-/* TODO: remove
- * 
-import scala.collection.GenTraversableOnce
+//import scala.language.higherKinds
+import scala.language.implicitConversions
+import scala.util.{ Try, Success, Failure } //Success or Failure
 
 /**
  * @see https://medium.com/@anicolaspp/operator-in-scala-cbca7b939fc0#.c29s6e8w3
  * @see https://github.com/loverdos/scalapipes
  *         Uses "extend" + apply instead of an implicit conversion
  * @see http://stackoverflow.com/questions/34646526/pipeline-operator-in-scala
+ * 
+ * Issues with Pipe design and implementation
+ * @see http://stackoverflow.com/questions/40788426/scala-operator-causes-compilation-error-but-not-why/40791933
+ * @see http://stackoverflow.com/questions/40769848/scala-missing-parameter-type-in-type-class-operator/40770819
+ * 
+ * (all letters)
+ * |
+ * ^
+ * &
+ * = !
+ * < >
+ * :
+ * + -
+ * * / %
+ * (all other special characters)
  */
 class Pipe[ A ]( a: A ) {
   
@@ -108,22 +60,13 @@ object PipeOps {
   //implicit def toPipe[ A ]( a: Try[A] ) = Pipe(Try( a ))
  // implicit def toTry[ A ]( a: A) =  Success( a )
 }
-*/
+
 
 /**
- *  Cross validation
- *  . split data -> call learner -> collect learner evaluation -> aggregate -> evaluate aggregate evaluations
- *
- *  Parameter Search
- *  . generate combinations of parameters -> fit : CV, Learner -> aggregate -> evaluate aggregate evaluations
- *
- *  Learner
- *  . fit -> evaluate
- *
- *   sbt "run-main pt.inescn.scratchpad.ExperimentBuilder"
+ * 
  */
-object ExperimentBuilder {
-   
+object PipeCheck {
+
   /* examples:  http://www.codecommit.com/blog/scala/function-currying-in-scala
    * def add(x:Int, y:Int, z:Int) = x + y + z
   *  val addFive = add(5, _:Int, _:Int)
@@ -140,6 +83,8 @@ object ExperimentBuilder {
   
   def f(y: Seq[Int]) = y.filter { x: Int => x % 2 == 0 }
   def g = (y:Seq[Int]) => y.filter { x: Int => x % 2 == 0 }
+
+    import PipeOps._
 
   def main( args: Array[ String ] ) {
     
