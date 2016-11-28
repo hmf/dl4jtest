@@ -77,7 +77,7 @@ object GridPramaterSearch extends ParameterSearch {
     loop( list, List() )
   }
   
-  @tailrec
+  /*@tailrec
   def cartesian6[ A, B ]( list: => Stream[ Seq[ A ] ], f: Seq[ A ] => B ): Stream[ B ] = {
     def loop( lst: => Stream[ Seq[ A ] ], acc: Seq[ A ] ): Stream[ B ]  = {
       lst match {
@@ -86,7 +86,7 @@ object GridPramaterSearch extends ParameterSearch {
       }
     }
     loop( list, List() )
-  }
+  }*/
 
   /**
    * Example of a tail recursive call
@@ -104,6 +104,10 @@ object GridPramaterSearch extends ParameterSearch {
 
 }
 
+/**
+ * 
+ * sbt "run-main pt.inescn.scratchpad.SearchParameters"
+ */
 object SearchParameters {
 
   def main( args: Array[ String ] ) {
