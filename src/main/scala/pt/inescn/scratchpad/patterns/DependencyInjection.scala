@@ -1,4 +1,4 @@
-package pt.inescn.scratchpad
+package pt.inescn.scratchpad.patterns
 
 /**
  *  Example of the cake pattern

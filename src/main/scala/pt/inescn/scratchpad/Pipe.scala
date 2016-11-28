@@ -63,7 +63,7 @@ object PipeOps {
 
 
 /**
- * 
+ * sbt "run-main pt.inescn.scratchpad.PipeCheck"
  */
 object PipeCheck {
 
