@@ -133,6 +133,9 @@ object PipeCheck {
       
       //val r10 = (100.0 !> {x : Double => x / 0.0}) #> {x:Double => x* 3.0} 
       val r10 = 100.0 !> {x : Double => x / 0.0} &> {x:Double => x* 3.0} 
+
+      // A way to circumvent lint's warnings
+      val zero_i = 0
       
       // http://stackoverflow.com/questions/20195544/scala-how-to-understand-the-flatmap-method-of-try
       // http://www.codecommit.com/blog/ruby/monads-are-not-metaphors
@@ -142,14 +145,14 @@ object PipeCheck {
       println(Try(100 / 3) map (_ * 2) map ( _ - 100) )  // Success(-34)
       // but short-cuts on error
       print("2. ")
-      println( Try(100 / 0) map (_ * 2) map ( _ - 100) )  // Failure(java.lang.ArithmeticException: / by zero)
+      println( Try(100 / zero_i) map (_ * 2) map ( _ - 100) )  // Failure(java.lang.ArithmeticException: / by zero)
       print("3. ")
       println(Try(100) map {_ /0 }  ) // Failure(java.lang.ArithmeticException: / by zero)
       // propagates the results
       print("4. ")
       println(  Try(100 / 3) flatMap {x :Int => Try(x*2) } flatMap {x :Int => Try(x-100)} ) // Success(-34)
       print("5. ")
-      println( Try(100 / 0) flatMap {x :Int => Try(x*2) } flatMap {x :Int => Try(x-100)} ) // Failure(java.lang.ArithmeticException: / by zero)
+      println( Try(100 / zero_i) flatMap {x :Int => Try(x*2) } flatMap {x :Int => Try(x-100)} ) // Failure(java.lang.ArithmeticException: / by zero)
       print("6. ")
       println( Try(100) flatMap {x :Int => Try(x/0) } flatMap {x :Int => Try(x-100)} ) // Failure(java.lang.ArithmeticException: / by zero)
       

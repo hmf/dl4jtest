@@ -321,7 +321,7 @@ object StreamBuilder {
     println( s20.take( 10 ).toList.mkString( "{", ",", "}" ) )
 
     // append streams (note the take)
-    val s21 = s19.take( 15 ) append Stream.from( 1, -1 )
+    val s21 = s19.take( 15 ) append Stream.from( 1, -1 ).map { x => x.toDouble } // map to avoid converting to Any
     println( s21.take( 20 ).toList.mkString( "{", ",", "}" ) )
 
     // append combined streams (note the take)

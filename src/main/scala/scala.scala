@@ -76,12 +76,12 @@ object scala {
 
     println(Nd4j.mean(arr).toString + "Calculate mean of array")
     println(Nd4j.std(arr2).toString + "Calculate standard deviation of array")
-    println(Nd4j.`var`(arr2).toString, "Calculate variance")
+    println(Nd4j.`var`(arr2).toString + "Calculate variance")
 
     /** Find min and max values */
 
-    println(Nd4j.max(arr3), "Find max value in array")
-    println(Nd4j.min(arr3), "Find min value in array")
+    println(Nd4j.max(arr3).toString + "Find max value in array")
+    println(Nd4j.min(arr3).toString +  "Find min value in array")
 
 
   }
