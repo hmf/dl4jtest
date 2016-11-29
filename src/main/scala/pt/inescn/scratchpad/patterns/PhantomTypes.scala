@@ -3,6 +3,7 @@ package pt.inescn.scratchpad.patterns
 
 /**
  * Shows how we can associate a parametric type that can be used to hold state. 
+ * Usually referred to as Phantom types. 
  * 
  * @see http://gigiigig.github.io/tlp-step-by-step/phantom-types.html
  * @see http://blog.rafaelferreira.net/2008/07/type-safe-builder-pattern-in-scala.html
