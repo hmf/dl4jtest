@@ -5,12 +5,6 @@ import scala.language.implicitConversions
 import scala.util.{ Try, Success, Failure } //Success or Failure
 
 /**
- * https://softwaremill.com/comparing-akka-stream-scalaz-stream/
- * https://github.com/scala-blitz/scala-blitz/issues/47
- * http://stackoverflow.com/questions/17178201/parallel-iterator-in-scala
- */
-
-/**
  * @see https://medium.com/@anicolaspp/operator-in-scala-cbca7b939fc0#.c29s6e8w3
  * @see https://github.com/loverdos/scalapipes
  *         Uses "extend" + apply instead of an implicit conversion
