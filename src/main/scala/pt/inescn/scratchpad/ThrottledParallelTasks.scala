@@ -161,30 +161,41 @@ object ThrottledParallelTasks {
   }
   println( f1 )
 
-  /**
-   * Use the loan pattern to ensure that we write stuff and then flush the data
-   */
-  def withFileWrite[ A ]( writer: PrintWriter )( fn: PrintWriter => Unit ): Unit = {
-    try {
-      fn( writer )
-    } finally
-      writer.flush
-  }
-
   // http://stackoverflow.com/questions/3893274/how-to-mix-in-a-trait-to-instance
   // http://stackoverflow.com/questions/10373318/mixing-in-a-trait-dynamically
   // http://alvinalexander.com/scala/how-to-dynamically-add-scala-trait-to-object-instance
   // http://www.cakesolutions.net/teamblogs/ways-to-pattern-match-generic-types-in-scala
   trait Managed {
     def close() : Unit
+    def flush() : Unit
+    def checkError(): Boolean
   }
 
-  // TODO: use Try()
-  def using[ T <: Managed, U ]( resource: T )( block: T => Unit) {
-    try {
-      block(resource)
-    } finally {
+  /**
+   * Use the loan pattern to ensure that we write stuff and then flush the file
+   * The PrintWriter does throw exceptions and fails silently. Check for errors manually. 
+   *  
+   * @see   http://stackoverflow.com/questions/297303/printwriter-and-printstream-never-throw-ioexceptions
+   */
+  def usingThenFlush[ T <: Managed, U  ]( resource: T )( block: T => U) : Try[U] = {
+      Try{
+          val r = block( resource)
+          resource.flush
+          if (resource.checkError())  throw new IOException("Flush failed") else r
+      }
+  }
+
+  /**
+   * Use the loan pattern to ensure that we write stuff and then close the file
+   * The PrintWriter does throw exceptions and fails silently. Check for errors manually. 
+   *  
+   * @see   http://stackoverflow.com/questions/297303/printwriter-and-printstream-never-throw-ioexceptions
+   */
+  def usingThenClose[ T <: Managed, U ]( resource: T )( block: T => U) : Try[U] = {
+    Try {
+      val r = block(resource)
       resource.close
+      if (resource.checkError())  throw new IOException("Flush failed") else r
     }
   }
 
@@ -200,15 +211,22 @@ object ThrottledParallelTasks {
     writer.println( s"$data: $d $z" )
   }
 
+  def getFlushingLogger = {
+    
+  }
+  
   def main( args: Array[ String ] ) {
 
     val fileWithPath = "./output/test2.txt"
     val append = true
-    val writer = new PrintWriter( new BufferedWriter( new FileWriter( fileWithPath, append ) ) ) with Managed
+    //val writer = new PrintWriter( new BufferedWriter( new FileWriter( fileWithPath, append ) ) ) with Managed
+    val writer = new PrintWriter( new BufferedWriter( new FileWriter( fileWithPath, append ) ), true ) with Managed
    
     //using(writer) (resultLogger _) 
-    //def w(x: PrintWriter with Managed) = resultLogger(x, "A message") 
-    using(writer) (resultLogger("M") _) 
+    val r1 = usingThenClose(writer) (resultLogger("C") _) 
+    println(s"Loan Close : $r1")
+    val r2 = usingThenFlush(writer) (resultLogger("F") _) 
+    println(s"Loan Flush : $r2")
     
     /*
     // Will start threads and wait on all of them in the same order
