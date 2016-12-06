@@ -25,8 +25,11 @@ scalaVersion in ThisBuild := "2.12.0"
 
 //libraryDependencies += "org.scala-lang" % "scala-library" % "2.12.0"
 
-
+// http://alvinalexander.com/scala/how-to-use-java-style-logging-slf4j-scala
+// https://github.com/typesafehub/scala-logging
 libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.7.21"
+//libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.1.7"
+libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0"
 
 // Apache Common
 libraryDependencies += "org.apache.commons" % "commons-math3" % "3.6.1"
