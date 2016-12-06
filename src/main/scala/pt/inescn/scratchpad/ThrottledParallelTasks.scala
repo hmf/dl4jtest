@@ -182,7 +182,7 @@ object ThrottledParallelTasks {
   // TODO: use Try()
   def using[ T <: Managed, U ]( resource: T )( block: T => Unit) {
     try {
-      block( resource)
+      block(resource)
     } finally {
       resource.close
     }
@@ -194,10 +194,10 @@ object ThrottledParallelTasks {
   import java.time.ZonedDateTime;
 
   // http://stackoverflow.com/questions/2207425/what-automatic-resource-management-alternatives-exist-for-scala
-  def resultLogger(writer: PrintWriter) = {
+  def resultLogger(data : String)(writer: PrintWriter) = {
     val d = LocalDateTime.now
     val z = ZoneId.systemDefault() // ZoneId.of( "Europe/Lisbon")
-    writer.println( s"Hello: $d $z" )
+    writer.println( s"$data: $d $z" )
   }
 
   def main( args: Array[ String ] ) {
@@ -206,7 +206,9 @@ object ThrottledParallelTasks {
     val append = true
     val writer = new PrintWriter( new BufferedWriter( new FileWriter( fileWithPath, append ) ) ) with Managed
    
-    using(writer) (resultLogger _) 
+    //using(writer) (resultLogger _) 
+    //def w(x: PrintWriter with Managed) = resultLogger(x, "A message") 
+    using(writer) (resultLogger("M") _) 
     
     /*
     // Will start threads and wait on all of them in the same order
