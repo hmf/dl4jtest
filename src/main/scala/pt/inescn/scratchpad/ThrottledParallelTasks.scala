@@ -18,6 +18,9 @@ import scala.concurrent.duration.Duration
  * lecompte@gmail.com
  * http://twitter.com/ryanlecompte
  *
+ * http://www.cakesolutions.net/teamblogs/demystifying-the-blocking-construct-in-scala-futures
+ * "This means that out of the box the blocking {} constructs only has an effect if you use the global execution context, nothing more"
+ * 
  * http://blog.jessitron.com/2014/01/choosing-executorservice.html
  *  . https://gist.github.com/jessitron/60d0c1792e0c42b12533
  * http://blog.jessitron.com/2014/02/scala-global-executioncontext-makes.html
@@ -35,7 +38,7 @@ import scala.concurrent.duration.Duration
 object ThrottledParallelTasks {
 
   val numIOThreads = 2
-  val numThread = sys.runtime.availableProcessors
+  val numThread = sys.runtime.availableProcessors - numIOThreads
 
   // https://examples.javacodegeeks.com/core-java/util/concurrent/rejectedexecutionexception/java-util-concurrent-rejectedexecutionexception-how-to-solve-rejectedexecutionexception/
   import java.util.concurrent.ExecutorService
@@ -86,6 +89,11 @@ object ThrottledParallelTasks {
   /**
    * The println does not show in the console.
    * We have to flush in order to see them.
+   * Don't block so that OOM can be easily shown. 
+   * This blocking reduced the number of parallel tasks
+   * created by the global (ForkJoin) pool. 
+   * 
+   * @see http://www.cakesolutions.net/teamblogs/demystifying-the-blocking-construct-in-scala-futures
    */
   def longComputation() = {
     val id = Thread.currentThread().getId
@@ -111,8 +119,6 @@ object ThrottledParallelTasks {
     //}
   }
 
-  //val singleThreadContext = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(1))
-  val singleThreadContext = ExecutionContext.fromExecutorService( java.util.concurrent.Executors.newSingleThreadExecutor() )
 
   // http://rapture.io/
   // https://github.com/scala-incubator/scala-io
@@ -160,12 +166,10 @@ object ThrottledParallelTasks {
    * A task may succeed or fail. If it succeeds, then write to the
    */
   def logResult[ T ]( format: T => String )( r: Try[ T ] ) = {
-    blocking {
       r match {
         case Success( id ) => format( id )
         case Failure( t )  => "ERROR; " + t.getMessage
       }
-    }
   }
 
   def resultLogger[ T ]( logResult: T => String )( writer: PrintWriter )( data: T ) = {
@@ -173,6 +177,10 @@ object ThrottledParallelTasks {
       writer.println( logResult( data ) )
     }
   }
+  
+  /*
+   * Basic Future experiments
+   */
 
   def time[ R ]( block: => R ): R = {
     val t0 = System.nanoTime()
@@ -202,22 +210,45 @@ object ThrottledParallelTasks {
    * We get about 90% CPU usage.
    */
   def experiment_0( numTasks: Int ) = {
-    println( "Started experiment 0" )
+    val id = 0
+    println( s"Started experiment $id" )
     val sum = ( 1 to numTasks ).toIterator.map( i => Future( timeKiller( i ) ) ).reduce( reduce )
     println( Await.result( sum, Duration.Inf ) )
-    println( "Finished experiment 0" )
+    println( s"Finished experiment $id" )
   }
 
   /**
    * Here we need to use a CPU intensive task consume more CPU.  The use of `longComputation` that uses `sleep` 
    * will produce about 4% CPU usage. With the `timeKiller` we get about 85% CPU usage. 
+   * 
+   * Note: ForkJoin grows its queue indefinitely. If we keep on adding tasks we end up with an out-of-memory error.
+   *  
+   * @see http://www.cakesolutions.net/teamblogs/demystifying-the-blocking-construct-in-scala-futures
    */
   def experiment_1( numTasks: Int ) = {
-    println( "Started experiment 1" )
+    val id = 1
+    println( s"Started experiment $id" )
     val s = ( 0 to numTasks ).toStream
-    //s.foreach { x => println( x ); val f = Future( longComputation ) }
-    s.foreach { x => println( s"Created task: $x" ); val f = Future( timeKiller(x) ) }
-    println( "Finished experiment 1" )
+    val executer = ForkJoinPool.commonPool() // no limits on the queue size
+    val context = ExecutionContext.fromExecutorService( executer )
+    s.foreach { x => println( x ); val f = Future( longComputation )(context)  }
+    //s.foreach { x => println( s"Created task: $x" ); val f = Future( timeKiller(x) )(context)  }
+    println( s"Finished experiment $id" )
+  }
+
+  /**
+   * Same as above only now we use a fixed thread pool. In this case we can exhaust
+   * the available resources and task execution will fail (be rejected). 
+   */
+  def experiment_2( numTasks: Int ) = {
+    val id = 2
+    println( s"Started experiment $id" )
+    val s = ( 0 to numTasks ).toStream
+    val executer = java.util.concurrent.Executors.newFixedThreadPool( 1 ) // fixed queue size
+    val context = ExecutionContext.fromExecutorService( executer )
+    //s.foreach { x => println( x ); val f = Future( longComputation )(context) }
+    s.foreach { x => println( s"Created task: $x" ); val f = Future( timeKiller(x) )(context)  }
+    println( s"Finished experiment $id" )
   }
 
   /**
@@ -234,19 +265,21 @@ object ThrottledParallelTasks {
    * Solution:
    * @see http://stackoverflow.com/questions/40981240/throttling-scala-future-blocks-when-oncomplete-is-used/40982776
    */
-  def experiment_2( numTasks: Int ) = {
-    println( "Started experiment 2" )
+  def experiment_3( numTasks: Int ) = {
+    val id = 3
+    println( s"Started experiment $id" )
     val s = ( 0 to numTasks ).toStream
     // Deadlock
     s.foreach { x => println( s"Created task: $x" ); val f = Future( longComputation ); f.onComplete{ processResult } }
-    println( "Finished experiment 2" )
+    println( s"Finished experiment $id" )
   }
 
   /**
    * Same as experiment 2. Deadlock will occur. 
    */
-  def experiment_3( numTasks: Int ) = {
-    println( "Started experiment 3" )
+  def experiment_4( numTasks: Int ) = {
+    val id = 4
+    println( s"Started experiment $id" )
     val s = ( 0 to numTasks ).toStream
     // Deadlock
     s.foreach { x =>
@@ -256,19 +289,25 @@ object ThrottledParallelTasks {
       p completeWith f
       p.future.onComplete{ processResult }
     }
-    println( "Finished experiment 3" )
+    println( s"Finished experiment $id" )
   }
 
-  def experiment_4( numTasks: Int ) = {
-    println( "Started experiment 4" )
+   //val fixedThreadContext = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(1))
+  //val fixedThreadContext = ExecutionContext.fromExecutorService( java.util.concurrent.Executors.newSingleThreadExecutor() )
+  val fixedThreadContext = ExecutionContext.fromExecutorService( java.util.concurrent.Executors.newFixedThreadPool( numIOThreads ) )
+ // cachedthreadpool ?
+  
+  def experiment_5( numTasks: Int ) = {
+    val id = 5
+    println( s"Started experiment $id" )
     val s = ( 0 to numTasks ).toStream
     s.foreach { x =>
       println( s"Launhed $x" )
       //val f = Future( longComputation )  
       val f = Future( timeKiller( x ) )
-      f.onComplete { processResult } ( singleThreadContext )
+      f.onComplete { processResult } ( fixedThreadContext )
     }
-    println( "Finished experiment 4" )
+    println( s"Finished experiment $id" )
   }
   // CheckManaged
 
@@ -276,16 +315,19 @@ object ThrottledParallelTasks {
 
     // Ok, synchronized
     time( experiment_0( 100 ) )
-    // OOM, did not occur - no onCompete
-    time( experiment_1( 100 ) )
+    // OOM, growing pool size - no onCompete
+    // > 4832432
+    //time( experiment_1( 100000000 ) )
+    // Tasks rejected, fixed pool size- no onCompete
+    time( experiment_2( 100000000 ) )
     
-    // Deadlock
-    //time( experiment_2( 1000 ) )
     // Deadlock
     //time( experiment_3( 1000 ) )
+    // Deadlock
+    //time( experiment_4( 1000 ) )
     
     // Ok
-    time( experiment_4( 100 ) )
+    time( experiment_5( 100 ) )
 
 
     // Works
@@ -294,7 +336,7 @@ object ThrottledParallelTasks {
       println( s"Launhed $x" )
       //val f = Future( longComputation )  
       val f = Future( timeKiller( x ) )
-      f.onComplete { processResult } ( singleThreadContext )
+      f.onComplete { processResult } ( fixedThreadContext )
     }
 
     // see http://stackoverflow.com/questions/18425026/shutdown-and-awaittermination-which-first-call-have-any-difference
@@ -309,9 +351,9 @@ object ThrottledParallelTasks {
     // If all the contexts are not shutdown then the man thread will remain active
     // All main tasks executed, so all callbacks already requested
     // No more callbacks
-    singleThreadContext.shutdown
+    fixedThreadContext.shutdown
     // Wait until they finish
-    singleThreadContext.awaitTermination( 100, TimeUnit.DAYS )
+    fixedThreadContext.awaitTermination( 100, TimeUnit.DAYS )
   }
 
 }
