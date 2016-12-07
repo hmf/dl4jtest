@@ -15,6 +15,7 @@ import scala.util.{ Try, Success, Failure }
  * sbt "run-main pt.inescn.utils.FileLoans"
  */
 object FileLoans {
+  /*  
   //val writer : Writer = new BufferedWriter(new OutputStreamWriter( new FileOutputStream("filename.txt"), "utf-8"))
   // writer.write("something");
 
@@ -31,13 +32,13 @@ object FileLoans {
   val f1 = Try {
     //val writer = new PrintWriter( "./output/test2.txt", StandardCharsets.UTF_8.name()) // creates
     //val writer : PrintWriter = new PrintWriter(new FileOutputStream( new File("./output/test2.txt"), true /* append = true */));     
-    val writer: PrintWriter = new PrintWriter( new BufferedWriter( new FileWriter( "./output/test2.txt", true ) ) )
+    val writer: PrintWriter = new PrintWriter( new BufferedWriter( new FileWriter( "./output/test2.txt", true ) ) )    
     writer.println( "4" )
     writer.flush()
     writer.close
   }
   println( f1 )
-
+*/
   // http://stackoverflow.com/questions/3893274/how-to-mix-in-a-trait-to-instance
   // http://stackoverflow.com/questions/10373318/mixing-in-a-trait-dynamically
   // http://alvinalexander.com/scala/how-to-dynamically-add-scala-trait-to-object-instance
@@ -66,10 +67,75 @@ object FileLoans {
 
   /**
    * Loan pattern ensure we catch all exceptions and return a Try.
-   * Execute `exec` on the `resource` and return the result as a `Success` or 
+   * Execute `exec` on the `resource` and return the result as a `Success` or
    * alternately return `Failure`
    */
-  def using[ T <: Managed, U ]( resource: T )( exec: T => U ): Try[ U ] = { Try{ exec( resource ) }  }
+  def using[ T <: Managed, U ]( resource: T )( exec: T => U ): Try[ U ] = { Try{ exec( resource ) } }
+
+  /**
+   * The same as using by lock on a process basis. Slow.
+   * FileLock is only for interprocess locking, javadoc reads:
+   * File locks are held on behalf of the entire Java virtual machine.
+   * They are not suitable for controlling access to a file by multiple threads
+   * within the same virtual machine."
+   *
+   * Note that this only works if the resource has a <code>getChannel()</code> method.
+   * For example, the PrintWrite does not have. Note also that PrintWriter is thread
+   * safe so the locking loans are not required.
+   *
+   * TODO:  This is an unsafe version. We should type the locked resources so that
+   * we ensure that we only check after the lock has been released. We also have an issue
+   * with composition - we can only flush or check when locked.
+   *
+   * PrintWriter (and Writer) are synchronized. So this is not required.
+   * @see http://stackoverflow.com/questions/128038/how-can-i-lock-a-file-using-java-if-possible
+   * @see http://stackoverflow.com/questions/11543967/how-to-lock-a-file
+   */
+  def usingProcessLock[ T <: ChannelManaged, U ]( resource: T )( exec: T => U ): Try[ U ] = {
+    Try {
+      val channel: FileChannel = resource.getChannel();
+      // This method blocks until it can retrieve the lock.
+      val lock: FileLock = channel.lock();
+      val r = exec( resource )
+      // Release the lock - if it is not null!
+      if ( lock != null ) {
+        lock.release();
+      }
+      // Close the channel also closes the file
+      //channel.close();
+      r
+    }
+  }
+
+  //import java.util.concurrent.locks.ReentrantLock
+  //val glock : ReentrantLock  = new ReentrantLock();
+
+  val glock: Object = new Object();
+
+  /**
+   * We can opt for the simple Java synchronized or the ReentrantLock.  It seems that
+   * for the simple case of thread concurrency synchronized my be more efficient.
+   *
+   * TODO:  This is an unsafe version. We should type the locked resources so that
+   * we ensure that we only check after the lock has been released. We also have an issue
+   * with composition - we can only flush or check when locked.
+   *
+   * @see http://stackoverflow.com/questions/33682553/finally-equivalent-in-scala-try
+   * @see https://blogs.oracle.com/dave/entry/java_util_concurrent_reentrantlock_vs
+   */
+  def lockByThread[ T <: Managed, U ]( resource: T )( exec: T => U ): Try[ U ] = {
+    glock.synchronized {
+      Try {
+        exec( resource )
+      }
+    }
+  }
+
+  /**
+   * Loan pattern ensure we catch all exceptions and return a Try.
+   * Close the `resource` and return the `prevResult` is all is ok.
+   */
+  def close[ T <: Managed, U ]( resource: T )( prevResult: U ): Try[ U ] = { Try { resource.close; prevResult } }
 
   /**
    * Loan pattern ensure we catch all exceptions and return a Try.
@@ -77,8 +143,18 @@ object FileLoans {
    */
   def flush[ T <: FlushManaged, U ]( resource: T )( prevResult: U ): Try[ U ] = { Try { resource.flush; prevResult } }
 
-  def check[ T <: CheckManaged, U ]( resource: T )( prevResult: U ): Try[ U ] = 
-            { Try {if ( resource.checkError() ) throw new IOException( "Error detected" ) else prevResult } }
+  /**
+   * Some resources do not throw exceptions nor return `Try`.
+   * For example Java's PrinWriter catches all exceptions and
+   * does not return any failure code. Here we explicitly check for
+   * an error and report that.
+   */
+  def check[ T <: CheckManaged, U ]( resource: T )( prevResult: U ): Try[ U ] =
+    { Try { if ( resource.checkError() ) throw new IOException( "Error detected" ) else prevResult } }
+
+  /*
+   * Combinations of flushing, closing and checking
+   */
 
   /**
    * Use the loan pattern to ensure that we write stuff and then flush the file
@@ -99,27 +175,6 @@ object FileLoans {
   def usingThenFlushAndCheck[ T <: FlushManaged with CheckManaged, U ]( resource: T )( exec: T => U ): Try[ U ] = {
     usingThenFlush( resource )( exec ) flatMap { x => check( resource )( x ) }
   }
-  
-  /*
-  /**
-   * Use the loan pattern to ensure that we write stuff and then flush the file
-   * The PrintWriter does not throw exceptions and fails silently. Check for errors manually.
-   *
-   * @see   http://stackoverflow.com/questions/297303/printwriter-and-printstream-never-throw-ioexceptions
-   */
-  def usingThenFlush[ T <: CheckManaged, U ]( resource: T )( exec: T => U ): Try[ U ] = {
-    Try {
-      val r = exec( resource )
-      resource.flush
-      if ( resource.checkError() ) throw new IOException( "Flush failed" ) else r
-    }
-  }
-*/
-  // https://mauricio.github.io/2014/02/17/scala-either-try-and-the-m-word.html
-  def XusingThenFlush[ T <: CheckManaged, U ]( resource: T )( exec: T => U ): Try[ U ] = {
-    using( resource )( exec )
-      .flatMap { x => Try { if ( resource.checkError() ) throw new IOException( "Flush failed" ) else x } }
-  }
 
   /**
    * Use the loan pattern to ensure that we write stuff and then close the file
@@ -127,66 +182,14 @@ object FileLoans {
    *
    * @see   http://stackoverflow.com/questions/297303/printwriter-and-printstream-never-throw-ioexceptions
    */
-  def usingThenClose[ T <: CheckManaged, U ]( resource: T )( exec: T => U ): Try[ U ] = {
-    Try {
-      val r = exec( resource )
-      resource.close
-      if ( resource.checkError() ) throw new IOException( "Close failed" ) else r
-    }
+  def usingThenClose[ T <: Managed, U ]( resource: T )( exec: T => U ): Try[ U ] = {
+    using( resource )( exec ) flatMap { x => close( resource )( x ) }
   }
 
   /**
-   * FileLock is only for interprocess locking, javadoc reads:
-   * File locks are held on behalf of the entire Java virtual machine.
-   * They are not suitable for controlling access to a file by multiple threads
-   * within the same virtual machine."
+   * PrinWriter for example fails silently. Explicitly check for the issues.
    *
-   * Note that this only works if the resource has a <code>getChannel()</code> method.
-   * For example, the PrintWrite does not have. Note also that PrintWriter is thread
-   * safe so the locking loans are not required.
-   *
-   * PrintWriter (and Writer) are synchronized. So this is not required.
-   * @see http://stackoverflow.com/questions/128038/how-can-i-lock-a-file-using-java-if-possible
-   * @see http://stackoverflow.com/questions/11543967/how-to-lock-a-file
-   */
-  def lockByProcessThenUse[ T <: ChannelManaged, U ]( resource: T )( exec: T => U ): Try[ U ] = {
-    Try {
-      val channel: FileChannel = resource.getChannel();
-      // This method blocks until it can retrieve the lock.
-      val lock: FileLock = channel.lock();
-      val r = exec( resource )
-      // Release the lock - if it is not null!
-      if ( lock != null ) {
-        lock.release();
-      }
-      // Close the channel also closes the file
-      //channel.close();
-      r
-    }
-  }
-
-  import java.util.concurrent.locks.ReentrantLock
-  //val glock : ReentrantLock  = new ReentrantLock();
-
-  val glock: Object = new Object();
-
-  /**
-   * We can opt for the simple Java synchronized or the ReentrantLock.  It seems that
-   * for the simple case of thread concurrency synchronized my be more efficient.
-   *
-   * @see http://stackoverflow.com/questions/33682553/finally-equivalent-in-scala-try
-   * @see https://blogs.oracle.com/dave/entry/java_util_concurrent_reentrantlock_vs
-   */
-  def lockByThreadThenUse[ T <: Managed, U ]( resource: T )( exec: T => U ): Try[ U ] = {
-    glock.synchronized {
-      Try {
-        exec( resource )
-      }
-    }
-  }
-
-  /**
-   * PrinWriter for example fails silently. expliclty check for the issues.
+   * TODO: How do we compose such a thing?
    */
   def lockByThreadThenUseAndCheck[ T <: CheckManaged, U ]( resource: T )( exec: T => U ): Try[ U ] = {
     glock.synchronized {
@@ -220,17 +223,38 @@ object FileLoans {
     }
   }
 
+  /**
+   * Test code and examples.
+   */
   def main( args: Array[ String ] ) {
-    val fileWithPath = "./output/test2.txt"
-    val append = true
-    //val writer = new PrintWriter( new BufferedWriter( new FileWriter( fileWithPath, append ) ) ) with Managed
-    val writer = new PrintWriter( new BufferedWriter( new FileWriter( fileWithPath, append ) ), true ) with FlushManaged with CheckManaged
 
-    //using(writer) (resultLogger _) 
+    val fileWithPath = "./output/test2.txt"
+    // Make sure we append the results we collect
+    val append = true
+    // We use a PrintWriter that flushes on newlines automatically. No need to do it explicitly.
+    val autoFlush = true
+
+    // Create or clean the file if it exists
+    val f = Try {
+      val writer = new PrintWriter( fileWithPath, StandardCharsets.UTF_8.name() ) // creates
+      writer.flush()
+      writer.close
+    }
+    println( f )
+
+    // Open the file indicating its capabilities via the appropriate traits
+    //val writer = new PrintWriter( new BufferedWriter( new FileWriter( fileWithPath, append ) ) ) with Managed with CheckManaged
+    //val writer = new PrintWriter( new BufferedWriter( new FileWriter( fileWithPath, append ) ), autoFlush  ) with FlushManaged with CheckManaged
+    // A way to add append, auto-flush and the character set
+    val tmpWriter = new BufferedWriter( new OutputStreamWriter( new FileOutputStream( fileWithPath, append ), StandardCharsets.UTF_8.name() ) )
+    val writer = new PrintWriter( tmpWriter ) with FlushManaged with CheckManaged
+
+    // Write 
     val r2 = usingThenFlush( writer ) ( resultLogger( "F" ) _ )
     println( s"Loan Flush : $r2" )
     val r1 = usingThenClose( writer ) ( resultLogger( "C" ) _ )
     println( s"Loan Close : $r1" )
+    // This will no be written - file was closed, so error
     val r3 = lockByThreadThenUseAndCheck( writer ) ( resultLogger( "D" ) _ )
     println( s"Loan Lock : $r3" )
   }
