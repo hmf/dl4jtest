@@ -12,33 +12,23 @@ import scala.util.{ Try, Success, Failure }
  * ARM - Automatic Resource Management
  * Used to manage file for result recoding.
  *
+ * @see http://stackoverflow.com/questions/2207425/what-automatic-resource-management-alternatives-exist-for-scala
+ * @see  http://stackoverflow.com/questions/128038/how-can-i-lock-a-file-using-java-if-possible
+ * 
+ * Scala IO 
+ *  http://rapture.io/
+ * https://github.com/scala-incubator/scala-io
+ * https://github.com/jesseeichar/scala-io
+ * https://github.com/pathikrit/better-files
+ * https://github.com/jsuereth/scala-arm
+ * http://langref.org/scala/parallel/threads/create-readwrite-lock-on-a-shared-resource
+ * http://stackoverflow.com/questions/2885173/how-to-create-a-file-and-write-to-a-file-in-java
+ * http://docs.oracle.com/javase/tutorial/essential/io/file.html
+ * import scala.io.Source
+ *  
  * sbt "run-main pt.inescn.utils.FileLoans"
  */
 object FileLoans {
-  /*  
-  //val writer : Writer = new BufferedWriter(new OutputStreamWriter( new FileOutputStream("filename.txt"), "utf-8"))
-  // writer.write("something");
-
-  val f = Try {
-    val writer = new PrintWriter( "./output/test2.txt", StandardCharsets.UTF_8.name() ) // creates
-    writer.write( "Hello\n" )
-    writer.write( "1\n" )
-    writer.append( "Two\n" )
-    writer.flush()
-    writer.close
-  }
-  println( f )
-
-  val f1 = Try {
-    //val writer = new PrintWriter( "./output/test2.txt", StandardCharsets.UTF_8.name()) // creates
-    //val writer : PrintWriter = new PrintWriter(new FileOutputStream( new File("./output/test2.txt"), true /* append = true */));     
-    val writer: PrintWriter = new PrintWriter( new BufferedWriter( new FileWriter( "./output/test2.txt", true ) ) )    
-    writer.println( "4" )
-    writer.flush()
-    writer.close
-  }
-  println( f1 )
-*/
   // http://stackoverflow.com/questions/3893274/how-to-mix-in-a-trait-to-instance
   // http://stackoverflow.com/questions/10373318/mixing-in-a-trait-dynamically
   // http://alvinalexander.com/scala/how-to-dynamically-add-scala-trait-to-object-instance
@@ -201,27 +191,16 @@ object FileLoans {
   }
 
   import java.time.LocalDateTime;
-  import java.time.Period;
   import java.time.ZoneId;
   import java.time.ZonedDateTime;
 
-  // http://stackoverflow.com/questions/2207425/what-automatic-resource-management-alternatives-exist-for-scala
   def resultLogger( data: String )( writer: PrintWriter ) = {
     val d = LocalDateTime.now
     val z = ZoneId.systemDefault() // ZoneId.of( "Europe/Lisbon")
-    println( s"$data: $d $z" )
+    //println( s"$data: $d $z" )
     writer.println( s"$data: $d $z" )
   }
 
-  // http://stackoverflow.com/questions/128038/how-can-i-lock-a-file-using-java-if-possible
-  def logResult[ T ]( r: Try[ T ] ) = {
-    blocking {
-      r match {
-        case Success( id ) => println( s"Thread result: $id" )
-        case Failure( t )  => println( "An error has occured: " + t.getMessage )
-      }
-    }
-  }
 
   /**
    * Test code and examples.
