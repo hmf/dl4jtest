@@ -12,6 +12,19 @@ import java.util.concurrent.ArrayBlockingQueue
 import scala.concurrent._
 import scala.concurrent.duration.Duration
 
+import java.util.concurrent.RejectedExecutionHandler
+
+/**
+ * When a thread pool bounded queue is full, we simply terminate the application.
+ */
+object ExitAppRejectedExecutionHandler extends RejectedExecutionHandler {
+  @Override
+  def rejectedExecution( worker: Runnable, executor: ThreadPoolExecutor ) = {
+    System.out.println( worker.toString() + " is Rejected" );
+    System.exit( 1 )
+  }
+}
+
 /**
  * Ryan LeCompte
  * https://github.com/ryanlecompte
@@ -20,7 +33,7 @@ import scala.concurrent.duration.Duration
  *
  * http://www.cakesolutions.net/teamblogs/demystifying-the-blocking-construct-in-scala-futures
  * "This means that out of the box the blocking {} constructs only has an effect if you use the global execution context, nothing more"
- * 
+ *
  * http://blog.jessitron.com/2014/01/choosing-executorservice.html
  *  . https://gist.github.com/jessitron/60d0c1792e0c42b12533
  * http://blog.jessitron.com/2014/02/scala-global-executioncontext-makes.html
@@ -89,19 +102,19 @@ object ThrottledParallelTasks {
   /**
    * The println does not show in the console.
    * We have to flush in order to see them.
-   * Don't block so that OOM can be easily shown. 
+   * Don't block so that OOM can be easily shown.
    * This blocking reduced the number of parallel tasks
-   * created by the global (ForkJoin) pool. 
-   * 
+   * created by the global (ForkJoin) pool.
+   *
    * @see http://www.cakesolutions.net/teamblogs/demystifying-the-blocking-construct-in-scala-futures
    */
-  def longComputation() = {
+  def longComputation( timeMS: Long = 500 )() = {
     val id = Thread.currentThread().getId
     //blocking {
-      //println( s"Started thread: $id ***************" )
-      Thread.sleep( 500 )
-      //println( s"Finished thread: $id ***************" )
-      System.out.flush()
+    //println( s"Started thread: $id ***************" )
+    Thread.sleep( timeMS )
+    //println( s"Finished thread: $id ***************" )
+    System.out.flush()
     //}
     id
   }
@@ -119,7 +132,6 @@ object ThrottledParallelTasks {
     //}
   }
 
-
   // http://rapture.io/
   // https://github.com/scala-incubator/scala-io
   // https://github.com/jesseeichar/scala-io
@@ -132,18 +144,6 @@ object ThrottledParallelTasks {
   //import scala.io.Source
   import java.io._
   import scala.util.{ Try, Success, Failure }
-
-  val filename = " ./output/results.txt"
-  //val o = Source.fromFile( filename )  // reading only
-  //val writer = new PrintWriter(new File(filename)) // must exist
-  try {
-    val writer = new PrintWriter( "./output/test.txt", "UTF-8" ) // creates
-    writer.write( "Hello" )
-    writer.close
-  } catch {
-    case ioe: IOException => ()
-    //case e: Exception => less specific after
-  }
 
   ////////////////////////////////////////////////////
   import java.time.LocalDateTime;
@@ -166,10 +166,10 @@ object ThrottledParallelTasks {
    * A task may succeed or fail. If it succeeds, then write to the
    */
   def logResult[ T ]( format: T => String )( r: Try[ T ] ) = {
-      r match {
-        case Success( id ) => format( id )
-        case Failure( t )  => "ERROR; " + t.getMessage
-      }
+    r match {
+      case Success( id ) => format( id )
+      case Failure( t )  => "ERROR; " + t.getMessage
+    }
   }
 
   def resultLogger[ T ]( logResult: T => String )( writer: PrintWriter )( data: T ) = {
@@ -177,7 +177,7 @@ object ThrottledParallelTasks {
       writer.println( logResult( data ) )
     }
   }
-  
+
   /*
    * Basic Future experiments
    */
@@ -218,43 +218,65 @@ object ThrottledParallelTasks {
   }
 
   /**
-   * Here we need to use a CPU intensive task consume more CPU.  The use of `longComputation` that uses `sleep` 
-   * will produce about 4% CPU usage. With the `timeKiller` we get about 85% CPU usage. 
-   * 
+   * Here we need to use a CPU intensive task consume more CPU.  The use of `longComputation` that uses `sleep`
+   * will produce about 4% CPU usage. With the `timeKiller` we get about 85% CPU usage.
+   *
    * Note: ForkJoin grows its queue indefinitely. If we keep on adding tasks we end up with an out-of-memory error.
-   *  
+   * In order to "force" this we must nake sure tha the processes are long-running. This is why we set the wait for
+   * 1500ms. Norte that if we used the `block` construct, the resuklt is different. In our tests we get :
+   *
+   * `java.lang.OutOfMemoryError: Java heap space
+   * at java.util.concurrent.ForkJoinPool$WorkQueue.growArray(ForkJoinPool.java:886)`
+   *
+   * For a queue with 4194394 elements.
+   *
    * @see http://www.cakesolutions.net/teamblogs/demystifying-the-blocking-construct-in-scala-futures
    */
   def experiment_1( numTasks: Int ) = {
     val id = 1
     println( s"Started experiment $id" )
     val s = ( 0 to numTasks ).toStream
-    val executer = ForkJoinPool.commonPool() // no limits on the queue size
-    val context = ExecutionContext.fromExecutorService( executer )
-    s.foreach { x => println( x ); val f = Future( longComputation )(context)  }
-    //s.foreach { x => println( s"Created task: $x" ); val f = Future( timeKiller(x) )(context)  }
+    val executerl = ForkJoinPool.commonPool() // no limits on the queue size
+    val contextl = ExecutionContext.fromExecutorService( executerl )
+    s.foreach { x => println( x ); val f = Future( longComputation( 1500 ) )( contextl ) }
+    //s.foreach { x => println( s"Created task: $x" ); val f = Future( timeKiller(x) )(contextl)  }
     println( s"Finished experiment $id" )
   }
 
   /**
    * Same as above only now we use a fixed thread pool. In this case we can exhaust
-   * the available resources and task execution will fail (be rejected). 
+   * the available resources and task execution will fail (be rejected). We install
+   * a custom `RejectedExecutionHandler` that simply exits the application.  Note
+   * that Java already has several RejhectExecution handlers (see javadocs for more
+   * information)
+   *
+   * @see https://docs.oracle.com/javase/7/docs/api/java/util/concurrent/ThreadPoolExecutor.html
+   * @see http://stackoverflow.com/questions/6306132/java-thread-pool-with-a-bounded-queue
+   * @see http://stackoverflow.com/questions/27692420/use-custom-rejectedexecutionhandler
+   * @see https://www.javacodegeeks.com/2013/01/java-thread-pool-example-using-executors-and-threadpoolexecutor.html
+   * @see https://examples.javacodegeeks.com/core-java/util/concurrent/rejectedexecutionhandler/java-util-concurrent-rejectedexecutionhandler-example/
    */
   def experiment_2( numTasks: Int ) = {
     val id = 2
     println( s"Started experiment $id" )
     val s = ( 0 to numTasks ).toStream
-    val executer = java.util.concurrent.Executors.newFixedThreadPool( 1 ) // fixed queue size
-    val context = ExecutionContext.fromExecutorService( executer )
-    //s.foreach { x => println( x ); val f = Future( longComputation )(context) }
-    s.foreach { x => println( s"Created task: $x" ); val f = Future( timeKiller(x) )(context)  }
+    // Not Ok
+    //val executorl = java.util.concurrent.Executors.newFixedThreadPool( 1 ) // unbound queue, keeps growing until we get OOM error
+    // Ok
+    //val executorl = new ThreadPoolExecutor( 3, 3, 0L, TimeUnit.MILLISECONDS, new ArrayBlockingQueue[Runnable]( 1 ), ExitAppRejectedExecutionHandler )
+    // Ok
+    val executorl = new ThreadPoolExecutor( 3, 3, 0L, TimeUnit.MILLISECONDS, new ArrayBlockingQueue( 1 ) )
+    executorl.setRejectedExecutionHandler( ExitAppRejectedExecutionHandler );
+    val contextl = ExecutionContext.fromExecutorService( executorl )
+    s.foreach { x => println( x ); val f = Future( longComputation( 100 ) )( contextl ) }
+    //s.foreach { x => println( s"Created task: $x" ); val f = Future( timeKiller(x) )(contextl)  }
     println( s"Finished experiment $id" )
   }
 
   /**
    * Here we use throttling to avoid OOM errors. However the use of the callbacks to
    * process the results causes a deadlock. This happens because all Futures are started
-   * filling up the queue annd hence blocking n a new Future creation. Each of the queue
+   * filling up the queue and hence blocking n a new Future creation. Each of the queue
    * Futures executes the main task to the end. However the thread is not released until
    * the future adds its own task that executes the callback. Because the queue is already full
    * the request for a callback will also block. So now none of the main tasks Futures can complete
@@ -270,12 +292,12 @@ object ThrottledParallelTasks {
     println( s"Started experiment $id" )
     val s = ( 0 to numTasks ).toStream
     // Deadlock
-    s.foreach { x => println( s"Created task: $x" ); val f = Future( longComputation ); f.onComplete{ processResult } }
+    s.foreach { x => println( s"Created task: $x" ); val f = Future( longComputation() ); f.onComplete{ processResult } }
     println( s"Finished experiment $id" )
   }
 
   /**
-   * Same as experiment 2. Deadlock will occur. 
+   * Same as experiment 2. Deadlock will occur.
    */
   def experiment_4( numTasks: Int ) = {
     val id = 4
@@ -284,7 +306,7 @@ object ThrottledParallelTasks {
     // Deadlock
     s.foreach { x =>
       println( s"Created task: $x" )
-      val f = Future( longComputation )
+      val f = Future( longComputation() )
       val p = Promise[ Long ]()
       p completeWith f
       p.future.onComplete{ processResult }
@@ -292,11 +314,11 @@ object ThrottledParallelTasks {
     println( s"Finished experiment $id" )
   }
 
-   //val fixedThreadContext = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(1))
+  //val fixedThreadContext = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(1))
   //val fixedThreadContext = ExecutionContext.fromExecutorService( java.util.concurrent.Executors.newSingleThreadExecutor() )
   val fixedThreadContext = ExecutionContext.fromExecutorService( java.util.concurrent.Executors.newFixedThreadPool( numIOThreads ) )
- // cachedthreadpool ?
-  
+  // cachedthreadpool ?
+
   def experiment_5( numTasks: Int ) = {
     val id = 5
     println( s"Started experiment $id" )
@@ -311,33 +333,56 @@ object ThrottledParallelTasks {
   }
   // CheckManaged
 
+  def experiment_6( numTasks: Int ) = {
+    val id = 6
+    println( s"Started experiment $id" )
+
+    // Open and write a "header"
+    val filename = " ./output/results.txt"
+    //val o = Source.fromFile( filename )  // reading only
+    //val writer = new PrintWriter(new File(filename)) // must exist
+    val writer = new PrintWriter( "./output/test1.txt", "UTF-8" ) // creates
+    try {
+      writer.write( s"Started experiment $id" )
+      def logger = resultLogger( logResult( formatCSV ) )( writer ) _
+      val s = ( 0 to numTasks ).toStream
+      s.foreach { x =>
+        println( s"Launhed $x" )
+        //val f = Future( longComputation )  
+        val f = Future( timeKiller( x ) )
+        f.onComplete { logger } ( fixedThreadContext )
+      }
+    } catch {
+      case ioe: IOException => ()
+      //case e: Exception => less specific after
+    } finally {
+         writer.close
+    } 
+
+    println( s"Finished experiment $id" )
+  }
+  // CheckManaged
+
   def main( args: Array[ String ] ) {
 
     // Ok, synchronized
     time( experiment_0( 100 ) )
     // OOM, growing pool size - no onCompete
-    // > 4832432
+    // >= 4194394 with a wait of 1500ms
     //time( experiment_1( 100000000 ) )
     // Tasks rejected, fixed pool size- no onCompete
-    time( experiment_2( 100000000 ) )
-    
+    //time( experiment_2( 100000000 ) )
+
     // Deadlock
     //time( experiment_3( 1000 ) )
     // Deadlock
     //time( experiment_4( 1000 ) )
-    
+
     // Ok
-    time( experiment_5( 100 ) )
+    time( experiment_5( 10 ) )
 
-
-    // Works
-    val s = ( 0 to 25 ).toStream
-    s.foreach { x =>
-      println( s"Launhed $x" )
-      //val f = Future( longComputation )  
-      val f = Future( timeKiller( x ) )
-      f.onComplete { processResult } ( fixedThreadContext )
-    }
+    // Ok
+    time( experiment_6( 25 ) )
 
     // see http://stackoverflow.com/questions/18425026/shutdown-and-awaittermination-which-first-call-have-any-difference
     println( "Finished" )
