@@ -174,6 +174,7 @@ object ThrottledParallelTasks {
 
   def resultLogger[ T ]( logResult: T => String )( writer: PrintWriter )( data: T ) = {
     blocking {
+      println(s"Finished: $data")
       writer.println( logResult( data ) )
     }
   }
@@ -337,27 +338,38 @@ object ThrottledParallelTasks {
     val id = 6
     println( s"Started experiment $id" )
 
+    import java.nio.charset.StandardCharsets
+    val fixedThreadContextX = ExecutionContext.fromExecutorService( java.util.concurrent.Executors.newFixedThreadPool( numIOThreads ) )
+    
     // Open and write a "header"
     val filename = " ./output/results.txt"
     //val o = Source.fromFile( filename )  // reading only
     //val writer = new PrintWriter(new File(filename)) // must exist
-    val writer = new PrintWriter( "./output/test1.txt", "UTF-8" ) // creates
+    val writerT = new PrintWriter( "./output/test1.txt", "UTF-8" ) // creates
+    writerT.close
+    val tmpWriter = new BufferedWriter( new OutputStreamWriter( new FileOutputStream( "./output/test1.txt", true), StandardCharsets.UTF_8.name() ) )
+    val writer = new PrintWriter( tmpWriter, true )
+    
     try {
-      writer.write( s"Started experiment $id" )
+      writer.write( s"Started experiment $id\n" )
       def logger = resultLogger( logResult( formatCSV ) )( writer ) _
       val s = ( 0 to numTasks ).toStream
       s.foreach { x =>
         println( s"Launhed $x" )
         //val f = Future( longComputation )  
         val f = Future( timeKiller( x ) )
-        f.onComplete { logger } ( fixedThreadContext )
+        f.onComplete { logger } ( fixedThreadContextX )
       }
     } catch {
-      case ioe: IOException => ()
+      case ioe: IOException => println(ioe)
       //case e: Exception => less specific after
-    } finally {
-         writer.close
     } 
+    finally {
+    fixedThreadContextX.shutdown
+    // Wait until they finish
+    fixedThreadContextX.awaitTermination( 100, TimeUnit.DAYS )
+      writer.close
+    }
 
     println( s"Finished experiment $id" )
   }
@@ -379,11 +391,33 @@ object ThrottledParallelTasks {
     //time( experiment_4( 1000 ) )
 
     // Ok
-    time( experiment_5( 10 ) )
+    //time( experiment_5( 25 ) )
 
     // Ok
     time( experiment_6( 25 ) )
-
+/*
+    val bufferedSource = io.Source.fromFile( "./output/test1.txt" )
+    /*val r0 = bufferedSource.getLines().toStream.map { line =>  line.split(";").map(_.trim) }
+  println("A")
+  r0.foreach{ x => println( x.mkString("<", "~", ">") ) }*/
+    val r1 = bufferedSource.getLines().toStream.drop( 1 ).map { line => val r = line.split( ";" ).map( _.trim ); if ( r.size > 0 ) Some( r( 0 ) ) else None }
+    /*
+  val r0 = r1.sortWith{ case (Some(i), Some(j)) => i.toLong < j.toLong }
+  println("A")
+  r0.foreach{ x => println(x) }
+    */
+    val r2 = r1.sortWith{ case ( Some( i ), Some( j ) ) => i.toLong < j.toLong }.zipWithIndex
+    println( "B" )
+    r2.foreach{ x => println( x ) }
+    val r3 = r2.forall{
+      case ( Some( i ), j ) => i == j
+      case ( None, _ )      => false
+    }
+    println( s"Experiment 6 test : $r3" )
+    bufferedSource.close
+*/
+    Thread.sleep(10000)
+    
     // see http://stackoverflow.com/questions/18425026/shutdown-and-awaittermination-which-first-call-have-any-difference
     println( "Finished" )
     // Does an orderly "shutdown". It will wait for all tasks on the queue to complete

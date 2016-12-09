@@ -226,7 +226,7 @@ object FileLoans {
     //val writer = new PrintWriter( new BufferedWriter( new FileWriter( fileWithPath, append ) ), autoFlush  ) with FlushManaged with CheckManaged
     // A way to add append, auto-flush and the character set
     val tmpWriter = new BufferedWriter( new OutputStreamWriter( new FileOutputStream( fileWithPath, append ), StandardCharsets.UTF_8.name() ) )
-    val writer = new PrintWriter( tmpWriter ) with FlushManaged with CheckManaged
+    val writer = new PrintWriter( tmpWriter, autoFlush ) with FlushManaged with CheckManaged
 
     // Write 
     val r2 = usingThenFlush( writer ) ( resultLogger( "F" ) _ )
