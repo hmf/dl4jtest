@@ -16,11 +16,13 @@ import java.util.concurrent.RejectedExecutionHandler
 
 /**
  * When a thread pool bounded queue is full, we simply terminate the application.
+ * Note that if we don't shutdown the thread pool, the application will not terminate. 
  */
 object ExitAppRejectedExecutionHandler extends RejectedExecutionHandler {
   @Override
   def rejectedExecution( worker: Runnable, executor: ThreadPoolExecutor ) = {
     System.out.println( worker.toString() + " is Rejected" );
+    executor.shutdownNow()
     System.exit( 1 )
   }
 }
@@ -49,9 +51,6 @@ object ExitAppRejectedExecutionHandler extends RejectedExecutionHandler {
  *  top -H
  */
 object ThrottledParallelTasks {
-
-  val numIOThreads = 1
-  val numThread = sys.runtime.availableProcessors - numIOThreads
 
   // https://examples.javacodegeeks.com/core-java/util/concurrent/rejectedexecutionexception/java-util-concurrent-rejectedexecutionexception-how-to-solve-rejectedexecutionexception/
   import java.util.concurrent.ExecutorService
@@ -93,8 +92,8 @@ object ThrottledParallelTasks {
     i.toLong
   }
 
-  def reduce(context: ExecutionContext)( a: Future[ Long ], b: Future[ Long ] ) = {
-    a.flatMap( v => b.map( v + _ )(context) )(context)
+  def reduce( context: ExecutionContext )( a: Future[ Long ], b: Future[ Long ] ) = {
+    a.flatMap( v => b.map( v + _ )( context ) )( context )
   }
 
   import scala.util.{ Try, Success, Failure }
@@ -193,8 +192,7 @@ object ThrottledParallelTasks {
     result
   }
 
-  
-  def throttlingPool = {
+  def throttlingPool(numThread: Int) = {
     val contextl = ExecutionContext.fromExecutorService(
       new ThreadPoolExecutor(
         numThread, numThread,
@@ -223,19 +221,19 @@ object ThrottledParallelTasks {
    *
    * We need to throttle the launching of new tasks.
    *
-   * NOTE 2: We need to explicitly shutdown the thread pool. If not, the process will not 
-   * terminate. In order to make the experiments independent  we will pass the thread 
-   * pools. explicitly and not use it as an implicit. 
-   * 
+   * NOTE 2: We need to explicitly shutdown the thread pool. If not, the process will not
+   * terminate. In order to make the experiments independent  we will pass the thread
+   * pools. explicitly and not use it as an implicit.
+   *
    * IMPORTANT: this example will NOT fail because we are performing lazy
    * consumption of the `Future`s. It will reduce the range by pairs with success.
    * We get about 90% CPU usage.
    */
-  def experiment_0( numTasks: Int ) = {
+  def experiment_0( numTasks: Int, numThreads: Int ) = {
     val id = 0
-    val contextl = throttlingPool
+    val contextl = throttlingPool(numThreads)
     println( s"Started experiment $id" )
-    val sum = ( 1 to numTasks ).toIterator.map( i => Future( timeKiller( i ) )(contextl) ).reduce( reduce(contextl) )
+    val sum = ( 1 to numTasks ).toIterator.map( i => Future( timeKiller( i ) )( contextl ) ).reduce( reduce( contextl ) )
     println( Await.result( sum, Duration.Inf ) )
     // don't accept any more requests
     contextl.shutdown
@@ -308,7 +306,7 @@ object ThrottledParallelTasks {
     println( s"Finished experiment $id" )
   }
 
-  def safelyClosePools(contextLocal : ExecutionContextExecutorService, fixedThreadContextLocal : ExecutionContextExecutorService) = {
+  def safelyClosePools( contextLocal: ExecutionContextExecutorService, fixedThreadContextLocal: ExecutionContextExecutorService ) = {
     // don't accept any more requests
     contextLocal.shutdown
     // Wait for pending main tasks
@@ -340,15 +338,15 @@ object ThrottledParallelTasks {
    * Solution:
    * @see http://stackoverflow.com/questions/40981240/throttling-scala-future-blocks-when-oncomplete-is-used/40982776
    */
-  def experiment_3( numTasks: Int ) = {
+  def experiment_3( numTasks: Int, numThreads: Int ) = {
     val id = 3
-    val contextl = throttlingPool
+    val contextl = throttlingPool(numThreads)
 
     println( s"Started experiment $id" )
     val s = ( 0 to numTasks ).toStream
     // Deadlock
     s.foreach { x => println( s"Created task: $x" ); val f = Future( longComputation() )( contextl ); f.onComplete{ processResult }( contextl ) }
-    
+
     // don't accept any more requests
     contextl.shutdown
     // Wait for pending main tasks
@@ -359,9 +357,9 @@ object ThrottledParallelTasks {
   /**
    * Same as experiment 2. Deadlock will occur.
    */
-  def experiment_4( numTasks: Int ) = {
+  def experiment_4( numTasks: Int, numThreads: Int ) = {
     val id = 4
-    val contextl = throttlingPool
+    val contextl = throttlingPool(numThreads)
 
     println( s"Started experiment $id" )
     val s = ( 0 to numTasks ).toStream
@@ -373,7 +371,7 @@ object ThrottledParallelTasks {
       p completeWith f
       p.future.onComplete{ processResult } ( contextl )
     }
-    
+
     // don't accept any more requests
     contextl.shutdown
     // Wait for pending main tasks
@@ -393,9 +391,9 @@ object ThrottledParallelTasks {
    * but the IO tasks will not block indefinitely because the IO queue never blocks.
    *
    */
-  def experiment_5( numTasks: Int ) = {
+  def experiment_5( numTasks: Int, numThreads: Int, numIOThreads: Int ) = {
     val id = 5
-    val contextl = throttlingPool
+    val contextl = throttlingPool(numThreads)
     val fixedThreadContext = ExecutionContext.fromExecutorService( java.util.concurrent.Executors.newFixedThreadPool( numIOThreads ) )
     println( s"Started experiment $id" )
     val s = ( 0 to numTasks ).toStream
@@ -405,28 +403,28 @@ object ThrottledParallelTasks {
       val f = Future( timeKiller( x ) )( contextl )
       f.onComplete { processResult } ( fixedThreadContext )
     }
-    safelyClosePools(contextl, fixedThreadContext)
+    safelyClosePools( contextl, fixedThreadContext )
     println( s"Finished experiment $id" )
   }
   // CheckManaged
 
   /**
-   * This is an example of how to log the results of the tasks via callbacks. We launch a 
+   * This is an example of how to log the results of the tasks via callbacks. We launch a
    * number of tasks. Each tume the callback is executed it writes the thread's number to
-   * disk. 
-   * 
+   * disk.
+   *
    * IMPORTANT NOTE: the PrintWrite fails silently. More specifically, if we close the file
    * handle the write and reads will silently consume the exceptions and those operations will
-   * not work correctly. One should use the `FileLoans` `check` operation. 
+   * not work correctly. One should use the `FileLoans` `check` operation.
    */
-  def experiment_6( numTasks: Int,  filename : String = "./output/results.txt" ) = {
+  def experiment_6( numTasks: Int, numThreads: Int, numIOThreads: Int, filename: String = "./output/results.txt" ) = {
     val id = 6
     println( s"Started experiment $id" )
 
     import java.nio.charset.StandardCharsets
 
     // Main CPU intensive tasks
-    val contextLocal = throttlingPool
+    val contextLocal = throttlingPool(numThreads)
     // IO tasks for logging only (grows indefinitely)
     val fixedThreadContextLocal = ExecutionContext.fromExecutorService( java.util.concurrent.Executors.newFixedThreadPool( numIOThreads ) )
 
@@ -455,60 +453,68 @@ object ThrottledParallelTasks {
       //case e: Exception => less specific after
     } finally {
       // don't accept any more requests and close pools
-      safelyClosePools(contextLocal, fixedThreadContextLocal)
+      safelyClosePools( contextLocal, fixedThreadContextLocal )
       // Now we can safely close the file
       writer.close
     }
     println( s"Finished experiment $id" )
   }
-  
-  def checkLogResults(filename: String) = {
-    
+
+  /**
+   * This method is used to check if all the results were produced. The experiment generates a CSV file were the first field is an
+   * ID that is a sequence of integers from `0` to `m`. We get this list of integers and check that  this sequence is in fact
+   * complete.
+   */
+  def checkLogResults( filename: String, maxv: Int ) = {
+
     val bufferedSource = io.Source.fromFile( filename )
     val r1 = bufferedSource.getLines().toStream.map { line => line.split( ";" ).map( _.trim ) }
-    val r2 = r1.map { line  => if ( line.size > 0 ) Some(line( 0 )) else None }
-    val r3 = r2.flatMap { case(Some(i)) => Some(i.toInt) ; case(None) => None }
+    val r2 = r1.map { line => if ( line.size > 0 ) Some( line( 0 ) ) else None }
+    val r3 = r2.flatMap { case ( Some( i ) ) => Some( i.toInt ); case ( None ) => None }
     val r4 = r3.sortWith{ ( i, j ) => i < j }.zipWithIndex
-    println( "B" )
     //r4.foreach{ x => println( x ) }
-    val r5 = r4.forall{ case (i,j) => /*println(s"Ok ($i,$j) : ${i == j}") ;*/ i == j }
+    val r5 = r4.forall{ case ( i, j ) => /*println(s"Ok ($i,$j) : ${i == j}") ;*/ i == j }
+    val m = r4.max
     bufferedSource.close
-    r5    
+    r5 && ( m._1 == maxv )
   }
-  
+
   // TODO: parameterize IO and CPU threads
   // TODO: example of FileLOan to execute an experiment and close the file
   // TODO: remove implicit from the top
-  
+
   def main( args: Array[ String ] ) {
+    val numIOThreads = 1
+    val numThreads = sys.runtime.availableProcessors - numIOThreads
 
     // Ok, synchronized
-    time( experiment_0( 100 ) )
+    time( experiment_0( 100, numThreads ) )
     // OOM, growing pool size - no onCompete
-    // >= 4194394 with a wait of 1500ms
+    // >= 4194394 to 4398750 with a wait of 1500ms
     //time( experiment_1( 100000000 ) )
     // Tasks rejected, fixed pool size- no onCompete
     //time( experiment_2( 100000000 ) )
 
     // Deadlock
-    //time( experiment_3( 1000 ) )
+    time( experiment_3( 1000, numThreads ) )
     // Deadlock
-    //time( experiment_4( 1000 ) )
+    //time( experiment_4( 1000, numThreads ) )
 
     // Ok
-    //time( experiment_5( 25 ) )
+    //time( experiment_5( 25, numThreads, numIOThreads ) )
 
     // Ok
     val filename = "./output/results.txt"
-    //time( experiment_6( 1000000, filename ) ) // 45MB file
-    time( experiment_6( 25, filename ) )
-    val r6 = checkLogResults(filename)
+    //val maxv = 1000000 // 45MB file
+    val maxv = 25
+    time( experiment_6( maxv, numThreads, numIOThreads, filename ) )
+    val r6 = checkLogResults( filename, maxv )
     println( s"Experiment 6 test : $r6" )
 
     import pt.inescn.utils.FileLoans._
     import java.nio.charset.StandardCharsets
-    
- /*   
+
+    /*   
     val fileWithPath = "./output/test2.txt"
     // Make sure we append the results we collect
     val append = true
