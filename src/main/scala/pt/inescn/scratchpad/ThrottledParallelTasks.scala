@@ -392,9 +392,15 @@ object ThrottledParallelTasks {
   // CheckManaged
 
   /**
-   * This is an example of how to log the results of the tasks via callbacks.
+   * This is an example of how to log the results of the tasks via callbacks. We launch a 
+   * number of tasks. Each tume the callback is executed it writes the thread's number to
+   * disk. 
+   * 
+   * IMPORTANT NOTE: the PrintWrite fails silently. More specifically, if we close the file
+   * handle the write and reads will silently consume the exceptions and those operations will
+   * not work correctly. One should use the `FileLoans` `check` operation. 
    */
-  def experiment_6( numTasks: Int ) = {
+  def experiment_6( numTasks: Int,  filename : String = "./output/results.txt" ) = {
     val id = 6
     println( s"Started experiment $id" )
 
@@ -406,14 +412,13 @@ object ThrottledParallelTasks {
     val fixedThreadContextLocal = ExecutionContext.fromExecutorService( java.util.concurrent.Executors.newFixedThreadPool( numIOThreads ) )
 
     // Open and write a "header"
-    val filename = " ./output/results.txt"
     val autoFlush = true
     val append = true
     //val o = Source.fromFile( filename )  // reading only
     //val writer = new PrintWriter(new File(filename)) // must exist
-    val writerT = new PrintWriter( "./output/test1.txt", "UTF-8" ) // creates
+    val writerT = new PrintWriter( filename, "UTF-8" ) // creates
     writerT.close // clean
-    val tmpWriter = new BufferedWriter( new OutputStreamWriter( new FileOutputStream( "./output/test1.txt", append ), StandardCharsets.UTF_8.name() ) )
+    val tmpWriter = new BufferedWriter( new OutputStreamWriter( new FileOutputStream( filename, append ), StandardCharsets.UTF_8.name() ) )
     val writer = new PrintWriter( tmpWriter, autoFlush )
 
     println( s"Started experiment $id\n" )
@@ -438,8 +443,9 @@ object ThrottledParallelTasks {
 
     println( s"Finished experiment $id" )
   }
-  // CheckManaged
-
+  
+  
+  
   def main( args: Array[ String ] ) {
 
     // Ok, synchronized
@@ -459,28 +465,29 @@ object ThrottledParallelTasks {
     //time( experiment_5( 25 ) )
 
     // Ok
-    time( experiment_6( 25 ) )
-    /*
-    val bufferedSource = io.Source.fromFile( "./output/test1.txt" )
+    val filename = "./output/results.txt"
+    time( experiment_6( 25, filename ) )
+    
+    val bufferedSource = io.Source.fromFile( filename )
     /*val r0 = bufferedSource.getLines().toStream.map { line =>  line.split(";").map(_.trim) }
   println("A")
   r0.foreach{ x => println( x.mkString("<", "~", ">") ) }*/
-    val r1 = bufferedSource.getLines().toStream.drop( 1 ).map { line => val r = line.split( ";" ).map( _.trim ); if ( r.size > 0 ) Some( r( 0 ) ) else None }
+    //val r1 = bufferedSource.getLines().toStream.map { line => val r = line.split( ";" ).map( _.trim ); if ( r.size > 0 ) Some( r( 0 ) ) else None }
+    val r1 = bufferedSource.getLines().toStream.map { line => line.split( ";" ).map( _.trim ) }
+    val r2 = r1.map { line  => if ( line.size > 0 ) Some(line( 0 )) else None }
+    val r3 = r2.flatMap { case(Some(i)) => Some(i.toInt) ; case(None) => None }
     /*
   val r0 = r1.sortWith{ case (Some(i), Some(j)) => i.toLong < j.toLong }
   println("A")
   r0.foreach{ x => println(x) }
     */
-    val r2 = r1.sortWith{ case ( Some( i ), Some( j ) ) => i.toLong < j.toLong }.zipWithIndex
+    val r4 = r3.sortWith{ ( i, j ) => i < j }.zipWithIndex
     println( "B" )
-    r2.foreach{ x => println( x ) }
-    val r3 = r2.forall{
-      case ( Some( i ), j ) => i == j
-      case ( None, _ )      => false
-    }
-    println( s"Experiment 6 test : $r3" )
+    r4.foreach{ x => println( x ) }
+    val r5 = r4.forall{ case (i,j) => println(s"Ok ($i,$j) : ${i == j}") ; i == j }
+    println( s"Experiment 6 test : $r5" )
     bufferedSource.close
-*/
+
     //Thread.sleep( 10000 )
 
     // see http://stackoverflow.com/questions/18425026/shutdown-and-awaittermination-which-first-call-have-any-difference

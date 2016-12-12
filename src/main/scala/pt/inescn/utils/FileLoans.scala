@@ -156,6 +156,10 @@ object FileLoans {
     using( resource )( exec ) flatMap { x => flush( resource )( x ) }
   }
 
+  def usingThenCheck[ T <: CheckManaged, U ]( resource: T )( exec: T => U ): Try[ U ] = {
+    using( resource )( exec ) flatMap { x => check( resource )( x ) }
+  }
+
   /**
    * Use the loan pattern to ensure that we write stuff and then flush the file
    * The PrintWriter does not throw exceptions and fails silently. Check for errors manually.
