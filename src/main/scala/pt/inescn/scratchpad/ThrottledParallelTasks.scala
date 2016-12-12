@@ -174,7 +174,7 @@ object ThrottledParallelTasks {
 
   def resultLogger[ T ]( logResult: T => String )( writer: PrintWriter )( data: T ) = {
     blocking {
-      println(s"Finished: $data")
+      println( s"Finished: $data" )
       writer.println( logResult( data ) )
     }
   }
@@ -274,7 +274,37 @@ object ThrottledParallelTasks {
     println( s"Finished experiment $id" )
   }
 
+  def throttlingPool = {
+    val contextl = ExecutionContext.fromExecutorService(
+      new ThreadPoolExecutor(
+        numThread, numThread,
+        0L, TimeUnit.SECONDS,
+        new ArrayBlockingQueue[ Runnable ]( numThread ) {
+          override def offer( e: Runnable ) = {
+            put( e ); // Waiting for empty room
+            true
+          }
+        } ) )
+
+    contextl
+  }
+
+  def safelyClosePools(contextLocal : ExecutionContextExecutorService, fixedThreadContextLocal : ExecutionContextExecutorService) = {
+    // don't accept any more requests
+    contextLocal.shutdown
+    // Wait for pending main tasks
+    contextLocal.awaitTermination( 100, TimeUnit.DAYS )
+    // The main tasks only terminate when the callbacks are on queue, 
+    // so we can now ask for a shutdown because no more threads will be added 
+    fixedThreadContextLocal.shutdown
+    // Wait until the callbacks finish
+    fixedThreadContextLocal.awaitTermination( 100, TimeUnit.DAYS )
+    // Now we can safely close the file
+  }
+
   /**
+   * THIS LOCKS!
+   *
    * Here we use throttling to avoid OOM errors. However the use of the callbacks to
    * process the results causes a deadlock. This happens because all Futures are started
    * filling up the queue and hence blocking n a new Future creation. Each of the queue
@@ -284,16 +314,26 @@ object ThrottledParallelTasks {
    * and therefore release a queue entry.
    * The use of blocking or Promises will not solve the issue
    *
+   * We use a local thread pool to keep pool management local to the test
+   *
    * NOTE : do not execute otherwise the application will lock.
+   *
    * Solution:
    * @see http://stackoverflow.com/questions/40981240/throttling-scala-future-blocks-when-oncomplete-is-used/40982776
    */
   def experiment_3( numTasks: Int ) = {
     val id = 3
+    val contextl = throttlingPool
+
     println( s"Started experiment $id" )
     val s = ( 0 to numTasks ).toStream
     // Deadlock
-    s.foreach { x => println( s"Created task: $x" ); val f = Future( longComputation() ); f.onComplete{ processResult } }
+    s.foreach { x => println( s"Created task: $x" ); val f = Future( longComputation() )( contextl ); f.onComplete{ processResult }( contextl ) }
+    
+    // don't accept any more requests
+    contextl.shutdown
+    // Wait for pending main tasks
+    contextl.awaitTermination( 100, TimeUnit.DAYS )
     println( s"Finished experiment $id" )
   }
 
@@ -302,72 +342,97 @@ object ThrottledParallelTasks {
    */
   def experiment_4( numTasks: Int ) = {
     val id = 4
+    val contextl = throttlingPool
+
     println( s"Started experiment $id" )
     val s = ( 0 to numTasks ).toStream
     // Deadlock
     s.foreach { x =>
       println( s"Created task: $x" )
-      val f = Future( longComputation() )
+      val f = Future( longComputation() )( contextl )
       val p = Promise[ Long ]()
       p completeWith f
-      p.future.onComplete{ processResult }
+      p.future.onComplete{ processResult } ( contextl )
     }
+    
+    // don't accept any more requests
+    contextl.shutdown
+    // Wait for pending main tasks
+    contextl.awaitTermination( 100, TimeUnit.DAYS )
     println( s"Finished experiment $id" )
   }
 
   //val fixedThreadContext = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(1))
   //val fixedThreadContext = ExecutionContext.fromExecutorService( java.util.concurrent.Executors.newSingleThreadExecutor() )
-  val fixedThreadContext = ExecutionContext.fromExecutorService( java.util.concurrent.Executors.newFixedThreadPool( numIOThreads ) )
+  //val fixedThreadContext = ExecutionContext.fromExecutorService( java.util.concurrent.Executors.newFixedThreadPool( numIOThreads ) )
   // cachedthreadpool ?
 
+  /**
+   * To solve the deadlock issue we use two thread pools. The man pool locks when full thereby
+   * throttling the tasks. The second thread pool i unlimited and keeps accepting the IO tasks
+   * without blocking (it may generate an OOM though). This means the main thread pool may lock
+   * but the IO tasks will not block indefinitely because the IO queue never blocks.
+   *
+   */
   def experiment_5( numTasks: Int ) = {
     val id = 5
+    val contextl = throttlingPool
+    val fixedThreadContext = ExecutionContext.fromExecutorService( java.util.concurrent.Executors.newFixedThreadPool( numIOThreads ) )
     println( s"Started experiment $id" )
     val s = ( 0 to numTasks ).toStream
     s.foreach { x =>
       println( s"Launhed $x" )
       //val f = Future( longComputation )  
-      val f = Future( timeKiller( x ) )
+      val f = Future( timeKiller( x ) )( contextl )
       f.onComplete { processResult } ( fixedThreadContext )
     }
+    safelyClosePools(contextl, fixedThreadContext)
     println( s"Finished experiment $id" )
   }
   // CheckManaged
 
+  /**
+   * This is an example of how to log the results of the tasks via callbacks.
+   */
   def experiment_6( numTasks: Int ) = {
     val id = 6
     println( s"Started experiment $id" )
 
     import java.nio.charset.StandardCharsets
-    val fixedThreadContextX = ExecutionContext.fromExecutorService( java.util.concurrent.Executors.newFixedThreadPool( numIOThreads ) )
-    
+
+    // Main CPU intensive tasks
+    val contextLocal = throttlingPool
+    // IO tasks for logging only (grows indefinitely)
+    val fixedThreadContextLocal = ExecutionContext.fromExecutorService( java.util.concurrent.Executors.newFixedThreadPool( numIOThreads ) )
+
     // Open and write a "header"
     val filename = " ./output/results.txt"
+    val autoFlush = true
+    val append = true
     //val o = Source.fromFile( filename )  // reading only
     //val writer = new PrintWriter(new File(filename)) // must exist
     val writerT = new PrintWriter( "./output/test1.txt", "UTF-8" ) // creates
-    writerT.close
-    val tmpWriter = new BufferedWriter( new OutputStreamWriter( new FileOutputStream( "./output/test1.txt", true), StandardCharsets.UTF_8.name() ) )
-    val writer = new PrintWriter( tmpWriter, true )
-    
+    writerT.close // clean
+    val tmpWriter = new BufferedWriter( new OutputStreamWriter( new FileOutputStream( "./output/test1.txt", append ), StandardCharsets.UTF_8.name() ) )
+    val writer = new PrintWriter( tmpWriter, autoFlush )
+
+    println( s"Started experiment $id\n" )
     try {
-      writer.write( s"Started experiment $id\n" )
       def logger = resultLogger( logResult( formatCSV ) )( writer ) _
       val s = ( 0 to numTasks ).toStream
       s.foreach { x =>
         println( s"Launhed $x" )
         //val f = Future( longComputation )  
-        val f = Future( timeKiller( x ) )
-        f.onComplete { logger } ( fixedThreadContextX )
+        val f = Future( timeKiller( x ) )( contextLocal )
+        f.onComplete { logger } ( fixedThreadContextLocal )
       }
     } catch {
-      case ioe: IOException => println(ioe)
+      case ioe: IOException => println( ioe )
       //case e: Exception => less specific after
-    } 
-    finally {
-    fixedThreadContextX.shutdown
-    // Wait until they finish
-    fixedThreadContextX.awaitTermination( 100, TimeUnit.DAYS )
+    } finally {
+      // don't accept any more requests and close pools
+      safelyClosePools(contextLocal, fixedThreadContextLocal)
+      // Now we can safely close the file
       writer.close
     }
 
@@ -395,7 +460,7 @@ object ThrottledParallelTasks {
 
     // Ok
     time( experiment_6( 25 ) )
-/*
+    /*
     val bufferedSource = io.Source.fromFile( "./output/test1.txt" )
     /*val r0 = bufferedSource.getLines().toStream.map { line =>  line.split(";").map(_.trim) }
   println("A")
@@ -416,8 +481,8 @@ object ThrottledParallelTasks {
     println( s"Experiment 6 test : $r3" )
     bufferedSource.close
 */
-    Thread.sleep(10000)
-    
+    //Thread.sleep( 10000 )
+
     // see http://stackoverflow.com/questions/18425026/shutdown-and-awaittermination-which-first-call-have-any-difference
     println( "Finished" )
     // Does an orderly "shutdown". It will wait for all tasks on the queue to complete
@@ -430,9 +495,9 @@ object ThrottledParallelTasks {
     // If all the contexts are not shutdown then the man thread will remain active
     // All main tasks executed, so all callbacks already requested
     // No more callbacks
-    fixedThreadContext.shutdown
+    //fixedThreadContext.shutdown
     // Wait until they finish
-    fixedThreadContext.awaitTermination( 100, TimeUnit.DAYS )
+    //fixedThreadContext.awaitTermination( 100, TimeUnit.DAYS )
   }
 
 }
