@@ -466,7 +466,7 @@ object ThrottledParallelTasks {
 
     // Ok
     val filename = "./output/results.txt"
-    time( experiment_6( 25, filename ) )
+    time( experiment_6( 25000000, filename ) )
     
     val bufferedSource = io.Source.fromFile( filename )
     /*val r0 = bufferedSource.getLines().toStream.map { line =>  line.split(";").map(_.trim) }
@@ -484,7 +484,7 @@ object ThrottledParallelTasks {
     val r4 = r3.sortWith{ ( i, j ) => i < j }.zipWithIndex
     println( "B" )
     r4.foreach{ x => println( x ) }
-    val r5 = r4.forall{ case (i,j) => println(s"Ok ($i,$j) : ${i == j}") ; i == j }
+    val r5 = r4.forall{ case (i,j) => /*println(s"Ok ($i,$j) : ${i == j}") ;*/ i == j }
     println( s"Experiment 6 test : $r5" )
     bufferedSource.close
 
