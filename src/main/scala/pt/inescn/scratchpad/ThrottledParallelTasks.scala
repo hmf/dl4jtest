@@ -50,7 +50,7 @@ object ExitAppRejectedExecutionHandler extends RejectedExecutionHandler {
  */
 object ThrottledParallelTasks {
 
-  val numIOThreads = 2
+  val numIOThreads = 1
   val numThread = sys.runtime.availableProcessors - numIOThreads
 
   // https://examples.javacodegeeks.com/core-java/util/concurrent/rejectedexecutionexception/java-util-concurrent-rejectedexecutionexception-how-to-solve-rejectedexecutionexception/
@@ -75,6 +75,7 @@ object ThrottledParallelTasks {
   // Number of threads may grow or shrink
   val executer9 = java.util.concurrent.Executors.newWorkStealingPool( numThread )
  */
+  /*
   implicit val context = ExecutionContext.fromExecutorService(
     new ThreadPoolExecutor(
       numThread, numThread,
@@ -85,15 +86,15 @@ object ThrottledParallelTasks {
           true
         }
       } ) )
-
+  */
   def timeKiller( i: Int ) = {
     //( 1 to 10000 ).foreach( _ * 2 )
     ( 1 to 1500000 ).foreach( x => math.log( x * 2 / 3 ) )
     i.toLong
   }
 
-  def reduce( a: Future[ Long ], b: Future[ Long ] ) = {
-    a.flatMap( v => b.map( v + _ ) )
+  def reduce(context: ExecutionContext)( a: Future[ Long ], b: Future[ Long ] ) = {
+    a.flatMap( v => b.map( v + _ )(context) )(context)
   }
 
   import scala.util.{ Try, Success, Failure }
@@ -192,6 +193,22 @@ object ThrottledParallelTasks {
     result
   }
 
+  
+  def throttlingPool = {
+    val contextl = ExecutionContext.fromExecutorService(
+      new ThreadPoolExecutor(
+        numThread, numThread,
+        0L, TimeUnit.SECONDS,
+        new ArrayBlockingQueue[ Runnable ]( numThread ) {
+          override def offer( e: Runnable ) = {
+            put( e ); // Waiting for empty room
+            true
+          }
+        } ) )
+
+    contextl
+  }
+
   /**
    * Will start threads and wait on all of them in the same order.
    * This mans that a task that takes very long will not allow us
@@ -206,15 +223,24 @@ object ThrottledParallelTasks {
    *
    * We need to throttle the launching of new tasks.
    *
+   * NOTE 2: We need to explicitly shutdown the thread pool. If not, the process will not 
+   * terminate. In order to make the experiments independent  we will pass the thread 
+   * pools. explicitly and not use it as an implicit. 
+   * 
    * IMPORTANT: this example will NOT fail because we are performing lazy
    * consumption of the `Future`s. It will reduce the range by pairs with success.
    * We get about 90% CPU usage.
    */
   def experiment_0( numTasks: Int ) = {
     val id = 0
+    val contextl = throttlingPool
     println( s"Started experiment $id" )
-    val sum = ( 1 to numTasks ).toIterator.map( i => Future( timeKiller( i ) ) ).reduce( reduce )
+    val sum = ( 1 to numTasks ).toIterator.map( i => Future( timeKiller( i ) )(contextl) ).reduce( reduce(contextl) )
     println( Await.result( sum, Duration.Inf ) )
+    // don't accept any more requests
+    contextl.shutdown
+    // Wait for pending main tasks
+    contextl.awaitTermination( 100, TimeUnit.DAYS )
     println( s"Finished experiment $id" )
   }
 
@@ -241,6 +267,10 @@ object ThrottledParallelTasks {
     val contextl = ExecutionContext.fromExecutorService( executerl )
     s.foreach { x => println( x ); val f = Future( longComputation( 1500 ) )( contextl ) }
     //s.foreach { x => println( s"Created task: $x" ); val f = Future( timeKiller(x) )(contextl)  }
+    // don't accept any more requests
+    contextl.shutdown
+    // Wait for pending main tasks
+    contextl.awaitTermination( 100, TimeUnit.DAYS )
     println( s"Finished experiment $id" )
   }
 
@@ -271,22 +301,11 @@ object ThrottledParallelTasks {
     val contextl = ExecutionContext.fromExecutorService( executorl )
     s.foreach { x => println( x ); val f = Future( longComputation( 100 ) )( contextl ) }
     //s.foreach { x => println( s"Created task: $x" ); val f = Future( timeKiller(x) )(contextl)  }
+    // don't accept any more requests
+    contextl.shutdown
+    // Wait for pending main tasks
+    contextl.awaitTermination( 100, TimeUnit.DAYS )
     println( s"Finished experiment $id" )
-  }
-
-  def throttlingPool = {
-    val contextl = ExecutionContext.fromExecutorService(
-      new ThreadPoolExecutor(
-        numThread, numThread,
-        0L, TimeUnit.SECONDS,
-        new ArrayBlockingQueue[ Runnable ]( numThread ) {
-          override def offer( e: Runnable ) = {
-            put( e ); // Waiting for empty room
-            true
-          }
-        } ) )
-
-    contextl
   }
 
   def safelyClosePools(contextLocal : ExecutionContextExecutorService, fixedThreadContextLocal : ExecutionContextExecutorService) = {
@@ -440,11 +459,26 @@ object ThrottledParallelTasks {
       // Now we can safely close the file
       writer.close
     }
-
     println( s"Finished experiment $id" )
   }
   
+  def checkLogResults(filename: String) = {
+    
+    val bufferedSource = io.Source.fromFile( filename )
+    val r1 = bufferedSource.getLines().toStream.map { line => line.split( ";" ).map( _.trim ) }
+    val r2 = r1.map { line  => if ( line.size > 0 ) Some(line( 0 )) else None }
+    val r3 = r2.flatMap { case(Some(i)) => Some(i.toInt) ; case(None) => None }
+    val r4 = r3.sortWith{ ( i, j ) => i < j }.zipWithIndex
+    println( "B" )
+    //r4.foreach{ x => println( x ) }
+    val r5 = r4.forall{ case (i,j) => /*println(s"Ok ($i,$j) : ${i == j}") ;*/ i == j }
+    bufferedSource.close
+    r5    
+  }
   
+  // TODO: parameterize IO and CPU threads
+  // TODO: example of FileLOan to execute an experiment and close the file
+  // TODO: remove implicit from the top
   
   def main( args: Array[ String ] ) {
 
@@ -466,39 +500,33 @@ object ThrottledParallelTasks {
 
     // Ok
     val filename = "./output/results.txt"
-    time( experiment_6( 25000000, filename ) )
+    //time( experiment_6( 1000000, filename ) ) // 45MB file
+    time( experiment_6( 25, filename ) )
+    val r6 = checkLogResults(filename)
+    println( s"Experiment 6 test : $r6" )
+
+    import pt.inescn.utils.FileLoans._
+    import java.nio.charset.StandardCharsets
     
-    val bufferedSource = io.Source.fromFile( filename )
-    /*val r0 = bufferedSource.getLines().toStream.map { line =>  line.split(";").map(_.trim) }
-  println("A")
-  r0.foreach{ x => println( x.mkString("<", "~", ">") ) }*/
-    //val r1 = bufferedSource.getLines().toStream.map { line => val r = line.split( ";" ).map( _.trim ); if ( r.size > 0 ) Some( r( 0 ) ) else None }
-    val r1 = bufferedSource.getLines().toStream.map { line => line.split( ";" ).map( _.trim ) }
-    val r2 = r1.map { line  => if ( line.size > 0 ) Some(line( 0 )) else None }
-    val r3 = r2.flatMap { case(Some(i)) => Some(i.toInt) ; case(None) => None }
-    /*
-  val r0 = r1.sortWith{ case (Some(i), Some(j)) => i.toLong < j.toLong }
-  println("A")
-  r0.foreach{ x => println(x) }
-    */
-    val r4 = r3.sortWith{ ( i, j ) => i < j }.zipWithIndex
-    println( "B" )
-    r4.foreach{ x => println( x ) }
-    val r5 = r4.forall{ case (i,j) => /*println(s"Ok ($i,$j) : ${i == j}") ;*/ i == j }
-    println( s"Experiment 6 test : $r5" )
-    bufferedSource.close
-
-    //Thread.sleep( 10000 )
-
+ /*   
+    val fileWithPath = "./output/test2.txt"
+    // Make sure we append the results we collect
+    val append = true
+    // We use a PrintWriter that flushes on newlines automatically. No need to do it explicitly.
+    val autoFlush = true
+    
+    val tmpWriter = new BufferedWriter( new OutputStreamWriter( new FileOutputStream( fileWithPath, append ), StandardCharsets.UTF_8.name() ) )
+    val writer = new PrintWriter( tmpWriter, autoFlush ) with FlushManaged with CheckManaged
+*/
     // see http://stackoverflow.com/questions/18425026/shutdown-and-awaittermination-which-first-call-have-any-difference
     println( "Finished" )
     // Does an orderly "shutdown". It will wait for all tasks on the queue to complete
     // If new tasks are placed on the queue, these will be rejected causing exceptions
     // Use a timed-out termination to avoid task execution loss (pending call-backs)
     // Don't accept more mains tasks
-    context.shutdown
+    //context.shutdown
     // Wait for pending main tasks
-    context.awaitTermination( 100, TimeUnit.DAYS )
+    //context.awaitTermination( 100, TimeUnit.DAYS )
     // If all the contexts are not shutdown then the man thread will remain active
     // All main tasks executed, so all callbacks already requested
     // No more callbacks
