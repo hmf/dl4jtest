@@ -63,6 +63,11 @@ object FileLoans {
   def using[ T <: Managed, U ]( resource: T )( exec: T => U ): Try[ U ] = { Try{ exec( resource ) } }
 
   /**
+   * Same as above but with one input
+   */
+   def using1[ T <: Managed, U, V ]( resource: T )( exec: (T, U) => V ) (vl : U): Try[ V ] = { Try{ exec( resource, vl ) } }
+
+  /**
    * The same as using by lock on a process basis. Slow.
    * FileLock is only for interprocess locking, javadoc reads:
    * File locks are held on behalf of the entire Java virtual machine.
@@ -160,6 +165,11 @@ object FileLoans {
     using( resource )( exec ) flatMap { x => check( resource )( x ) }
   }
 
+  def usingThenCheck1[ T <: CheckManaged, U, V ]( resource: T )( exec: (T,U) => V )(vl : U): Try[ V ] = {
+    using1( resource )( exec )(vl) flatMap { x => check( resource )( x ) }
+  }
+
+     
   /**
    * Use the loan pattern to ensure that we write stuff and then flush the file
    * The PrintWriter does not throw exceptions and fails silently. Check for errors manually.
@@ -198,7 +208,7 @@ object FileLoans {
   import java.time.ZoneId;
   import java.time.ZonedDateTime;
 
-  def resultLogger( data: String )( writer: PrintWriter ) = {
+  def testResultLogger( data: String )( writer: PrintWriter ) = {
     val d = LocalDateTime.now
     val z = ZoneId.systemDefault() // ZoneId.of( "Europe/Lisbon")
     //println( s"$data: $d $z" )
@@ -233,12 +243,12 @@ object FileLoans {
     val writer = new PrintWriter( tmpWriter, autoFlush ) with FlushManaged with CheckManaged
 
     // Write 
-    val r2 = usingThenFlush( writer ) ( resultLogger( "F" ) _ )
+    val r2 = usingThenFlush( writer ) ( testResultLogger( "F" ) _ )
     println( s"Loan Flush : $r2" )
-    val r1 = usingThenClose( writer ) ( resultLogger( "C" ) _ )
+    val r1 = usingThenClose( writer ) ( testResultLogger( "C" ) _ )
     println( s"Loan Close : $r1" )
     // This will no be written - file was closed, so error
-    val r3 = lockByThreadThenUseAndCheck( writer ) ( resultLogger( "D" ) _ )
+    val r3 = lockByThreadThenUseAndCheck( writer ) ( testResultLogger( "D" ) _ )
     println( s"Loan Lock : $r3" )
   }
 

@@ -16,7 +16,7 @@ import java.util.concurrent.RejectedExecutionHandler
 
 /**
  * When a thread pool bounded queue is full, we simply terminate the application.
- * Note that if we don't shutdown the thread pool, the application will not terminate. 
+ * Note that if we don't shutdown the thread pool, the application will not terminate.
  */
 object ExitAppRejectedExecutionHandler extends RejectedExecutionHandler {
   @Override
@@ -192,7 +192,7 @@ object ThrottledParallelTasks {
     result
   }
 
-  def throttlingPool(numThread: Int) = {
+  def throttlingPool( numThread: Int ) = {
     val contextl = ExecutionContext.fromExecutorService(
       new ThreadPoolExecutor(
         numThread, numThread,
@@ -231,7 +231,7 @@ object ThrottledParallelTasks {
    */
   def test_0( numTasks: Int, numThreads: Int ) = {
     val id = 0
-    val contextl = throttlingPool(numThreads)
+    val contextl = throttlingPool( numThreads )
     println( s"Started test $id" )
     val sum = ( 1 to numTasks ).toIterator.map( i => Future( timeKiller( i ) )( contextl ) ).reduce( reduce( contextl ) )
     println( Await.result( sum, Duration.Inf ) )
@@ -340,7 +340,7 @@ object ThrottledParallelTasks {
    */
   def test_3( numTasks: Int, numThreads: Int ) = {
     val id = 3
-    val contextl = throttlingPool(numThreads)
+    val contextl = throttlingPool( numThreads )
 
     println( s"Started test $id" )
     val s = ( 0 to numTasks ).toStream
@@ -359,7 +359,7 @@ object ThrottledParallelTasks {
    */
   def test_4( numTasks: Int, numThreads: Int ) = {
     val id = 4
-    val contextl = throttlingPool(numThreads)
+    val contextl = throttlingPool( numThreads )
 
     println( s"Started test $id" )
     val s = ( 0 to numTasks ).toStream
@@ -393,7 +393,7 @@ object ThrottledParallelTasks {
    */
   def test_5( numTasks: Int, numThreads: Int, numIOThreads: Int ) = {
     val id = 5
-    val contextl = throttlingPool(numThreads)
+    val contextl = throttlingPool( numThreads )
     val fixedThreadContext = ExecutionContext.fromExecutorService( java.util.concurrent.Executors.newFixedThreadPool( numIOThreads ) )
     println( s"Started test $id" )
     val s = ( 0 to numTasks ).toStream
@@ -424,7 +424,7 @@ object ThrottledParallelTasks {
     import java.nio.charset.StandardCharsets
 
     // Main CPU intensive tasks
-    val contextLocal = throttlingPool(numThreads)
+    val contextLocal = throttlingPool( numThreads )
     // IO tasks for logging only (grows indefinitely)
     val fixedThreadContextLocal = ExecutionContext.fromExecutorService( java.util.concurrent.Executors.newFixedThreadPool( numIOThreads ) )
 
@@ -479,14 +479,13 @@ object ThrottledParallelTasks {
     val r4 = r3.sortWith{ ( i, j ) => i < j }.zipWithIndex
     //r4.foreach{ x => println( x ) }
     // If the pairs don't match, then some error occurred
-    val r5 = r4.forall{ case ( i, j ) => /*println(s"Ok ($i,$j) : ${i == j}") ;*/ i == j }
+    val r5 = r4.forall{ case ( i, j ) => println(s"Ok ($i,$j) : ${i == j}") ; i == j }
     // Make sure we have all the tasks done
     val m = r4.max
     bufferedSource.close
     r5 && ( m._1 == maxv )
   }
 
-  
   def main( args: Array[ String ] ) {
     val numIOThreads = 1
     val numThreads = sys.runtime.availableProcessors - numIOThreads
@@ -514,35 +513,86 @@ object ThrottledParallelTasks {
     time( test_6( maxv, numThreads, numIOThreads, filename ) )
     val r6 = checkLogResults( filename, maxv )
     println( s"Test 6 test : $r6" )
+
+    /* 
+     * This s a complete example of how to launch several tasks in parallel (single machine)
+     * and log the output to a file. We first delete the file if it already exists. We then  two 
+     * `FileLoans` to: a) launch of the tasks and b) record the results in a file. In the 
+     * case of a) we make sure that the file is closed with the processes have finished. 
+     * in the case of b) we write the data to file and the loan checks for any error
+     * (because the PrintWriter fails silently)
+     * 
+     * NOTE: (TODO) we could/should generalize the Loans to handle the thread pools
+     * (shut these down in order). 
+     */
     
     import pt.inescn.utils.FileLoans._
     import java.nio.charset.StandardCharsets
 
     val fileWithPath = "./output/test2.txt"
+    
+    // delete the log file if it already exists
+    import java.nio.file.Files
+    import java.nio.file.Paths
+    //new File(fileWithPath).delete()
+    Files.deleteIfExists(Paths.get(fileWithPath))
+    
+    // Open the log file for writing (append)
+    // The PrintWriter is already thread safe so no need to use a locking loan. 
     // Make sure we append the results we collect
     val append = true
     // We use a PrintWriter that flushes on newlines automatically. No need to do it explicitly.
     val autoFlush = true
-    
     val tmpWriter = new BufferedWriter( new OutputStreamWriter( new FileOutputStream( fileWithPath, append ), StandardCharsets.UTF_8.name() ) )
     val writer = new PrintWriter( tmpWriter, autoFlush ) with FlushManaged with CheckManaged
-    
-    
-    // see http://stackoverflow.com/questions/18425026/shutdown-and-awaittermination-which-first-call-have-any-difference
+
+    //val numTasks = 25
+    //val numTasks = 1000000
+    val numTasks = 250
+    usingThenClose( writer ) { resource =>
+      // Main CPU intensive tasks
+      implicit val contextLocal = throttlingPool( numThreads )
+      // IO tasks for logging only (grows indefinitely)
+      val fixedThreadContextLocal = ExecutionContext.fromExecutorService( java.util.concurrent.Executors.newFixedThreadPool( numIOThreads ) )
+
+      // Set-up the logger with the check loan
+      // def logger = resultLogger( logResult( formatCSV ) )( resource ) _  // resource is the file
+      def tmp = resultLogger( logResult( formatCSV ) ) _ // resource is the file
+      //val t = using( resource )( tmp ) //  Try[Try[Long] => Unit]
+      val m = Function.uncurried( tmp )
+      //val u = using1( resource )( m ) _ // Try[Long] => Try[Unit]
+      val log = usingThenCheck1( resource ) ( m ) _ // Try[Long] => Try[Unit]
+      
+      // Launch some tasks
+      val s = ( 0 to numTasks ).toStream
+      s.foreach { x =>
+        println( s"Launhed $x" )
+        //val f = Future( timeKiller( x ) )( contextLocal )
+        val f = Future( timeKiller( x ) )
+        //f.onComplete { u } ( fixedThreadContextLocal )
+        f.onComplete { log } ( fixedThreadContextLocal )
+      }
+      
+      // Finish off
+      // see http://stackoverflow.com/questions/18425026/shutdown-and-awaittermination-which-first-call-have-any-difference
+      // Does an orderly "shutdown". It will wait for all tasks on the queue to complete
+      // If new tasks are placed on the queue, these will be rejected causing exceptions
+      // Use a timed-out termination to avoid task execution loss (pending call-backs)
+      // Don't accept more mains tasks
+      contextLocal.shutdown
+      // Wait for pending main tasks
+      contextLocal.awaitTermination( 100, TimeUnit.DAYS )
+      // If all the contexts are not shutdown then the man thread will remain active
+      // All main tasks executed, so all callbacks already requested
+      // No more callbacks
+      fixedThreadContextLocal.shutdown
+      // Wait until they finish
+      fixedThreadContextLocal.awaitTermination( 100, TimeUnit.DAYS )
+    }
+    val r7 = checkLogResults( fileWithPath, numTasks )
+    println( s"Test 6 test : $r7" )
+
     println( "Finished" )
-    // Does an orderly "shutdown". It will wait for all tasks on the queue to complete
-    // If new tasks are placed on the queue, these will be rejected causing exceptions
-    // Use a timed-out termination to avoid task execution loss (pending call-backs)
-    // Don't accept more mains tasks
-    //context.shutdown
-    // Wait for pending main tasks
-    //context.awaitTermination( 100, TimeUnit.DAYS )
-    // If all the contexts are not shutdown then the man thread will remain active
-    // All main tasks executed, so all callbacks already requested
-    // No more callbacks
-    //fixedThreadContext.shutdown
-    // Wait until they finish
-    //fixedThreadContext.awaitTermination( 100, TimeUnit.DAYS )
   }
 
 }

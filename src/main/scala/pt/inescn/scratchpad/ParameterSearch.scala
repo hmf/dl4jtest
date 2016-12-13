@@ -5,6 +5,9 @@ package pt.inescn.scratchpad
 trait ParameterSearch {}
 
 /**
+ * 
+ * https://amplab.cs.berkeley.edu/wp-content/uploads/2015/07/163-sparks.pdf
+ * 
  * https://softwaremill.com/comparing-akka-stream-scalaz-stream/
  * https://github.com/scala-blitz/scala-blitz/issues/47
  * http://stackoverflow.com/questions/17178201/parallel-iterator-in-scala

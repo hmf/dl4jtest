@@ -156,3 +156,6 @@ Pattern Examples
   https://www.youtube.com/watch?v=WZOzxAP8NpI
     
 
+https://amplab.cs.berkeley.edu/wp-content/uploads/2015/07/163-sparks.pdf
+https://xyclade.github.io/MachineLearning/
+https://github.com/haifengl/smile
