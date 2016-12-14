@@ -2,72 +2,50 @@ package pt.inescn.scratchpad
 
 trait Parameter {}
 
-class learningRate(val value : Double) extends Parameter
-class pValue(val value : Double) extends Parameter
+class learningRate( val value: Double ) extends Parameter
+class pValue( val value: Double ) extends Parameter
 
 import scala.language.higherKinds
 
-//import pt.inescn.utils.HList._
-  import pt.inescn.utils.HNil
-  import pt.inescn.utils.HList.{:: => #:}  // rename the type for compatibility
-  import pt.inescn.utils.HList
+//import pt.inescn.utils.HList._  // cannot use this because of clash between List's and hList's :: type
+import pt.inescn.utils.HList
+import pt.inescn.utils.HNil
+import pt.inescn.utils.HList.{ :: => #: } // rename the type for compatibility
+//import pt.inescn.utils.HList.HNil
 
-trait Model[T,U[T], P] {
+trait Model[ T, U[ T ], P ] {
   //type params = HList
   //val params : List[Parameter]
-  val params : HList
-  
-  def fit(data : U[T]) : Unit
-  def predict(datum : T) : P
+  val params: HList
+
+  def fit( data: U[ T ] ): Unit
+  def predict( datum: T ): P
 }
 
 object ModelAParams {
-  type  w = learningRate #: pValue #: HNil
+  type w = learningRate #: pValue #: HNil
 }
 
-class ModelA[T,U[T]](val params: ModelAParams.w) extends Model[T,U,Double] {
-  import pt.inescn.utils.HList._
-  import pt.inescn.utils.HNil
-  
-  def x = HList.HNil
-  def y = HNil
-  def z = pt.inescn.utils.HList.HNil
-  
-  def fit(data : U[T]) : Unit = {}
-  def predict(datum : T) : Double = {0.0}
+// Ok
+//class ModelA[ T, U[ T ] ]( val params: learningRate #: pValue #: HNil ) extends Model[ T, U, Double ] {
+class ModelA[ T, U[ T ] ]( val params: ModelAParams.w ) extends Model[ T, U, Double ] {
+  def fit( data: U[ T ] ): Unit = {}
+  def predict( datum: T ): Double = { 0.0 }
 }
-
-
 
 //import scala.collection.parallel.ParIterableLike
 
 trait ParameterSearch {}
 
 /**
- * 
- * https://amplab.cs.berkeley.edu/wp-content/uploads/2015/07/163-sparks.pdf
- * 
- * https://softwaremill.com/comparing-akka-stream-scalaz-stream/
- * https://github.com/scala-blitz/scala-blitz/issues/47
- * http://stackoverflow.com/questions/17178201/parallel-iterator-in-scala
- * https://github.com/fsist/future-streams
- * https://github.com/gyeh/lazy-parallel-streams/blob/master/src/main/scala/LazyStreams.scala
- * http://grokbase.com/t/gg/scala-user/12bx1gp61a/traversing-iterator-elements-in-parallel
- *
- * http://stackoverflow.com/questions/18043749/mapping-a-stream-with-a-function-returning-a-future
- *    val result = Future.Traverse(x, toFutureString)
- */
-
-/*
- * http://stackoverflow.com/questions/13483931/functional-style-early-exit-from-depth-first-recursion
- */
-
-/**
  * Generate cross product.
  * Cartesian product of arbitrary lists.
  *
+ *  https://amplab.cs.berkeley.edu/wp-content/uploads/2015/07/163-sparks.pdf
+ * 
  * http://stackoverflow.com/questions/8321906/lazy-cartesian-product-of-several-seqs-in-scala
  * http://stackoverflow.com/questions/19382978/cartesian-product-stream-scala
+ * http://stackoverflow.com/questions/13483931/functional-style-early-exit-from-depth-first-recursion
  */
 object GridPramaterSearch extends ParameterSearch {
 
@@ -194,145 +172,27 @@ object SearchParameters {
     def c5 = GridPramaterSearch.cartesian4( l1.toStream, List(), { x: Seq[ Int ] => x.mkString( "<", ",", ">" ) } )
     c5.foreach { println }
 
-    // http://docs.scala-lang.org/overviews/core/futures.html
-    // http://blog.jessitron.com/2014/02/scala-global-executioncontext-makes.html
-    // http://blog.jessitron.com/2014/01/choosing-executorservice.html
+    //import pt.inescn.utils.HList.HNil.{ :: => #: } // rename the type for compatibility
 
-    // http://alvinalexander.com/scala/concurrency-with-scala-futures-tutorials-examples
-    import scala.concurrent.duration._
-    import scala.concurrent.{ Await, Future, future }
-    import scala.concurrent.forkjoin._
-    import scala.concurrent.ExecutionContext.Implicits.global
-    import scala.language.postfixOps
-    import scala.util.{ Try, Success, Failure }
-    import scala.util.Random
-    /*
-    // used by 'time' method
-    //implicit val baseTime = System.currentTimeMillis
-
-    val f = Future {
-      Thread.sleep( 500 )
-      1 + 1
-    }
-
-    println( "Example 1: start" )
-    val result = Await.result( f, 1 second )
-    println( result )
-    Thread.sleep( 1000 )
-    println( "Example 1: end" )
-
-    println( "Example 2: start" )
-    val f1 = Future {
-      Thread.sleep( Random.nextInt( 500 ) )
-      42
-    }
-    f1.onComplete {
-      case Success( value ) => println( s"Got the callback, meaning = $value" )
-      case Failure( e )     => e.printStackTrace
-    }
-    // do the rest of your work
-    println( "A ..." ); Thread.sleep( 100 )
-    println( "B ..." ); Thread.sleep( 100 )
-    println( "C ..." ); Thread.sleep( 100 )
-    println( "D ..." ); Thread.sleep( 100 )
-    println( "E ..." ); Thread.sleep( 100 )
-    println( "F ..." ); Thread.sleep( 100 )
-    println( "G ..." ); Thread.sleep( 100 )
-    println( "H ..." ); Thread.sleep( 100 )
-    Thread.sleep( 2000 )
-    println( "Example 2: end" )
-
-    println( "Example 3: start" )
-    val f2 = Future {
-      Thread.sleep( Random.nextInt( 500 ) )
-      if ( Random.nextInt( 500 ) > 250 ) throw new Exception( "Yikes!" ) else 42
-    }
-    //   @deprecated("use `foreach` or `onComplete` instead (keep in mind that they take total rather than partial functions)", "2.12.0")
-    f2 onSuccess {
-      case result => println( s"Success: $result" )
-    }
-    // @deprecated("use `foreach` or `onComplete` instead (keep in mind that they take total rather than partial functions)", "2.12.0")
-    f2 onFailure {
-      case t => println( s"Exception: ${t.getMessage}" )
-    }
-    // do the rest of your work
-    println( "A ..." ); Thread.sleep( 100 )
-    println( "B ..." ); Thread.sleep( 100 )
-    println( "C ..." ); Thread.sleep( 100 )
-    println( "D ..." ); Thread.sleep( 100 )
-    println( "E ..." ); Thread.sleep( 100 )
-    println( "F ..." ); Thread.sleep( 100 )
-    println( "G ..." ); Thread.sleep( 100 )
-    println( "H ..." ); Thread.sleep( 100 )
-    Thread.sleep( 2000 )
-    println( "Example 3: end" )
-
-    // @deprecated("use `Future { ... }` instead", "2.11.0")
-    def longRunningComputation( i: Int ): Future[ Int ] = future {
-      Thread.sleep( 100 )
-      i + 1
-    }
-
-    // see also recover, recoverWith, fallbackTo and andThen
-    
-    // http://danielwestheide.com/blog/2013/01/09/the-neophytes-guide-to-scala-part-8-welcome-to-the-future.html
-*/
-    // http://stackoverflow.com/questions/18043749/mapping-a-stream-with-a-function-returning-a-future
-    // val x = (1 until 10).toStream
-    // def toFutureString(value : Integer) = Future(value toString)
-
-    //val x = ( 1 to 10 ).toList
-    val x = ( 1 to 100 ).toStream
-    def toFutureString( value: Int ) = Future {
-      println( "starting " + value )
-      //Thread.sleep( 100 )
-      ( 1 to 1500000 ).foreach( x => math.log(x * 2 / 3) )
-      println( "completed " + value )
-      value.toString
-    }
-
-    // If its a def and never use, nothing runs
-    // If it a val, then it is used. Note that val stream means memoization is used
-    def r = Future.traverse( x )( toFutureString )
-    println( "Returned from traverse" )
-
-    // Irrespective of val or def, we get the result 
-    // But we only get it when all futures have been processed
-    Await.ready( r, 1000 second )
-    println( "Returned from Await.ready" )
-
-    // http://stackoverflow.com/questions/18163656/traversing-lists-and-streams-with-a-function-returning-a-future
-    // https://github.com/dnvriend/akka-concurrency-test
-    // http://blog.quantifind.com/instantiations-of-scala-futures
-    /* We want to automatically introduce back-pressure and block the caller from creating and enqueueing more futures until we 
-       * have enough capacity to do so.
-       * see http://grokbase.com/t/gg/scala-user/13ahck3d28/easy-parallel-mapping-an-iterator
-       *      1.  `iterator.grouped(batchSize).par`.
-       */
-
-    // Very long list. All CPUs seem to be occupied but we end with a java.lang.OutOfMemoryError 
-    // The OOM error occurs due to the Future.traverse that holds a value to the full stream
-    // When this occurs, it also seems like the java threads become zombies 
-    // Use top -M to see this in action
-    /*
-    def  y = ( 1 to 1000000000 ).toStream.grouped( 10 ).toStream.flatMap { x => x }
-    def s = Future.traverse( y )( toFutureString )
-    println( "Returned from traverse" )
-    Await.ready( s, 1000 days ) // Duration.Inf    
-    println( "Returned from Await.ready" )*/
-
-    // Could only see about 60% CPU usage (grouped by 10 for 8 threads). To get to this point I had to remove the sleep and use tight loops
-    // It may be that the grouping is delaying the push of the Futures onto the thread pool and hence easing off on the CPUs
-    // By increasing the group size we could apply more back pressure. However, with 128 requests we maxed at 85%. 
-    // This means that the Await.ready may be waiting on threads that have yet to finish in a given group. 
-    // TODO: consider other Future or  Await calls
-    def  z = ( 1 to 1000000000 ).grouped( 128 )
-    z.foreach { x => 
-      println( "Before group traverse" )
-      def s = Future.traverse( x )( toFutureString )
-      Await.ready( s, Duration.Inf  )
-      println( "After group traverse" )
-    }
-        
+    //val w = "str" :: true :: 1.0 :: HList.HNil
+    val x = "str" :: true :: 1.0 :: HNil  
+    val p1 = new learningRate( 0.001 ) :: new pValue( 0.05 ) :: HNil
+    val m1 = new ModelA(p1)  
+    // cannot use (compile)
+    // m1.fit(1)
+    //val p2 = new pValue( 0.05 ) :: new learningRate( 0.001 )  :: HNil
+    // Compilation error
+    // type mismatch;
+    // [error]  found   : pt.inescn.utils.HCons[pt.inescn.scratchpad.pValue,pt.inescn.utils.HCons[pt.inescn.scratchpad.learningRate,pt.inescn.utils.HNil]]
+    // [error]  required: pt.inescn.scratchpad.ModelAParams.w
+    // [error]     (which expands to)  pt.inescn.utils.HCons[pt.inescn.scratchpad.learningRate,pt.inescn.utils.HCons[pt.inescn.scratchpad.pValue,pt.inescn.utils.HNil]]
+    //val m2 = new ModelA(p2)   
+    //val p3 = 0.001 :: 0.05  :: HNil
+    // Compilation error
+    // type mismatch;
+    // [error]  found   : pt.inescn.utils.HCons[Double,pt.inescn.utils.HCons[Double,pt.inescn.utils.HNil]]
+    // [error]  required: pt.inescn.scratchpad.ModelAParams.w
+    // [error]     (which expands to)  pt.inescn.utils.HCons[pt.inescn.scratchpad.learningRate,pt.inescn.utils.HCons[pt.inescn.scratchpad.pValue,pt.inescn.utils.HNil]]
+    //val m3 = new ModelA(p3)   
   }
 }

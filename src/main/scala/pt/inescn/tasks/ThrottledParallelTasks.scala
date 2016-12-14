@@ -26,9 +26,15 @@ object ExitAppRejectedExecutionHandler extends RejectedExecutionHandler {
  * lecompte@gmail.com
  * http://twitter.com/ryanlecompte
  *
+ * http://docs.scala-lang.org/overviews/core/futures.html
+ * http://alvinalexander.com/scala/concurrency-with-scala-futures-tutorials-examples
+ * http://danielwestheide.com/blog/2013/01/09/the-neophytes-guide-to-scala-part-8-welcome-to-the-future.html
  * http://www.cakesolutions.net/teamblogs/demystifying-the-blocking-construct-in-scala-futures
  * "This means that out of the box the blocking {} constructs only has an effect if you use the global execution context, nothing more"
- *
+ * http://stackoverflow.com/questions/18163656/traversing-lists-and-streams-with-a-function-returning-a-future
+ * https://github.com/dnvriend/akka-concurrency-test
+ * http://blog.quantifind.com/instantiations-of-scala-futures
+ * 
  * http://blog.jessitron.com/2014/01/choosing-executorservice.html
  *  . https://gist.github.com/jessitron/60d0c1792e0c42b12533
  * http://blog.jessitron.com/2014/02/scala-global-executioncontext-makes.html
@@ -40,6 +46,17 @@ object ExitAppRejectedExecutionHandler extends RejectedExecutionHandler {
  * http://stackoverflow.com/questions/26079987/limiting-the-q-size-on-javas-1-7-forkjoinpool
  * http://stackoverflow.com/questions/29962437/how-to-block-a-queue-in-forkjoinpool
  *
+ * 
+ * https://softwaremill.com/comparing-akka-stream-scalaz-stream/
+ * https://github.com/scala-blitz/scala-blitz/issues/47
+ * http://stackoverflow.com/questions/17178201/parallel-iterator-in-scala
+ * https://github.com/fsist/future-streams
+ * https://github.com/gyeh/lazy-parallel-streams/blob/master/src/main/scala/LazyStreams.scala
+ * http://grokbase.com/t/gg/scala-user/12bx1gp61a/traversing-iterator-elements-in-parallel
+ *
+ * http://stackoverflow.com/questions/18043749/mapping-a-stream-with-a-function-returning-a-future
+ *    val result = Future.Traverse(x, toFutureString)
+ * 
  * sbt "run-main pt.inescn.tasks.ThrottledParallelTasks"
  *  top -H
  */

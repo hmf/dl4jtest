@@ -23,11 +23,15 @@ sealed class HNil extends HList {
 object HList {
   type ::[ H, T <: HList ] = HCons[ H, T ]
   
-  val :: = HCons
-  val HNil = new HNil
+  val :: = HCons // alias for pattern matching
+  
+  // if we use this instead of an explicit object (see below) we have to `import pt.inescn.utils.HList.HNil`
+  // to this this embedded object as well as `import pt.inescn.utils.HNil`to get the type (class). 
+  // The `import HList.HNil` also causes the  IDE to complain of ambiguous reference being  imported twice
+  //val HNil = new HNil 
 }
 
-//object HNil extends HNil
+object HNil extends HNil
 
 object HListExample {
   import HList._
