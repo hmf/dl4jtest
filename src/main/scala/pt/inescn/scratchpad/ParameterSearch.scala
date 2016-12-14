@@ -1,9 +1,17 @@
 package pt.inescn.scratchpad
 
-trait Parameter {}
+// Parameters are value classes
 
-class learningRate( val value: Double ) extends Parameter
-class pValue( val value: Double ) extends Parameter
+/**
+ * 
+ * @see http://stackoverflow.com/questions/19642053/when-to-use-val-or-def-in-scala-traits
+ */
+trait Parameter[T] {
+  def value: T // must be a def or var
+}
+
+class learningRate( override val value: Double ) extends Parameter[Double]
+class pValue( override val value: Double ) extends Parameter[Double]
 
 import scala.language.higherKinds
 
@@ -111,16 +119,13 @@ object GridPramaterSearch extends ParameterSearch {
     loop( list, List() )
   }
 
-  /*@tailrec
-  def cartesian6[ A, B ]( list: => Stream[ Seq[ A ] ], f: Seq[ A ] => B ): Stream[ B ] = {
-    def loop( lst: => Stream[ Seq[ A ] ], acc: Seq[ A ] ): Stream[ B ]  = {
-      lst match {
-        case Stream.Empty => List( f( acc ) ).toStream
-        case h #:: t      => h.toStream.flatMap { x => loop( t, x +: acc ) }
-      }
+  def cartesian6[ A, B ]( list: Stream[ Seq[ A ] ], acc: Seq[ A ], f: Seq[ A ] => B ): Stream[ B ] = {
+    list match {
+      case Stream.Empty => List( f( acc ) ).toStream
+      case h #:: t      => h.toStream.flatMap { x => cartesian4( t, x +: acc, f ) }
     }
-    loop( list, List() )
-  }*/
+  }
+  
 
   /**
    * Example of a tail recursive call
@@ -155,11 +160,20 @@ object SearchParameters {
 
     GridPramaterSearch.cartesian2( l, List(), { x: Seq[ Int ] => println( x.mkString( "<", ",", ">" ) ) } )
 
+    // Accumulate list before executing `for each` - will OOM
     val c3 = GridPramaterSearch.cartesian3( l, List(), { x: Seq[ Int ] => x.mkString( "<", ",", ">" ) } )
     c3.foreach { println }
 
     val c4 = GridPramaterSearch.cartesian4( l.toStream, List(), { x: Seq[ Int ] => x.mkString( "<", ",", ">" ) } )
     c4.foreach { println }
+
+    //val l4a = List( 1 to 2500, 1 to 2500, 1 to 2500 )
+    val l4a = List( 1 to 3, 1 to 3, 1 to 3 )
+    // OOM at <575,1785,2> - use as def not val
+    def c4a = GridPramaterSearch.cartesian4( l4a.toStream, List(), { x: Seq[ Int ] => x.mkString( "<", ",", ">" ) } )
+    // OOM , noting to circumvent this
+    //val c4a = GridPramaterSearch.cartesian3( l4a, List(), { x: Seq[ Int ] => x.mkString( "<", ",", ">" ) } )
+    c4a.foreach { println }
 
     // Cartesian 3 while constructing the list - java.lang.OutOfMemoryError: GC overhead limit exceeded (slow due to memoization)
     // Cartesian 3 printing the list is ok, but memoization causes problems - java.lang.OutOfMemoryError: GC overhead limit exceeded 
@@ -187,12 +201,19 @@ object SearchParameters {
     // [error]  required: pt.inescn.scratchpad.ModelAParams.w
     // [error]     (which expands to)  pt.inescn.utils.HCons[pt.inescn.scratchpad.learningRate,pt.inescn.utils.HCons[pt.inescn.scratchpad.pValue,pt.inescn.utils.HNil]]
     //val m2 = new ModelA(p2)   
-    //val p3 = 0.001 :: 0.05  :: HNil
+    val p3 = 0.001 :: 0.05  :: HNil
     // Compilation error
     // type mismatch;
     // [error]  found   : pt.inescn.utils.HCons[Double,pt.inescn.utils.HCons[Double,pt.inescn.utils.HNil]]
     // [error]  required: pt.inescn.scratchpad.ModelAParams.w
     // [error]     (which expands to)  pt.inescn.utils.HCons[pt.inescn.scratchpad.learningRate,pt.inescn.utils.HCons[pt.inescn.scratchpad.pValue,pt.inescn.utils.HNil]]
     //val m3 = new ModelA(p3)   
+    
+    val ps = 0.001 to 1 by 0.1
+    ps.toList.foreach(println)
+    //val ps1 =  new learningRate( 0.001 ).value to  new learningRate( 1 ).value
+    //val ps1 =  new learningRate( 0.001 ) to  new learningRate( 1 )
+    println(new learningRate( 0.001 ).value)
+    //println(new learningRate( 0.001 ).valuex)
   }
 }
