@@ -1,17 +1,10 @@
-package pt.inescn.scratchpad
+package pt.inescn.tasks
 
 import java.util.concurrent.ThreadPoolExecutor
-
-// Computation
-// Computation: start additional tasks recursively
 import java.util.concurrent.ForkJoinPool
-import java.util.concurrent.Executors
-
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.ArrayBlockingQueue
 import scala.concurrent._
 import scala.concurrent.duration.Duration
-
 import java.util.concurrent.RejectedExecutionHandler
 
 /**
@@ -47,7 +40,7 @@ object ExitAppRejectedExecutionHandler extends RejectedExecutionHandler {
  * http://stackoverflow.com/questions/26079987/limiting-the-q-size-on-javas-1-7-forkjoinpool
  * http://stackoverflow.com/questions/29962437/how-to-block-a-queue-in-forkjoinpool
  *
- * sbt "run-main pt.inescn.scratchpad.ThrottledParallelTasks"
+ * sbt "run-main pt.inescn.tasks.ThrottledParallelTasks"
  *  top -H
  */
 object ThrottledParallelTasks {
@@ -479,7 +472,7 @@ object ThrottledParallelTasks {
     val r4 = r3.sortWith{ ( i, j ) => i < j }.zipWithIndex
     //r4.foreach{ x => println( x ) }
     // If the pairs don't match, then some error occurred
-    val r5 = r4.forall{ case ( i, j ) => println(s"Ok ($i,$j) : ${i == j}") ; i == j }
+    val r5 = r4.forall{ case ( i, j ) => /*println(s"Ok ($i,$j) : ${i == j}") ;*/ i == j }
     // Make sure we have all the tasks done
     val m = r4.max
     bufferedSource.close

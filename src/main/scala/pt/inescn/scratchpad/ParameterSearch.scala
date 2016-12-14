@@ -1,5 +1,44 @@
 package pt.inescn.scratchpad
 
+trait Parameter {}
+
+class learningRate(val value : Double) extends Parameter
+class pValue(val value : Double) extends Parameter
+
+import scala.language.higherKinds
+
+//import pt.inescn.utils.HList._
+  import pt.inescn.utils.HNil
+  import pt.inescn.utils.HList.{:: => #:}  // rename the type for compatibility
+  import pt.inescn.utils.HList
+
+trait Model[T,U[T], P] {
+  //type params = HList
+  //val params : List[Parameter]
+  val params : HList
+  
+  def fit(data : U[T]) : Unit
+  def predict(datum : T) : P
+}
+
+object ModelAParams {
+  type  w = learningRate #: pValue #: HNil
+}
+
+class ModelA[T,U[T]](val params: ModelAParams.w) extends Model[T,U,Double] {
+  import pt.inescn.utils.HList._
+  import pt.inescn.utils.HNil
+  
+  def x = HList.HNil
+  def y = HNil
+  def z = pt.inescn.utils.HList.HNil
+  
+  def fit(data : U[T]) : Unit = {}
+  def predict(datum : T) : Double = {0.0}
+}
+
+
+
 //import scala.collection.parallel.ParIterableLike
 
 trait ParameterSearch {}

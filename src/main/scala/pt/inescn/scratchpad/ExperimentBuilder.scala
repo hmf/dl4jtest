@@ -60,7 +60,7 @@ trait Evaluator[ T, P, D, R, M ] {
   def evaluate( params: P, testData: D ): Try[ M ] = ???
 }
 
-class ModelA[ T, P, D, R, M ]( p: PreProcessor[ T, D ] ) extends Learner[ T, P, D, R, M ] {
+class ModelX[ T, P, D, R, M ]( p: PreProcessor[ T, D ] ) extends Learner[ T, P, D, R, M ] {
 }
 
 /* TODO: remove
