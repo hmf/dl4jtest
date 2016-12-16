@@ -117,7 +117,7 @@ object BuilderPattern {
   }
   */
   /**
-   * USe a class/trait to avoid use of reflection.
+   * Use a class/trait to avoid use of reflection.
    */
   implicit def enableBuild( builder: SafeScotchBuilder[ TRUE, TRUE, TRUE ] ) = new SafeBuild {
     def build() = new OrderOfScotch( builder.theBrand.get, builder.theMode.get, builder.theDoubleStatus.get, builder.theGlass );
@@ -149,8 +149,8 @@ object TypeSafeBuilder {
       val has_nothing = safeBuilder // SafeScotchBuilder[FALSE, FALSE, FALSE]
       val has_brand = safeBuilder withBrand ( "hi" ) // SafeScotchBuilder[TRUE, FALSE, FALSE]
       val brand_double = safeBuilder withBrand ( "hi" ) isDouble ( false ) //SafeScotchBuilder[TRUE, FALSE, TRUE]
-      // now we know Option.ge will work when we build()
-      import scala.language.reflectiveCalls
+      // now we know Option.get will work when we build()
+      //import scala.language.reflectiveCalls
       val order = safeBuilder withBrand ( "hi" ) isDouble ( false ) withGlass ( Tall ) withMode ( Neat ) build ()
       // value build is not a member of pt.inescn.scratchpad.idioms.SafeScotchBuilder[pt.inescn.scratchpad.idioms.TRUE,pt.inescn.scratchpad.idioms.FALSE,pt.inescn.scratchpad.idioms.TRUE]
       //val another_order = safeBuilder withBrand("hi") isDouble(false) withGlass(Tall) build()

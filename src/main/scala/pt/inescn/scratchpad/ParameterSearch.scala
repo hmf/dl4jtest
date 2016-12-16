@@ -3,15 +3,60 @@ package pt.inescn.scratchpad
 // Parameters are value classes
 
 /**
- * 
+ *
  * @see http://stackoverflow.com/questions/19642053/when-to-use-val-or-def-in-scala-traits
  */
-trait Parameter[T] {
-  def value: T // must be a def or var
+trait Parameter[ T ] {
+  def value: T // must be a def or var so that we can override and initialize from the extended class
+  def na : T
 }
 
-class learningRate( override val value: Double ) extends Parameter[Double]
-class pValue( override val value: Double ) extends Parameter[Double]
+trait ParameterRange[ T, B, E, S ] {
+  var begin: Parameter[ T ]
+  var end: Parameter[ T ]
+  var step: Parameter[ T ]
+}
+
+// Can also use `abstract class`
+trait BEGIN
+trait END
+trait STEP
+trait MISSING
+
+object ParameterRange {
+
+  def apply[ T ](begin: Parameter[ T ], end: Parameter[ T ], step: Parameter[ T ] ): ParameterRange[ T, BEGIN, END, STEP] = 
+    new HiddenParameterRange[T, BEGIN, END, STEP](begin, end, step)
+
+  private class HiddenParameterRange[ T, B, E, S ](override val begin: Parameter[ T ], override val end: Parameter[ T ], override val step: Parameter[ T ]) 
+    extends ParameterRange[ T, B, E, S ] {
+    
+    def this(begin: Parameter[ T ]) {
+      this(begin, begin.na, begin.na)
+    }
+    
+  }
+
+  def from[T, B, E, S]( begin: Parameter[ T ]): ParameterRange[T, BEGIN, MISSING, MISSING] = 
+    new HiddenParameterRange[T, BEGIN, MISSING, MISSING](begin)
+  
+  def to[ T ]( begin: Parameter[ T ], end: Parameter[ T ], step: Parameter[ T ] ): ParameterRange[T, BEGIN, END, STEP] = 
+    new HiddenParameterRange[T, BEGIN, END, STEP](begin, end, step)
+}
+
+object test {
+  val x = ParameterRange(learningRate(0.0), learningRate(0.01), learningRate(0.001))
+  val y = ParameterRange.to(learningRate(0.0), learningRate(0.01), learningRate(0.001))
+  
+  import ParameterRange._
+  val z = to(learningRate(0.0), learningRate(0.01), learningRate(0.001))
+  
+}
+
+
+
+case class learningRate( override val value: Double ) extends Parameter[ Double ] { def na = Double.NaN }
+case class pValue( override val value: Double ) extends Parameter[ Double ]
 
 import scala.language.higherKinds
 
@@ -50,7 +95,7 @@ trait ParameterSearch {}
  * Cartesian product of arbitrary lists.
  *
  *  https://amplab.cs.berkeley.edu/wp-content/uploads/2015/07/163-sparks.pdf
- * 
+ *
  * http://stackoverflow.com/questions/8321906/lazy-cartesian-product-of-several-seqs-in-scala
  * http://stackoverflow.com/questions/19382978/cartesian-product-stream-scala
  * http://stackoverflow.com/questions/13483931/functional-style-early-exit-from-depth-first-recursion
@@ -125,7 +170,6 @@ object GridPramaterSearch extends ParameterSearch {
       case h #:: t      => h.toStream.flatMap { x => cartesian4( t, x +: acc, f ) }
     }
   }
-  
 
   /**
    * Example of a tail recursive call
@@ -189,9 +233,9 @@ object SearchParameters {
     //import pt.inescn.utils.HList.HNil.{ :: => #: } // rename the type for compatibility
 
     //val w = "str" :: true :: 1.0 :: HList.HNil
-    val x = "str" :: true :: 1.0 :: HNil  
+    val x = "str" :: true :: 1.0 :: HNil
     val p1 = new learningRate( 0.001 ) :: new pValue( 0.05 ) :: HNil
-    val m1 = new ModelA(p1)  
+    val m1 = new ModelA( p1 )
     // cannot use (compile)
     // m1.fit(1)
     //val p2 = new pValue( 0.05 ) :: new learningRate( 0.001 )  :: HNil
@@ -201,19 +245,19 @@ object SearchParameters {
     // [error]  required: pt.inescn.scratchpad.ModelAParams.w
     // [error]     (which expands to)  pt.inescn.utils.HCons[pt.inescn.scratchpad.learningRate,pt.inescn.utils.HCons[pt.inescn.scratchpad.pValue,pt.inescn.utils.HNil]]
     //val m2 = new ModelA(p2)   
-    val p3 = 0.001 :: 0.05  :: HNil
+    val p3 = 0.001 :: 0.05 :: HNil
     // Compilation error
     // type mismatch;
     // [error]  found   : pt.inescn.utils.HCons[Double,pt.inescn.utils.HCons[Double,pt.inescn.utils.HNil]]
     // [error]  required: pt.inescn.scratchpad.ModelAParams.w
     // [error]     (which expands to)  pt.inescn.utils.HCons[pt.inescn.scratchpad.learningRate,pt.inescn.utils.HCons[pt.inescn.scratchpad.pValue,pt.inescn.utils.HNil]]
     //val m3 = new ModelA(p3)   
-    
+
     val ps = 0.001 to 1 by 0.1
-    ps.toList.foreach(println)
+    ps.toList.foreach( println )
     //val ps1 =  new learningRate( 0.001 ).value to  new learningRate( 1 ).value
     //val ps1 =  new learningRate( 0.001 ) to  new learningRate( 1 )
-    println(new learningRate( 0.001 ).value)
+    println( new learningRate( 0.001 ).value )
     //println(new learningRate( 0.001 ).valuex)
   }
 }
