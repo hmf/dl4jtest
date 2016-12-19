@@ -9,21 +9,23 @@ package pt.inescn.scratchpad
 trait Parameter[ T ] {
   def value: T // must be a def or var so that we can override and initialize from the extended class
   //val na : Parameter[Nothing] = Naught
+  
+  //def from[ T, U](begin : this.type): ParameterRange[ T, U, BEGIN, MISSING, MISSING ] 
 }
 
-import scala.{Option, Some, None}
+import scala.{ Option, Some, None }
 
 //case object Naught extends Parameter[Nothing] { def value = this}
 
 trait ParameterRange[ T, U, B, E, C ] {
   var begin: Parameter[ T ]
   var end: Parameter[ T ]
-  var config: Option[U]
+  var config: Option[ U ]
 
   def to( nend: Parameter[ T ] ): ParameterRange[ T, U, B, END, C ]
-  def by[V]( nconfig: Option[V] ): ParameterRange[ T, V, B, E, CONFIG ]
+  def by[ V ]( nconfig: V ): ParameterRange[ T, V, B, E, CONFIG ]
 
-  def toStream: Stream[ T ]
+  def toStream: Stream[  Parameter[ T ] ]
 }
 
 // Can also use `abstract class`
@@ -34,37 +36,39 @@ trait MISSING
 
 object ParameterRange {
 
-  /*
   def apply[ T, U ]( begin: Parameter[ T ], end: Parameter[ T ], config: U ): ParameterRange[ T, U, BEGIN, END, CONFIG ] =
-    new HiddenParameterRange[ T, U, BEGIN, END, CONFIG ]( begin, end, config )*/
+    new LinearParameterRange[ T, U, BEGIN, END, CONFIG ]( begin, end, Some(config) )
 
-  private class HiddenParameterRange[ T, U, B, E, C ]( override var begin: Parameter[ T ], override var end: Parameter[ T ], override var config: Option[U] )
-      extends ParameterRange[ T, U, B, E, C ] {
-    
-    //var x: U = _
+  def from[ T, U, B, E, S ]( begin: Parameter[ T ] ): ParameterRange[ T, U, BEGIN, MISSING, MISSING ] = 
+    new LinearParameterRange[ T, U, BEGIN, MISSING, MISSING ]( begin )
+}
 
-    def this( begin: Parameter[ T ] ) {
-      //this(begin, begin.na, begin.na)
-      this( begin, begin, None)
-    }
+private class LinearParameterRange[ T, U, B, E, C ]( override var begin: Parameter[ T ], override var end: Parameter[ T ], override var config: Option[ U ] )
+    extends ParameterRange[ T, U, B, E, C ] {
 
-    def to( nend: Parameter[ T ] ): ParameterRange[ T, U, B, END, C ] = new HiddenParameterRange[ T, U, B, END, C ]( begin, nend, config )
-    def by[V]( nconfig: Option[V] ): ParameterRange[ T, V, B, E, CONFIG ] = new HiddenParameterRange[ T, V, B, E, CONFIG ]( begin, end, nconfig )
+  //var x: U = _
 
-    def toStream: Stream[ T ] = ???
+  def this( begin: Parameter[ T ] ) {
+    this( begin, begin, None )
   }
 
-  def from[ T, U, B, E, S ]( begin: Parameter[ T ] ): ParameterRange[ T, U, BEGIN, MISSING, MISSING ] =
-    new HiddenParameterRange[ T, U, BEGIN, MISSING, MISSING ]( begin )
+  def to( nend: Parameter[ T ] ): ParameterRange[ T, U, B, END, C ] = new LinearParameterRange[ T, U, B, END, C ]( begin, nend, config )
+  def by[ V ]( nconfig: V ): ParameterRange[ T, V, B, E, CONFIG ] = new LinearParameterRange[ T, V, B, E, CONFIG ]( begin, end, Some( nconfig ) )
+
+  def toStream: Stream[ Parameter[ T ] ] = ???
 }
 
 object test {
-  //val x = ParameterRange( learningRate( 0.0 ), learningRate( 0.01 ), learningRate( 0.001 ) )
-  //val y = ParameterRange.to( learningRate( 0.0 ), learningRate( 0.01 ), learningRate( 0.001 ) )
+  val x = ParameterRange( learningRate( 0.0 ), learningRate( 0.01 ),  0.001 )
+  
   val z1 = ParameterRange.from( learningRate( 0.0 ) )
   val z2 = z1.to( learningRate( 0.01 ) )
-  val z3 = z2.by( Some(0.001) )
+  val z3 = z2.by(  0.001 )
+  val z4 = z3.toStream
 
+  import ParameterRange._
+  val y1 = from( learningRate( 0.0 ) ) 
+  
   //import ParameterRange._
   //val t1 = to( learningRate( 0.0 ), learningRate( 0.01 ), learningRate( 0.001 ) )
 
