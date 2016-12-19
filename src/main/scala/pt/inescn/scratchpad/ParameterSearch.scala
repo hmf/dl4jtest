@@ -13,50 +13,56 @@ trait Parameter[ T ] {
 
 //case object Naught extends Parameter[Nothing] { def value = this}
 
-trait ParameterRange[ T, B, E, S ] {
+trait ParameterRange[ T, U >: Null, B, E, C ] {
   var begin: Parameter[ T ]
   var end: Parameter[ T ]
-  var config: Parameter[ T ]
-  
-  def toStream : Stream[T]
+  var config: U
+
+  def to( nend: Parameter[ T ] ): ParameterRange[ T, U, B, END, C ]
+  def by[V >: Null]( nconfig: V ): ParameterRange[ T, V, B, E, CONFIG ]
+
+  def toStream: Stream[ T ]
 }
 
 // Can also use `abstract class`
 trait BEGIN
 trait END
-trait STEP
+trait CONFIG
 trait MISSING
 
 object ParameterRange {
 
-  def apply[ T ]( begin: Parameter[ T ], end: Parameter[ T ], step: Parameter[ T ] ): ParameterRange[ T, BEGIN, END, STEP ] =
-    new HiddenParameterRange[ T, BEGIN, END, STEP ]( begin, end, step )
+  /*
+  def apply[ T, U ]( begin: Parameter[ T ], end: Parameter[ T ], config: U ): ParameterRange[ T, U, BEGIN, END, CONFIG ] =
+    new HiddenParameterRange[ T, U, BEGIN, END, CONFIG ]( begin, end, config )*/
 
-  private class HiddenParameterRange[ T, B, E, S ]( override var begin: Parameter[ T ], override var end: Parameter[ T ], override var config: Parameter[ T ] )
-      extends ParameterRange[ T, B, E, S ] {
+  private class HiddenParameterRange[ T, U >: Null, B, E, C ]( override var begin: Parameter[ T ], override var end: Parameter[ T ], override var config: U )
+      extends ParameterRange[ T, U, B, E, C ] {
 
     def this( begin: Parameter[ T ] ) {
       //this(begin, begin.na, begin.na)
-      this( begin, begin, begin )
+      this( begin, begin, null)
     }
-    
-    def toStream : Stream[T] = ???
+
+    def to( nend: Parameter[ T ] ): ParameterRange[ T, U, B, END, C ] = new HiddenParameterRange[ T, U, B, END, C ]( begin, nend, config )
+    def by[V >: Null]( nconfig: V ): ParameterRange[ T, V, B, E, CONFIG ] = new HiddenParameterRange[ T, V, B, E, CONFIG ]( begin, end, nconfig )
+
+    def toStream: Stream[ T ] = ???
   }
 
-  def from[ T, B, E, S ]( begin: Parameter[ T ] ): ParameterRange[ T, BEGIN, MISSING, MISSING ] =
-    new HiddenParameterRange[ T, BEGIN, MISSING, MISSING ]( begin )
-
-  def to[ T ]( begin: Parameter[ T ], end: Parameter[ T ], step: Parameter[ T ] ): ParameterRange[ T, BEGIN, END, STEP ] =
-    new HiddenParameterRange[ T, BEGIN, END, STEP ]( begin, end, step )
+  def from[ T, U >: Null, B, E, S ]( begin: Parameter[ T ] ): ParameterRange[ T, U, BEGIN, MISSING, MISSING ] =
+    new HiddenParameterRange[ T, U, BEGIN, MISSING, MISSING ]( begin )
 }
 
 object test {
-  val x = ParameterRange( learningRate( 0.0 ), learningRate( 0.01 ), learningRate( 0.001 ) )
-  val y = ParameterRange.to( learningRate( 0.0 ), learningRate( 0.01 ), learningRate( 0.001 ) )
-  val z = ParameterRange.from( learningRate( 0.0 ) )
+  //val x = ParameterRange( learningRate( 0.0 ), learningRate( 0.01 ), learningRate( 0.001 ) )
+  //val y = ParameterRange.to( learningRate( 0.0 ), learningRate( 0.01 ), learningRate( 0.001 ) )
+  val z1 = ParameterRange.from( learningRate( 0.0 ) )
+  val z2 = z1.to( learningRate( 0.01 ) )
+  val z3 = z2.by( 0.001 )
 
-  import ParameterRange._
-  val t1 = to( learningRate( 0.0 ), learningRate( 0.01 ), learningRate( 0.001 ) )
+  //import ParameterRange._
+  //val t1 = to( learningRate( 0.0 ), learningRate( 0.01 ), learningRate( 0.001 ) )
 
 }
 
