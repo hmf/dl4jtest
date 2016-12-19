@@ -17,15 +17,15 @@ import scala.{ Option, Some, None }
 
 //case object Naught extends Parameter[Nothing] { def value = this}
 
-trait ParameterRange[ T, U, B, E, C ] {
-  var begin: Parameter[ T ]
-  var end: Parameter[ T ]
+trait ParameterRange[  P <: Parameter[_], U, B, E, C ] {
+  var begin: P
+  var end: P
   var config: Option[ U ]
 
-  def to( nend: Parameter[ T ] ): ParameterRange[ T, U, B, END, C ]
-  def by[ V ]( nconfig: V ): ParameterRange[ T, V, B, E, CONFIG ]
+  def to( nend: P ): ParameterRange[ P, U, B, END, C ]
+  def by[ V ]( nconfig: V ): ParameterRange[ P, V, B, E, CONFIG ]
 
-  def toStream: Stream[  Parameter[ T ] ]
+  def toStream: Stream[  P ]
 }
 
 // Can also use `abstract class`
@@ -36,26 +36,26 @@ trait MISSING
 
 object ParameterRange {
 
-  def apply[ T, U ]( begin: Parameter[ T ], end: Parameter[ T ], config: U ): ParameterRange[ T, U, BEGIN, END, CONFIG ] =
-    new LinearParameterRange[ T, U, BEGIN, END, CONFIG ]( begin, end, Some(config) )
+  def apply[ P <: Parameter[_], U ]( begin: P, end: P, config: U ): ParameterRange[ P, U, BEGIN, END, CONFIG ] =
+    new LinearParameterRange[ P, U, BEGIN, END, CONFIG ]( begin, end, Some(config) )
 
-  def from[ T, U, B, E, S ]( begin: Parameter[ T ] ): ParameterRange[ T, U, BEGIN, MISSING, MISSING ] = 
-    new LinearParameterRange[ T, U, BEGIN, MISSING, MISSING ]( begin )
+  def from[ P <: Parameter[_], U, B, E, S ]( begin: P ): ParameterRange[ P, U, BEGIN, MISSING, MISSING ] = 
+    new LinearParameterRange[ P, U, BEGIN, MISSING, MISSING ]( begin )
 }
 
-private class LinearParameterRange[ T, U, B, E, C ]( override var begin: Parameter[ T ], override var end: Parameter[ T ], override var config: Option[ U ] )
-    extends ParameterRange[ T, U, B, E, C ] {
+private class LinearParameterRange[ P <: Parameter[_], U, B, E, C ]( override var begin: P, override var end: P, override var config: Option[ U ] )
+    extends ParameterRange[ P, U, B, E, C ] {
 
   //var x: U = _
 
-  def this( begin: Parameter[ T ] ) {
+  def this( begin: P) {
     this( begin, begin, None )
   }
 
-  def to( nend: Parameter[ T ] ): ParameterRange[ T, U, B, END, C ] = new LinearParameterRange[ T, U, B, END, C ]( begin, nend, config )
-  def by[ V ]( nconfig: V ): ParameterRange[ T, V, B, E, CONFIG ] = new LinearParameterRange[ T, V, B, E, CONFIG ]( begin, end, Some( nconfig ) )
+  def to( nend: P ): ParameterRange[ P, U, B, END, C ] = new LinearParameterRange[ P, U, B, END, C ]( begin, nend, config )
+  def by[ V ]( nconfig: V ): ParameterRange[ P, V, B, E, CONFIG ] = new LinearParameterRange[ P, V, B, E, CONFIG ]( begin, end, Some( nconfig ) )
 
-  def toStream: Stream[ Parameter[ T ] ] = ???
+  def toStream: Stream[ P ] = ???
 }
 
 object test {
