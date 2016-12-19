@@ -28,8 +28,15 @@ trait ParameterRange[ P <: Parameter[ _ ], U, B, E, C ] {
   def to( nend: P ): ParameterRange[ P, U, B, END, C ]
   def by[ V ]( nconfig: V ): ParameterRange[ P, V, B, E, CONFIG ]
 
+  //def toStream: Stream[ P ]
+}
+
+
+/*
+trait StreamableParameterRange[ P <: Parameter[ _ ], U, B, E, C ]  extends ParameterRange[ P, U, B, E, C ] {
   def toStream: Stream[ P ]
 }
+*/
 
 // Can also use `abstract class`
 trait BEGIN
@@ -37,9 +44,13 @@ trait END
 trait CONFIG
 trait MISSING
 
-trait SafeBuild {
-  def build[ P, U ](): ParameterRange[ P, U, BEGIN, END, CONFIG ]
+// TODO: pimp my class and add toStream
+// How do we define and hide the ParameterRange.toStream
+trait SafeBuild[ P <: Parameter[ _ ], U ] {
+  def build(): ParameterRange[ P, U, BEGIN, END, CONFIG ]
 }
+
+import scala.language.implicitConversions
 
 object ParameterRange {
 
@@ -49,7 +60,7 @@ object ParameterRange {
   def from[ P <: Parameter[ _ ], U, B, E, S ]( begin: P ): ParameterRange[ P, U, BEGIN, MISSING, MISSING ] =
     new LinearParameterRange[ P, U, BEGIN, MISSING, MISSING ]( begin )
 
-  implicit def enableBuild[ P, U ]( builder: ParameterRange[ P, U, BEGIN, END, CONFIG ] ) = new SafeBuild {
+  implicit def enableBuild[ P <: Parameter[ _ ], U ]( builder: ParameterRange[ P, U, BEGIN, END, CONFIG ] ) = new SafeBuild[P,U] {
     def build() : ParameterRange[ P, U, BEGIN, END, CONFIG ]= new LinearParameterRange[ P, U, BEGIN, END, CONFIG ]( builder.begin )
   }
 }
@@ -79,7 +90,7 @@ object test {
   val z1 = ParameterRange.from( learningRate( 0.0 ) )
   val z2 = z1.to( learningRate( 0.01 ) )
   val z3 = z2.by( 0.001 )
-  val z4 = z3.toStream
+  // val z4 = z3.toStream hidden, cannot use
 
   import ParameterRange._
   val y1 = from( learningRate( 0.0 ) )
