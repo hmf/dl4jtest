@@ -113,14 +113,14 @@ object BuilderPattern {
    * Below is the use of the structural type. 
    * 
   implicit def enableBuild( builder: SafeScotchBuilder[ TRUE, TRUE, TRUE ] ) = new {
-    def build() = new OrderOfScotch( builder.theBrand.get, builder.theMode.get, builder.theDoubleStatus.get, builder.theGlass );
+    def build() = new OrderOfScotch( builder.theBrand.get, builder.theMode.get, builder.theDoubleStatus.get, builder.theGlass )
   }
   */
   /**
    * Use a class/trait to avoid use of reflection.
    */
   implicit def enableBuild( builder: SafeScotchBuilder[ TRUE, TRUE, TRUE ] ) = new SafeBuild {
-    def build() = new OrderOfScotch( builder.theBrand.get, builder.theMode.get, builder.theDoubleStatus.get, builder.theGlass );
+    def build() = new OrderOfScotch( builder.theBrand.get, builder.theMode.get, builder.theDoubleStatus.get, builder.theGlass )
   }
 
   // Initial object with no members set

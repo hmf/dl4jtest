@@ -1,5 +1,7 @@
 package pt.inescn.scratchpad
 
+import StreamBuilder._
+
 // Parameters are value classes
 
 /**
@@ -9,15 +11,16 @@ package pt.inescn.scratchpad
 trait Parameter[ T ] {
   def value: T // must be a def or var so that we can override and initialize from the extended class
   //val na : Parameter[Nothing] = Naught
-  
+
   //def from[ T, U](begin : this.type): ParameterRange[ T, U, BEGIN, MISSING, MISSING ] 
+  def apply( v: T ): Parameter[ T ]
 }
 
 import scala.{ Option, Some, None }
 
 //case object Naught extends Parameter[Nothing] { def value = this}
 
-trait ParameterRange[  P <: Parameter[_], U, B, E, C ] {
+trait ParameterRange[ P <: Parameter[ _ ], U, B, E, C ] {
   var begin: P
   var end: P
   var config: Option[ U ]
@@ -25,7 +28,7 @@ trait ParameterRange[  P <: Parameter[_], U, B, E, C ] {
   def to( nend: P ): ParameterRange[ P, U, B, END, C ]
   def by[ V ]( nconfig: V ): ParameterRange[ P, V, B, E, CONFIG ]
 
-  def toStream: Stream[  P ]
+  def toStream: Stream[ P ]
 }
 
 // Can also use `abstract class`
@@ -34,48 +37,69 @@ trait END
 trait CONFIG
 trait MISSING
 
-object ParameterRange {
-
-  def apply[ P <: Parameter[_], U ]( begin: P, end: P, config: U ): ParameterRange[ P, U, BEGIN, END, CONFIG ] =
-    new LinearParameterRange[ P, U, BEGIN, END, CONFIG ]( begin, end, Some(config) )
-
-  def from[ P <: Parameter[_], U, B, E, S ]( begin: P ): ParameterRange[ P, U, BEGIN, MISSING, MISSING ] = 
-    new LinearParameterRange[ P, U, BEGIN, MISSING, MISSING ]( begin )
+trait SafeBuild {
+  def build[ P, U ](): ParameterRange[ P, U, BEGIN, END, CONFIG ]
 }
 
-private class LinearParameterRange[ P <: Parameter[_], U, B, E, C ]( override var begin: P, override var end: P, override var config: Option[ U ] )
+object ParameterRange {
+
+  def apply[ P <: Parameter[ _ ], U ]( begin: P, end: P, config: U ): ParameterRange[ P, U, BEGIN, END, CONFIG ] =
+    new LinearParameterRange[ P, U, BEGIN, END, CONFIG ]( begin, end, Some( config ) )
+
+  def from[ P <: Parameter[ _ ], U, B, E, S ]( begin: P ): ParameterRange[ P, U, BEGIN, MISSING, MISSING ] =
+    new LinearParameterRange[ P, U, BEGIN, MISSING, MISSING ]( begin )
+
+  implicit def enableBuild[ P, U ]( builder: ParameterRange[ P, U, BEGIN, END, CONFIG ] ) = new SafeBuild {
+    def build() : ParameterRange[ P, U, BEGIN, END, CONFIG ]= new LinearParameterRange[ P, U, BEGIN, END, CONFIG ]( builder.begin )
+  }
+}
+
+private class LinearParameterRange[ P <: Parameter[ _ ], U, B, E, C ]( override var begin: P, override var end: P, override var config: Option[ U ] )
     extends ParameterRange[ P, U, B, E, C ] {
 
   //var x: U = _
 
-  def this( begin: P) {
+  def this( begin: P ) {
     this( begin, begin, None )
   }
 
   def to( nend: P ): ParameterRange[ P, U, B, END, C ] = new LinearParameterRange[ P, U, B, END, C ]( begin, nend, config )
   def by[ V ]( nconfig: V ): ParameterRange[ P, V, B, E, CONFIG ] = new LinearParameterRange[ P, V, B, E, CONFIG ]( begin, end, Some( nconfig ) )
 
+  // a to b with length = l
+  // from a  by delta (no b!!)
+  // a to b by delta ?
+
   def toStream: Stream[ P ] = ???
 }
 
 object test {
-  val x = ParameterRange( learningRate( 0.0 ), learningRate( 0.01 ),  0.001 )
-  
+  val x = ParameterRange( learningRate( 0.0 ), learningRate( 0.01 ), 0.001 )
+
   val z1 = ParameterRange.from( learningRate( 0.0 ) )
   val z2 = z1.to( learningRate( 0.01 ) )
-  val z3 = z2.by(  0.001 )
+  val z3 = z2.by( 0.001 )
   val z4 = z3.toStream
 
   import ParameterRange._
-  val y1 = from( learningRate( 0.0 ) ) 
-  
+  val y1 = from( learningRate( 0.0 ) )
+  val y2 = y1.to( learningRate( 0.01 ) )
+  val y3 = y2.by( 0.001 )
+  //val y4 = y2.build()  // compile error
+  val y4 = y3.build()
+
+  println( "????????????" )
+  val len = ( ( 0.01 - 0.0 ) / 0.001 ).ceil.toInt
+  val v1 = linspace( 0.0, 0.001 ).map{ x => learningRate( x ) }.take( len )
+  v1.foreach { x => println( x ) }
+
   //import ParameterRange._
   //val t1 = to( learningRate( 0.0 ), learningRate( 0.01 ), learningRate( 0.001 ) )
 
 }
 
-case class learningRate( override val value: Double ) extends Parameter[ Double ]
-case class pValue( override val value: Double ) extends Parameter[ Double ]
+case class learningRate( override val value: Double ) extends Parameter[ Double ] { def apply( v: Double ) = new learningRate( v ) }
+case class pValue( override val value: Double ) extends Parameter[ Double ] { def apply( v: Double ) = new learningRate( v ) }
 
 import scala.language.higherKinds
 
