@@ -8,13 +8,17 @@ package pt.inescn.scratchpad
  */
 trait Parameter[ T ] {
   def value: T // must be a def or var so that we can override and initialize from the extended class
-  def na : T
+  //val na : Parameter[Nothing] = Naught
 }
+
+//case object Naught extends Parameter[Nothing] { def value = this}
 
 trait ParameterRange[ T, B, E, S ] {
   var begin: Parameter[ T ]
   var end: Parameter[ T ]
-  var step: Parameter[ T ]
+  var config: Parameter[ T ]
+  
+  def toStream : Stream[T]
 }
 
 // Can also use `abstract class`
@@ -25,37 +29,38 @@ trait MISSING
 
 object ParameterRange {
 
-  def apply[ T ](begin: Parameter[ T ], end: Parameter[ T ], step: Parameter[ T ] ): ParameterRange[ T, BEGIN, END, STEP] = 
-    new HiddenParameterRange[T, BEGIN, END, STEP](begin, end, step)
+  def apply[ T ]( begin: Parameter[ T ], end: Parameter[ T ], step: Parameter[ T ] ): ParameterRange[ T, BEGIN, END, STEP ] =
+    new HiddenParameterRange[ T, BEGIN, END, STEP ]( begin, end, step )
 
-  private class HiddenParameterRange[ T, B, E, S ](override val begin: Parameter[ T ], override val end: Parameter[ T ], override val step: Parameter[ T ]) 
-    extends ParameterRange[ T, B, E, S ] {
-    
-    def this(begin: Parameter[ T ]) {
-      this(begin, begin.na, begin.na)
+  private class HiddenParameterRange[ T, B, E, S ]( override var begin: Parameter[ T ], override var end: Parameter[ T ], override var config: Parameter[ T ] )
+      extends ParameterRange[ T, B, E, S ] {
+
+    def this( begin: Parameter[ T ] ) {
+      //this(begin, begin.na, begin.na)
+      this( begin, begin, begin )
     }
     
+    def toStream : Stream[T] = ???
   }
 
-  def from[T, B, E, S]( begin: Parameter[ T ]): ParameterRange[T, BEGIN, MISSING, MISSING] = 
-    new HiddenParameterRange[T, BEGIN, MISSING, MISSING](begin)
-  
-  def to[ T ]( begin: Parameter[ T ], end: Parameter[ T ], step: Parameter[ T ] ): ParameterRange[T, BEGIN, END, STEP] = 
-    new HiddenParameterRange[T, BEGIN, END, STEP](begin, end, step)
+  def from[ T, B, E, S ]( begin: Parameter[ T ] ): ParameterRange[ T, BEGIN, MISSING, MISSING ] =
+    new HiddenParameterRange[ T, BEGIN, MISSING, MISSING ]( begin )
+
+  def to[ T ]( begin: Parameter[ T ], end: Parameter[ T ], step: Parameter[ T ] ): ParameterRange[ T, BEGIN, END, STEP ] =
+    new HiddenParameterRange[ T, BEGIN, END, STEP ]( begin, end, step )
 }
 
 object test {
-  val x = ParameterRange(learningRate(0.0), learningRate(0.01), learningRate(0.001))
-  val y = ParameterRange.to(learningRate(0.0), learningRate(0.01), learningRate(0.001))
-  
+  val x = ParameterRange( learningRate( 0.0 ), learningRate( 0.01 ), learningRate( 0.001 ) )
+  val y = ParameterRange.to( learningRate( 0.0 ), learningRate( 0.01 ), learningRate( 0.001 ) )
+  val z = ParameterRange.from( learningRate( 0.0 ) )
+
   import ParameterRange._
-  val z = to(learningRate(0.0), learningRate(0.01), learningRate(0.001))
-  
+  val t1 = to( learningRate( 0.0 ), learningRate( 0.01 ), learningRate( 0.001 ) )
+
 }
 
-
-
-case class learningRate( override val value: Double ) extends Parameter[ Double ] { def na = Double.NaN }
+case class learningRate( override val value: Double ) extends Parameter[ Double ]
 case class pValue( override val value: Double ) extends Parameter[ Double ]
 
 import scala.language.higherKinds
@@ -164,7 +169,7 @@ object GridPramaterSearch extends ParameterSearch {
     loop( list, List() )
   }
 
-  def cartesian6[ A, B ]( list: Stream[ Seq[ A ] ], acc: Seq[ A ], f: Seq[ A ] => B ): Stream[ B ] = {
+  def cartesian6[ A, B ]( list: Stream[ Stream[ A ] ], acc: Seq[ A ], f: Seq[ A ] => B ): Stream[ B ] = {
     list match {
       case Stream.Empty => List( f( acc ) ).toStream
       case h #:: t      => h.toStream.flatMap { x => cartesian4( t, x +: acc, f ) }
@@ -223,12 +228,17 @@ object SearchParameters {
     // Cartesian 3 printing the list is ok, but memoization causes problems - java.lang.OutOfMemoryError: GC overhead limit exceeded 
     // Depth of the search is the same as the the number of lists to process - so this is not an issue
     //val l1 = List( 1 to 250, 1 to 250, 1 to 250 )
-    // -----> val l1 = List( 1 to 2500, 1 to 2500, 1 to 2500 )
+    // ----> val l1 = List( 1 to 2500, 1 to 2500, 1 to 2500 )
     val l1 = List( 1 to 3, 1 to 3, 1 to 3 )
     //val c5 = GridPramaterSearch.cartesian3( l1, List(), { x: Seq[ Int ] => x.mkString( "<", ",", ">" ) } )
     //val c5 = GridPramaterSearch.cartesian4(l1.toStream, List(), { x: Seq[Int] => x.mkString("<", ",", ">")  } )
-    def c5 = GridPramaterSearch.cartesian4( l1.toStream, List(), { x: Seq[ Int ] => x.mkString( "<", ",", ">" ) } )
+    def c5 = GridPramaterSearch.cartesian5( l1.toStream, { x: Seq[ Int ] => x.mkString( "<", ",", ">" ) } )
     c5.foreach { println }
+
+    println( "-----------------" )
+    val l6 = List( ( 1 to 3 ).toStream, ( 1 to 3 ).toStream, ( 1 to 3 ).toStream )
+    def c6 = GridPramaterSearch.cartesian6( l6.toStream, List(), { x: Seq[ Int ] => x.mkString( "<", ",", ">" ) } )
+    c6.foreach { println }
 
     //import pt.inescn.utils.HList.HNil.{ :: => #: } // rename the type for compatibility
 
