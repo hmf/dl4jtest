@@ -31,9 +31,12 @@ trait ParameterRange[ P <: Parameter[ _ ], U, B, E, C ] {
   //def toStream: Stream[ P ]
 }
 
+trait StreamableParameterRange[ P <: Parameter[ _ ], U, B, E, C ] extends ParameterRange[ P, U, B, E, C ]  {
+  def toStream: Stream[ P ]
+}
 
 /*
-trait StreamableParameterRange[ P <: Parameter[ _ ], U, B, E, C ]  extends ParameterRange[ P, U, B, E, C ] {
+trait StreamableParameterRange[ P <: Parameter[ _ ], U, B, E, C ] extends ParameterRange[ P, U, B, E, C ]  {
   def toStream: Stream[ P ]
 }
 */
@@ -47,7 +50,7 @@ trait MISSING
 // TODO: pimp my class and add toStream
 // How do we define and hide the ParameterRange.toStream
 trait SafeBuild[ P <: Parameter[ _ ], U ] {
-  def build(): ParameterRange[ P, U, BEGIN, END, CONFIG ]
+  def build(): StreamableParameterRange[ P, U, BEGIN, END, CONFIG ]
 }
 
 import scala.language.implicitConversions
@@ -61,7 +64,8 @@ object ParameterRange {
     new LinearParameterRange[ P, U, BEGIN, MISSING, MISSING ]( begin )
 
   implicit def enableBuild[ P <: Parameter[ _ ], U ]( builder: ParameterRange[ P, U, BEGIN, END, CONFIG ] ) = new SafeBuild[P,U] {
-    def build() : ParameterRange[ P, U, BEGIN, END, CONFIG ]= new LinearParameterRange[ P, U, BEGIN, END, CONFIG ]( builder.begin )
+    def build() : StreamableParameterRange[ P, U, BEGIN, END, CONFIG ] = 
+      new LinearParameterRange[ P, U, BEGIN, END, CONFIG ]( builder.begin ) with StreamableParameterRange[ P, U, BEGIN, END, CONFIG ]
   }
 }
 
@@ -81,7 +85,10 @@ private class LinearParameterRange[ P <: Parameter[ _ ], U, B, E, C ]( override 
   // from a  by delta (no b!!)
   // a to b by delta ?
 
-  def toStream: Stream[ P ] = ???
+  def toStream: Stream[ P ] = ??? /* TODO {
+    val len = ( ( end.value - begin.value  ) / config.get ).ceil.toInt
+    linspace( begin.value, end.value ).map{ x => learningRate( x ) }.take(  len )
+  }*/
 }
 
 object test {
@@ -98,6 +105,8 @@ object test {
   val y3 = y2.by( 0.001 )
   //val y4 = y2.build()  // compile error
   val y4 = y3.build()
+  //val y5 = y3.toStream // compile error
+  val y5 = y4.toStream
 
   println( "????????????" )
   val len = ( ( 0.01 - 0.0 ) / 0.001 ).ceil.toInt
