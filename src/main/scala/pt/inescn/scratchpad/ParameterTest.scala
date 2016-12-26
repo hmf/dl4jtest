@@ -13,6 +13,7 @@ trait TParameter[ T ] {
   //val na : TParameter[Nothing] = Naught
 
   //def from[ T, U](begin : this.type): TParameterRange[ T, U, TBEGIN, TMISSING, TMISSING ] 
+  //def apply(): TParameter[ T ]
   def apply( v: T ): TParameter[ T ]
 }
 
@@ -25,10 +26,11 @@ trait TParameterRange[ P <: TParameter[ _ ], U, B, E, C ] {
   var end: P
   var config: Option[ U ]
 
-  def apply( begin: P, end: P, config: U ): TParameterRange[ P, U, TBEGIN, E, C]
+  def apply( begin: P): TParameterRange[ P, U, TBEGIN, TMISSING, TMISSING]
 
+  def from( nbegin: P ): TParameterRange[ P, U, TBEGIN, E, C ]
   def to( nend: P ): TParameterRange[ P, U, B, TEND, C ]
-  def by[ V ]( nconfig: V ): TParameterRange[ P, V, B, E, TCONFIG ]
+  def by( nconfig: U ): TParameterRange[ P, U, B, E, TCONFIG ]
 
   //def toStream: Stream[ P ]
 }
@@ -59,56 +61,72 @@ import scala.language.implicitConversions
 
 object TParameterRange {
 
-  def apply[ P <: TParameter[ _ ], U ]( begin: P, end: P, config: U ): TParameterRange[ P, U, TBEGIN, TEND, TCONFIG ] =
-    new TLinearParameterRange[ P, U, TBEGIN, TEND, TCONFIG ]( begin, end, Some( config ) )
+  type TPDouble = TParameter[ Double ]
+/*
+  def apply[ P <: TParameter[ _ ]]( begin: P): TParameterRange[ P, Double, TBEGIN, TMISSING, TMISSING] =
+    new TLinearParameterRange[ P, TBEGIN, TMISSING, TMISSING]( begin)
 
     // TODO: remove B,E and S
-  def from[ P <: TParameter[ _ ], U, B, E, S ]( begin: P ): TParameterRange[ P, U, TBEGIN, TMISSING, TMISSING ] =
-    new TLinearParameterRange[ P, U, TBEGIN, TMISSING, TMISSING ]( begin )
+  def from[ P <: TParameter[ _ ], B, E, S ]( begin: P ): TParameterRange[ P, Double, TBEGIN, TMISSING, TMISSING ] =
+    new TLinearParameterRange[ P, TBEGIN, TMISSING, TMISSING ]( begin )
 
     // TODO: remove the end and config and make those MISSING
-  def create[ R <: TParameterRange[ P, U, B, E, C ], P <: TParameter[ _ ], U, B, E, C ]( range: R, begin: P, end: P, config: U ): TParameterRange[ P, U, TBEGIN, E, C] =
+  def create[ R <: TParameterRange[ P, U, B, E, C ], P <: TParameter[ _ ], U, B, E, C ]( range: R, begin: P, end: P, config: U ): TParameterRange[ P, U, TBEGIN, TMISSING, TMISSING] =
     //new TLinearParameterRange[ P, U, TBEGIN, TEND, TCONFIG ]( begin, end, Some( config ) )
-    range.apply(begin, end, config )
-    
-  implicit def enableBuild[ P <: TParameter[ _ ], U ]( builder: TParameterRange[ P, U, TBEGIN, TEND, TCONFIG ] ) = new TSafeBuild[P,U] {
+    range.apply(begin)
+*/
+  implicit def enableBuild( builder: TParameterRange[ TParameterRange.TPDouble, Double, TBEGIN, TEND, TCONFIG ] ) = new TSafeBuild[TParameterRange.TPDouble,Double] {
     // TODO: bug - pass builder.end and builder.cinfig to constructor
-    def build() : TStreamableParameterRange[ P, U, TBEGIN, TEND, TCONFIG ] = 
-      new TLinearParameterRange[ P, U, TBEGIN, TEND, TCONFIG ]( builder.begin ) with TStreamableParameterRange[ P, U, TBEGIN, TEND, TCONFIG ]
+    def build() : TStreamableParameterRange[ TParameterRange.TPDouble, Double, TBEGIN, TEND, TCONFIG ] = 
+      new TLinearParameterRange[ TBEGIN, TEND, TCONFIG ]( builder.begin, builder.end, builder.config ) with TStreamableParameterRange[ TParameterRange.TPDouble, Double, TBEGIN, TEND, TCONFIG ]
   }
 }
 
-private class TLinearParameterRange[ P <: TParameter[ _ ], U, B, E, C ]( override var begin: P, override var end: P, override var config: Option[ U ] )
-    extends TParameterRange[ P, U, B, E, C ] {
-
+private class TLinearParameterRange[ B, E, C ]( override var begin: TParameterRange.TPDouble, override var end: TParameterRange.TPDouble, override var config: Option[ Double ] )
+    extends TParameterRange[ TParameterRange.TPDouble, Double, B, E, C ] {
   //var x: U = _
 
-  def this( begin: P ) {
+  def this( begin: TParameterRange.TPDouble ){
     this( begin, begin, None )
   }
 
- def apply( nbegin: P, nend: P, nconfig: U ): TParameterRange[ P, U, TBEGIN, E, C] = new TLinearParameterRange[ P, U, TBEGIN, E, C ]( nbegin, nend, Some(nconfig) )
+ def apply( nbegin: TParameterRange.TPDouble): TParameterRange[ TParameterRange.TPDouble, Double, TBEGIN, TMISSING, TMISSING] = new TLinearParameterRange[ TBEGIN, TMISSING, TMISSING ]( nbegin )
   
-  def to( nend: P ): TParameterRange[ P, U, B, TEND, C ] = new TLinearParameterRange[ P, U, B, TEND, C ]( begin, nend, config )
-  def by[ V ]( nconfig: V ): TParameterRange[ P, V, B, E, TCONFIG ] = new TLinearParameterRange[ P, V, B, E, TCONFIG ]( begin, end, Some( nconfig ) )
+  def from( nbegin: TParameterRange.TPDouble ): TParameterRange[ TParameterRange.TPDouble, Double, TBEGIN, E, C ] = new TLinearParameterRange[ TBEGIN, E, C ]( nbegin, end, config )
+  def to( nend: TParameterRange.TPDouble ): TParameterRange[ TParameterRange.TPDouble, Double, B, TEND, C ] = new TLinearParameterRange[ B, TEND, C ]( begin, nend, config )
+  def by( nconfig: Double ): TParameterRange[ TParameterRange.TPDouble, Double, B, E, TCONFIG ] = new TLinearParameterRange[ B, E, TCONFIG ]( begin, end, Some( nconfig ) )
 
   // a to b with length = l
   // from a  by delta (no b!!)
   // a to b by delta ?
 
-  def toStream: Stream[ P ] = ??? /* TODO {
+  def toStream: Stream[ TParameterRange.TPDouble ] = {
     val len = ( ( end.value - begin.value  ) / config.get ).ceil.toInt
-    linspace( begin.value, end.value ).map{ x => TlearningRate( x ) }.take(  len )
-  }*/
+    val t = begin(100)
+    //linspace( begin.value, end.value ).map{ x => begin.apply( x ) }.take(  len )
+    val t1 = linspace( begin.value, end.value )
+    val t2 : Stream[TParameterRange.TPDouble] =  t1.map { x => begin(x) }
+    t2.take( len )
+  }
 }
 
-case class TlearningRate( override val value: Double ) extends TParameter[ Double ] { def apply( v: Double ) = new TlearningRate( v ) }
-case class TpValue( override val value: Double ) extends TParameter[ Double ] { def apply( v: Double ) = new TlearningRate( v ) }
+case class TlearningRate( override val value: Double = 0.0) extends TParameter[ Double ] { 
+/*  def this() {
+    this(0.0)
+  }*/
+  //def apply( ) = new TlearningRate( 0.0 )
+  def apply( v: Double ) = new TlearningRate( v ) 
+  }
+case class TpValue( override val value: Double ) extends TParameter[ Double ] { 
+  //def apply( ) = new TlearningRate( 0.0 )
+  def apply( v: Double ) = new TlearningRate( v ) 
+ }
 
 object ParameterTest {
   
   def main( args: Array[ String ] ) {
-    val x =TParameterRange( TlearningRate( 0.0 ), TlearningRate( 0.01 ), 0.001 )
+    /*
+    val x =TParameterRange( TlearningRate( 0.0 ) )  // TODO: remove all functions that return a specific parameter range by default
   
     val z1 = TParameterRange.from( TlearningRate( 0.0 ) )
     val z2 = z1.to( TlearningRate( 0.01 ) )
@@ -124,8 +142,21 @@ object ParameterTest {
     //val y5 = y3.toStream // compile error
     val y5 = y4.toStream
   
-    val t  = new TLinearParameterRange( TlearningRate( 0.0 ), TlearningRate( 0.01 ),Some( 0.001) )
+    val t0  = new TLinearParameterRange( TlearningRate( 0.0 ), TlearningRate( 0.01 ),Some( 0.001) ) // Hide constructor and use companion object with apply
+    val t  = new TLinearParameterRange( TlearningRate( 0.0) ) // Hide constructor and use companion object with apply
     val w1 = TParameterRange.create(t, TlearningRate( 0.0 ), TlearningRate( 0.01 ),0.001 )
+    */
+    
+    val tt  = new TLinearParameterRange( TlearningRate( 0.0) ) // Hide constructor and use companion object with apply
+    val t0 = TlearningRate()
+    val t1 = TlearningRate( 0.0) //.apply(100.0)
+    val t2 = t1(100.0)
+    
+    
+    val t  = new TLinearParameterRange( t0 ) // Hide constructor and use companion object with apply
+    val w2 = t.from(TlearningRate( 0.0 )).to(TlearningRate( 0.01 )).by(0.001 )
+    val w3 = w2 build()
+    val w4 = w3.toStream
     
     println( "????????????" )
     val len = ( ( 0.01 - 0.0 ) / 0.001 ).ceil.toInt
