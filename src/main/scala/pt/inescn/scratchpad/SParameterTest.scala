@@ -28,7 +28,7 @@ trait SParameterRange[ P <: SParameter[ _ ], U, B, E, C ] {
 
   def apply( begin: P): SParameterRange[ P, U, TBEGIN, TMISSING, TMISSING]
 
-  def from( nbegin: P ): SParameterRange[ P, U, TBEGIN, E, C ]
+  def from[Q<: SParameter[ _ ]]( nbegin: Q ): SParameterRange[ Q, U, TBEGIN, E, C ]
   def to( nend: P ): SParameterRange[ P, U, B, TEND, C ]
   def by( nconfig: U ): SParameterRange[ P, U, B, E, TCONFIG ]
   def using (gen: Gen) : SParameterRange[ P, U, B, E, TCONFIG ]
@@ -63,10 +63,11 @@ private class SLinearParameterRange[ P <: SParameter[ _ ], B, E, C ]( val begin:
 
   //var  generator : (SParameterRange.SPDouble, SParameterRange.SPDouble, Option[Double]) => Stream[ SParameterRange.SPDouble ]
   
-  /*
+  
   def this( ){
     this( None, None, None, None )
-  }*/
+  }
+  
   def this( nbegin: P ){
     this( Some(nbegin), None, None, None )
   }
@@ -74,7 +75,7 @@ private class SLinearParameterRange[ P <: SParameter[ _ ], B, E, C ]( val begin:
  def apply( nbegin: P): SParameterRange[ P, Double, TBEGIN, TMISSING, TMISSING] = 
    new SLinearParameterRange[ P, TBEGIN, TMISSING, TMISSING ]( Some(nbegin), None, None, None )
   
-  def from( nbegin: P ): SParameterRange[ P, Double, TBEGIN, E, C ] = new SLinearParameterRange[ P, TBEGIN, E, C ]( Some(nbegin), end, config, generator )
+  def from[Q<: SParameter[ _ ]]( nbegin: Q ): SParameterRange[ Q, Double, TBEGIN, E, C ] = new SLinearParameterRange[ Q, TBEGIN, E, C ]( Some(nbegin), None, config, None)
   def to( nend: P ): SParameterRange[ P, Double, B, TEND, C ] =  new SLinearParameterRange[ P, B, TEND, C ]( begin, Some(nend), config, generator )
   def by( nconfig: Double ): SParameterRange[ P, Double, B, E, TCONFIG ] = new SLinearParameterRange[ P, B, E, TCONFIG ]( begin, end, Some( nconfig ), generator )
   def using( gen : (P, P, Double) => Stream[ P ] ): SParameterRange[ P, Double, B, E, TCONFIG ] =  {
@@ -105,13 +106,29 @@ case class SlearningRate( override val value: Double = 0.0) extends SParameter[ 
   def apply( v: Double ) = new SlearningRate( v ) 
   }
 
+class ChangeOption[P](v : Option[P]) {
+  
+  def this() {
+    this(None)
+  }
+  
+  def to[Q](nv:  Q ) : ChangeOption[Q] = new ChangeOption( Some(nv) )
+}
+
+/*
+trait SParameterRange[ P <: SParameter[ _ ], U, B, E, C ] {
+*/
+
 object SParameterTest {
     
     def linSearch(from: SlearningRate, to: SlearningRate, by: Double) : Stream[ SlearningRate ] = {
       val len = ( ( to.value - from.value ) / by).ceil.toInt
-      linspace( from.value, by ).map{ x => from.apply( x ) }.take(  len )
+      linspace( from.value, by ).map{ x => from.apply( x ) }.take(  len + 1)
     }
     
+// TODO: how to change P type when using default constructor 
+// TODO: How to make generators independent from type P 
+
   def main( args: Array[ String ] ) {
     
     val t0 = SlearningRate()
@@ -123,6 +140,16 @@ object SParameterTest {
     val t5 = t4.toStream
     t5.foreach { x => println( x ) }
     
+    val s = new SLinearParameterRange
+    val s1 = s from t0
+    val s2 = s1 to SlearningRate( 1.0 )
+    val s3 = s2 by 0.1
+    val s4 = s3 using( linSearch )
+    val s5 = s4.toStream
+    t5.foreach { x => println( x ) }
+    
+    val u = new ChangeOption
+    val u1 = u to 100
     
     val w2 = t.from(SlearningRate( 0.0 )).to(SlearningRate( 0.01 )).by(0.001 )
     //val w3 = w2 build()
