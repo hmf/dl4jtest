@@ -36,12 +36,14 @@ trait SParameterRange[ P[T] <: SParameter[ T], T, U, B, E, C ] {
   
   // TODO: remove and hide
    def toStream: Stream[ SParameter[T] ]
+   //def toStream: Stream[ P[T] ]
 }
 
 // TODO: remove extends and use self
 trait SStreamableParameterRange[ P[T] <: SParameter[T], T, U, B, E, C ] extends SParameterRange[ P, T, U, B, E, C ]  {
   // TODO; this : SParameter[ T ] => 
   def toStream: Stream[ SParameter[T] ]
+  //def toStream: Stream[ P[T] ]
 }
 
 // Can also use `abstract class`
@@ -100,9 +102,12 @@ private class SLinearParameterRange[ P[T] <: SParameter[T], T, B, E, C ](
  */
   // TODO: how do we return a P[T]
   def toStream: Stream[ SParameter[T] ] = { 
+  //def toStream: Stream[ P[T] ] = { 
     val f = generator.get
     val st = f(begin.get.value, end.get.value, config.get)
-    val r = st.map{ x => begin.get.apply( x ) }
+    val o = begin.get
+    //val r = st.map{ x => begin.get.apply( x ) }
+    val r = st.map{ x => o( x ) }
     r
   }
   
@@ -114,6 +119,20 @@ case class SlearningRate( override val value: Double = 0.0) extends SParameter[ 
   }
 
 
+class Inner[T](v: T) {
+}
+
+class Outer[T, P[T] <: Inner[T]](u: P[T]) {
+  //def makeInner(v: T) : P[T] = new  Inner(v)  // type mismatch; found : pt.inescn.scratchpad.Inner[T] required: P[T]
+  //def makeInner[Q[T]](v: Q[T]) : Q[T] = v(u)  //  Q[T] does not take parameters
+}
+
+
+//class OuterX[T, P[T] <: Inner[T]](u: P[T]) {
+class OuterX[T, P[T]](u: P[T]) {
+  def makeInner() : OuterX[T,P] = new OuterX(new  Inner(100))  // type mismatch; found : pt.inescn.scratchpad.Inner[T] required: P[T]
+  //def makeInner[Q[T]](v: Q[T]) : Q[T] = v(u)  //  Q[T] does not take parameters
+}
 
 object SParameterTest {
     
