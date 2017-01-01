@@ -16,7 +16,7 @@ object A {
   }
 }
 
-object Factory {
+object Builder {
   val a1 = A(1)
   println(a1.specializedFunc)
   
