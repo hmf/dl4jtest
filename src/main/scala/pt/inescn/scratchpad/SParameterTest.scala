@@ -16,30 +16,32 @@ trait SParameter[ T ] {
 }
 
 import scala.{ Option, Some, None }
+import scala.language.higherKinds
 
-trait SParameterRange[ P <: SParameter[ _ ], U, B, E, C ] {
+trait SParameterRange[ P[T] <: SParameter[ T], T, U, B, E, C ] {
   
-  type Gen = (P, P, U) => Stream[ P ]
+  type Gen = (T, T, U) => Stream[ P[T] ]
   
-  val begin: Option[P]
-  val end: Option[P]
-  val config: Option[ U ]
+  val begin:        Option[P[T]]
+  val end:           Option[P[T]]
+  val config:       Option[ U ]
   val generator : Option[  Gen ]
 
-  def apply( begin: P): SParameterRange[ P, U, TBEGIN, TMISSING, TMISSING]
+  def apply( begin: P[T]): SParameterRange[ P, T, U, TBEGIN, TMISSING, TMISSING]
 
-  def from[Q<: SParameter[ _ ]]( nbegin: Q ): SParameterRange[ Q, U, TBEGIN, E, C ]
-  def to( nend: P ): SParameterRange[ P, U, B, TEND, C ]
-  def by( nconfig: U ): SParameterRange[ P, U, B, E, TCONFIG ]
-  def using (gen: Gen) : SParameterRange[ P, U, B, E, TCONFIG ]
+  def from[Q[S] <: SParameter[S],S]( nbegin: Q[S] ): SParameterRange[ Q, S, U, TBEGIN, E, C ]
+  def to( nend: P[T] ): SParameterRange[ P, T, U, B, TEND, C ]
+  def by( nconfig: U ): SParameterRange[ P, T, U, B, E, TCONFIG ]
+  def using (gen: Gen) : SParameterRange[ P, T, U, B, E, TCONFIG ]
   
   // TODO: remove and hide
-   def toStream: Stream[ P ]
+   def toStream: Stream[ P[T] ]
 }
 
-trait SStreamableParameterRange[ P <: SParameter[ _ ], U, B, E, C ] extends SParameterRange[ P, U, B, E, C ]  {
+// TODO: remove extends and use self
+trait SStreamableParameterRange[ P[T] <: SParameter[T], T, U, B, E, C ] extends SParameterRange[ P, T, U, B, E, C ]  {
   // TODO; this : SParameter[ T ] => 
-  def toStream: Stream[ P ]
+  def toStream: Stream[ P[T] ]
 }
 
 // Can also use `abstract class`
@@ -54,33 +56,35 @@ object SParameterRange {
   type SGen = (SParameterRange.SPDouble, SParameterRange.SPDouble, Option[Double]) => Stream[SParameterRange.SPDouble]
 }
 
-private class SLinearParameterRange[ P <: SParameter[ _ ], B, E, C ]( val begin: Option[P], 
-                                                                          val end: Option[P], 
-                                                                          val config: Option[ Double ],
-                                                                          val generator: Option[ (P,P,Double) => Stream[P]] )
-    extends SParameterRange[ P, Double, B, E, C ] {
-  //var x: U = _
-
-  //var  generator : (SParameterRange.SPDouble, SParameterRange.SPDouble, Option[Double]) => Stream[ SParameterRange.SPDouble ]
-  
+private class SLinearParameterRange[ P[T] <: SParameter[T], T, B, E, C ]( 
+                                                                          val begin:       Option[P[T]], 
+                                                                          val end:          Option[P[T]], 
+                                                                          val config:      Option[ Double ],
+                                                                          val generator: Option[ (T,T,Double) => Stream[P[T]]] )
+    extends SParameterRange[ P, T, Double, B, E, C ] {
   
   def this( ){
     this( None, None, None, None )
   }
   
-  def this( nbegin: P ){
+  def this( nbegin: P[T] ){
     this( Some(nbegin), None, None, None )
   }
   
- def apply( nbegin: P): SParameterRange[ P, Double, TBEGIN, TMISSING, TMISSING] = 
-   new SLinearParameterRange[ P, TBEGIN, TMISSING, TMISSING ]( Some(nbegin), None, None, None )
+  def apply( nbegin: P[T]): SParameterRange[ P, T, Double, TBEGIN, TMISSING, TMISSING] = 
+    new SLinearParameterRange[ P, T, TBEGIN, TMISSING, TMISSING ]( Some(nbegin), None, None, None )
   
-  def from[Q<: SParameter[ _ ]]( nbegin: Q ): SParameterRange[ Q, Double, TBEGIN, E, C ] = new SLinearParameterRange[ Q, TBEGIN, E, C ]( Some(nbegin), None, config, None)
-  def to( nend: P ): SParameterRange[ P, Double, B, TEND, C ] =  new SLinearParameterRange[ P, B, TEND, C ]( begin, Some(nend), config, generator )
-  def by( nconfig: Double ): SParameterRange[ P, Double, B, E, TCONFIG ] = new SLinearParameterRange[ P, B, E, TCONFIG ]( begin, end, Some( nconfig ), generator )
-  def using( gen : (P, P, Double) => Stream[ P ] ): SParameterRange[ P, Double, B, E, TCONFIG ] =  {
- //   generator = gen
-    new SLinearParameterRange[ P, B, E, TCONFIG ]( begin, end, config, Some(gen) )
+  def from[Q[S] <: SParameter[ S],S]( nbegin: Q[S] ): SParameterRange[ Q, S, Double, TBEGIN, E, C ] 
+    = new SLinearParameterRange[ Q, S, TBEGIN, E, C ]( Some(nbegin), None, config, None)
+    
+  def to( nend: P[T] ): SParameterRange[ P, T, Double, B, TEND, C ] 
+    = new SLinearParameterRange[ P,T,  B, TEND, C ]( begin, Some(nend), config, generator )
+
+  def by( nconfig: Double ): SParameterRange[ P, T, Double, B, E, TCONFIG ] 
+    = new SLinearParameterRange[ P, T, B, E, TCONFIG ]( begin, end, Some( nconfig ), generator )
+  
+  def using( gen : (T, T, Double) => Stream[ P[T] ] ): SParameterRange[ P, T, Double, B, E, TCONFIG ] =  {
+    new SLinearParameterRange[ P, T, B, E, TCONFIG ]( begin, end, config, Some(gen) )
   }
 
   // a to b with length = l
@@ -94,9 +98,9 @@ private class SLinearParameterRange[ P <: SParameter[ _ ], B, E, C ]( val begin:
     linspace( begin.get.value, end.get.value ).map{ x => begin.get.apply( x ) }.take(  len )
   }
  */
-  def toStream: Stream[ P ] = { 
+  def toStream: Stream[ P[T] ] = { 
     val f = generator.get
-    f(begin.get, end.get, config.get)
+    f(begin.get.value, end.get.value, config.get)
   }
   
 }
@@ -123,8 +127,8 @@ import scala.language.higherKinds
 /**
  * Use a higher-kinded type `P[T]` that allows us to extract the contained
  * type `T` from the container `AP[T]`. In this way we can declare new types 
- * based on the contained type `T`. We can alos use a contained type `U` that
- * also enables run-time type conversion (checked at compilation time). 
+ * based on the contained type `T`. We can also use a contained type `U` that
+ * also enables run-time type conversion (checked at compilation-time of course). 
  * 
  * NOTE: this version uses unsafe `var` for the generator - a call to `map`.
  * may result in a null pointer exception.  Consider using the Safe Builder pattern. 
@@ -134,7 +138,7 @@ class AS[P[T] <: AP[T],T,U](r : P[T], var generator : T => U) {
   type Gen = T => U
   
   def this(r : P[T]) {
-    this(r, null)
+    this(r, null) // Unsafe use of Null
   }
   
   def make[Q[S] <: AP[S],S](nv:  Q[S] ) : AS[Q,S,U] = new AS[Q,S,U](nv) 
@@ -168,9 +172,15 @@ class AR[P[T] <: AP[T],T,U](val r : Option[P[T]], val generator : Option[T => U]
 
 object SParameterTest {
     
+  /*
     def linSearch(from: SlearningRate, to: SlearningRate, by: Double) : Stream[ SlearningRate ] = {
       val len = ( ( to.value - from.value ) / by).ceil.toInt
       linspace( from.value, by ).map{ x => from.apply( x ) }.take(  len + 1)
+    }*/
+   // TODO: can we get rid of SlearningRate ?
+    def linSearch(from: Double, to: Double, by: Double) : Stream[ SlearningRate ] = {
+      val len = ( ( to - from ) / by).ceil.toInt
+      linspace( from, by ).map{ x => SlearningRate.apply( x ) }.take(  len + 1)
     }
     
 // TODO: Add phantom type G for the generator
@@ -180,6 +190,7 @@ object SParameterTest {
     
     val t0 = SlearningRate()
     val t  = new SLinearParameterRange( t0 ) // TODO: Hide constructor and use companion object with apply
+    // TODO: how can we get the specific Paramater[T] and not the base trait?  
     val t1 = t from SlearningRate( 0.0 )
     val t2 = t1 using( linSearch )
     val t3 = t2 to SlearningRate( 1.0 )
