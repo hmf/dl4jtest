@@ -114,30 +114,55 @@ private class SLinearParameterRange[ P[T] <: SParameter[T], T, B, E, C ](
 }
 
 
+// http://stackoverflow.com/questions/14729996/scala-implementing-method-with-return-type-of-concrete-instance
+// http://stackoverflow.com/questions/4313139/how-to-use-scalas-this-typing-abstract-types-etc-to-implement-a-self-type
+
 case class SlearningRate( override val value: Double = 0.0) extends SParameter[ Double ] { 
   def apply( v: Double ) = new SlearningRate( v ) 
   }
 
-
-class InnerA[T](v: T) {
+abstract class  Inner[T] {
+  type Self <: Inner[T]
+  
+  def apply(t:T) : Self
 }
 
-class InnerB[T](v: T) {
+class InnerA[T](v: T) extends Inner[T] {
+  type Self = InnerA[T]
+  def apply(t:T) : Self = new InnerA[T](t)
+}
+
+class InnerB[T](v: T) extends Inner[T]{
+  type Self = InnerB[T]
+  def apply(t:T) : Self = new InnerB[T](t)
+}
+
+class InnerC[T](v: T) extends Inner[T]{
+  type Self = InnerB[T]                                           // IMPORTANT: BUG, we don't get the correct concrete type
+  def apply(t:T) : Self = new InnerB[T](t)
 }
 
 // http://jim-mcbeath.blogspot.pt/2009/09/type-safe-builder-in-scala-using-church.html
 // https://gist.github.com/jrudolph/182249
 // http://www.scala-lang.org/old/node/5124
-//  
+// http://www.scala-lang.org/old/node/5213 
 
-//class Outer[T, P[T] <: Inner[T]](u: P[T]) {
-class Outer[T, P[T]](u: P[T]) {
+trait Builder[T] {
+  def apply(c: T): T
+}
+
+class Outer[T, P[T] <: Inner[T]](val u: P[T]) {
+//class Outer[T, P[T]](u: P[T]) {
   //def makeInner() : OuterX[T,P] = new OuterX(new  Inner(100))  // type mismatch; found : pt.inescn.scratchpad.Inner[T] required: P[T]
   //def makeInner[Q[T]](v: Q[T]) : Q[T] = v(u)  //  Q[T] does not take parameters
-  def convertTo[Q[S],S](v: Q[S]) : Outer[S, Q] = new Outer(v)
+  def convertTo[Q[S]<: Inner[S],S](v: Q[S]) : Outer[S, Q] = new Outer(v)
+  //def convertTo[Q[S],S](v: Q[S]) : Outer[S, Q] = new Outer(v)
   def extract : P[T] = u 
+  def make(t: T)  = u(t) // : P[T] type mismatch; found : Outer.this.u.Self required: P[T]
+  /*
   def duplicate(v:T) : P[T] = u(v) // This is not possible because u has type P[T], 
-                                                  // its not a class so we do not know what constructors are available
+                                                  // its not a class so we do not know what constructors are available*/
+  //def duplicate(builder : Builder[P[T]])
 }
 
 object SParameterTest {
@@ -150,7 +175,14 @@ object SParameterTest {
   val u5 = new InnerB("100")        // InnerB[String]
   val u6 = u3.convertTo(u5)           // Outer[String, InnerB]
   val u7 = u6.extract                     //  InnerB[String]
-    
+  val u8 :  InnerB[String] = u6.make("101")               //  InnerB[String]
+  val u9 = new InnerC(101)            // InnerC[Int]
+  val u10 = new Outer(u9)             // Outer[Int, InnerC]
+  //val u11 : InnerC[Int] = u9(102)   // type mismatch; found : pt.inescn.scratchpad.SParameterTest.u9.Self (which expands to) 
+                                                    // pt.inescn.scratchpad.InnerB[Int] required: pt.inescn.scratchpad.InnerC[Int]
+  //val u12 :  InnerC[Int] = u10.make(1001)            // But we have to expand the type explicitly, same compile rrro as above
+  
+  
   /*
     def linSearch(from: SlearningRate, to: SlearningRate, by: Double) : Stream[ SlearningRate ] = {
       val len = ( ( to.value - from.value ) / by).ceil.toInt
