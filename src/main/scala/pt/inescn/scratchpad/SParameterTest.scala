@@ -119,22 +119,37 @@ case class SlearningRate( override val value: Double = 0.0) extends SParameter[ 
   }
 
 
-class Inner[T](v: T) {
+class InnerA[T](v: T) {
 }
 
-class Outer[T, P[T] <: Inner[T]](u: P[T]) {
-  //def makeInner(v: T) : P[T] = new  Inner(v)  // type mismatch; found : pt.inescn.scratchpad.Inner[T] required: P[T]
-  //def makeInner[Q[T]](v: Q[T]) : Q[T] = v(u)  //  Q[T] does not take parameters
+class InnerB[T](v: T) {
 }
 
+// http://jim-mcbeath.blogspot.pt/2009/09/type-safe-builder-in-scala-using-church.html
+// https://gist.github.com/jrudolph/182249
+// http://www.scala-lang.org/old/node/5124
+//  
 
-//class OuterX[T, P[T] <: Inner[T]](u: P[T]) {
-class OuterX[T, P[T]](u: P[T]) {
-  def makeInner() : OuterX[T,P] = new OuterX(new  Inner(100))  // type mismatch; found : pt.inescn.scratchpad.Inner[T] required: P[T]
+//class Outer[T, P[T] <: Inner[T]](u: P[T]) {
+class Outer[T, P[T]](u: P[T]) {
+  //def makeInner() : OuterX[T,P] = new OuterX(new  Inner(100))  // type mismatch; found : pt.inescn.scratchpad.Inner[T] required: P[T]
   //def makeInner[Q[T]](v: Q[T]) : Q[T] = v(u)  //  Q[T] does not take parameters
+  def convertTo[Q[S],S](v: Q[S]) : Outer[S, Q] = new Outer(v)
+  def extract : P[T] = u 
+  def duplicate(v:T) : P[T] = u(v) // This is not possible because u has type P[T], 
+                                                  // its not a class so we do not know what constructors are available
 }
 
 object SParameterTest {
+  
+  val u = new InnerA(100)                // InnerA[Int]
+  val u1 = new InnerA("100")           // InnerA[String]
+  val u2 = new Outer(u)                 // Outer[Int, Inner]
+  val u3 = u2.convertTo(u1)           // Outer[String, Inner]
+  val u4 = u3.extract                     //  InnerA[String]
+  val u5 = new InnerB("100")        // InnerB[String]
+  val u6 = u3.convertTo(u5)           // Outer[String, InnerB]
+  val u7 = u6.extract                     //  InnerB[String]
     
   /*
     def linSearch(from: SlearningRate, to: SlearningRate, by: Double) : Stream[ SlearningRate ] = {
