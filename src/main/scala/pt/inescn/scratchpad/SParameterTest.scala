@@ -7,6 +7,7 @@ import StreamBuilder._
 
 /**
  *
+ * @see http://jim-mcbeath.blogspot.pt/2009/09/type-safe-builder-in-scala-part-2.html
  * @see http://stackoverflow.com/questions/19642053/when-to-use-val-or-def-in-scala-traits
  */
 trait SParameter[ T ] {
@@ -28,7 +29,7 @@ trait SParameterRange[ P[T] <: SParameter[ T], T, U, B, E, C, G ] {
   val config:       Option[ U ]
   val generator : Option[  Gen ]
 
-  def apply( begin: P[T]): SParameterRange[ P, T, U, TBEGIN, TMISSING, TMISSING, TMISSING]
+  //def apply( begin: P[T]): SParameterRange[ P, T, U, TBEGIN, TMISSING, TMISSING, TMISSING]
 
   def from[Q[S] <: SParameter[S],S]( nbegin: Q[S] ): SParameterRange[ Q, S, U, TBEGIN, E, C, G ]
   def to( nend: P[T] ): SParameterRange[ P, T, U, B, TEND, C, G ]
@@ -37,7 +38,7 @@ trait SParameterRange[ P[T] <: SParameter[ T], T, U, B, E, C, G ] {
   
   // TODO: remove and hide
    //def toStream
-  def toStream: Stream[P[T]#Self]
+  // ?? def toStream: Stream[P[T]#Self]
    //def toStream: Stream[ _ ]
    //def toStream: Stream[ SParameter[T] ]
    //def toStream: Stream[ P[T] ]
@@ -51,6 +52,10 @@ trait SStreamableParameterRange[ P[T] <: SParameter[T], T, U, B, E, C, G ] exten
   //def toStream: Stream[ P[T] ]
 }
 
+trait SSafeBuild[ P[T] <: SParameter[T], T] {
+  def build(): SStreamableParameterRange[ P, T, Double, TBEGIN, TEND, TCONFIG, TGEN ]
+}
+
 // Can also use `abstract class`
 /* TOOD;: remove
  trait SBEGIN
@@ -59,10 +64,17 @@ trait SCONFIG
 trait SGEN
 trait SMISSING
 */
+import scala.language.implicitConversions
+
 object SParameterRange {
 
-  type SPDouble = SParameter[ Double ]
-  type SGen = (SParameterRange.SPDouble, SParameterRange.SPDouble, Option[Double]) => Stream[SParameterRange.SPDouble]
+  implicit def enableBuild[P[T] <: pt.inescn.scratchpad.SParameter[T],T,U]( builder: SParameterRange[ P, T, Double, TBEGIN, TEND, TCONFIG, TGEN ] ) = 
+    new SSafeBuild[P, T] {
+      def build() : SStreamableParameterRange[ P, T, Double, TBEGIN, TEND, TCONFIG, TGEN ] = 
+      new SLinearParameterRange[ P, T, TBEGIN, TEND, TCONFIG, TGEN ]( builder.begin, builder.end, builder.config, builder.generator ) 
+             with SStreamableParameterRange[ P, T, Double, TBEGIN, TEND, TCONFIG, TGEN ]
+  }
+  
 }
 
 private class SLinearParameterRange[ P[T] <: SParameter[T], T, B, E, C, G ]( 
@@ -171,7 +183,8 @@ object SParameterTest {
     val t2 = t1 using( linSearch )
     val t3 = t2 to SlearningRate( 1.0 )
     val t4 = t3 by 0.1
-    val t5 = t4.toStream
+    //val t5 = t4.toStream // compilation fails
+    val t5 = t4.build().toStream 
     t5.foreach { x => println( x ) }
     
     val s = new SLinearParameterRange
@@ -179,13 +192,14 @@ object SParameterTest {
     val s2 = s1 to SlearningRate( 1.0 )
     val s3 = s2 by 0.1
     val s4 = s3 using( linSearch )
-    val s5 = s4.toStream
+    //val s5 = s4.toStream // compilation fails
+    val s5 = t4.build().toStream 
     t5.foreach { x => println( x ) }
 
     val u0 = XSlearningRate()
     val u1  = new SLinearParameterRange( u0 ) // TODO: Hide constructor and use companion object with apply
     // TODO: should fail compilation
-    val u2 = u1.from(XSlearningRate(1.0)).to(XSlearningRate(3)).by(1).using(linSearch).toStream
+    val u2 = u1.from(XSlearningRate(1.0)).to(XSlearningRate(3)).by(1).using(linSearch).build().toStream
     u2.foreach { x => println( x ) }
     
     //val w2 = t.from(SlearningRate( 0.0 )).to(SlearningRate( 0.01 )).by(0.001 )
