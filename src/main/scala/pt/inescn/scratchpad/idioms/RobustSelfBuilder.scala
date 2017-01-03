@@ -20,16 +20,19 @@ trait StrictSelf[T <: StrictSelf[T]] { self: T =>
 
 abstract class XInner[T] { self:StrictSelf[_] =>
   def apply(t:T):Self
+  def extract : T
 }
 
 class B[T](v: T) extends XInner[T] with StrictSelf[B[T]] {
   type Self = B[T]
   def apply(t:T) = new B(t)
+  def extract = v
 }
 
 class C[T](v: T) extends XInner[T] with StrictSelf[C[T]] {
   type Self = C[T]   // NOTE: if we err here, we can still return an unexpected type
   def apply(t:T) = new C(t)
+  def extract = v
 }
 
 /**
@@ -51,9 +54,11 @@ class C[T](v: T) extends XInner[T] with StrictSelf[C[T]] {
 class D[T](v: T) extends XInner[T] with StrictSelf[D[T]] {
   type Self = D[T]   // NOTE: if we err here, we can still return an unexpected type
   def apply(t:T) = new D(t)
+  def extract = v
 }
 
 import scala.language.higherKinds
+import pt.inescn.scratchpad.StreamBuilder._
 
 /**
  * This is a container class higher-kind. It allows us to "dynamically" construct new instances of P[T]
@@ -71,6 +76,16 @@ class ROuter[T, P[T] <: XInner[T]](val u: P[T]) {
   /* // In the case we do not use the constraint P[T] <: Inner[T]
      def duplicate(v:T) : P[T] = u(v) // This is not possible because u has type P[T], 
                                                      // its not a class so we do not know what constructors are available*/
+  
+  type Gen[U] = (T, T, U) => Stream[ T ]
+  
+  // type mismatch; found : scala.collection.immutable.Stream[Outer.this.u.Self] required: Stream[P[T]]
+  //def toStream[U](to: T, by: U, g: Gen[U])  : Stream[P[T]]= {
+  def toStream[U](to: T, by: U, g: Gen[U]) = {
+    val st = g(u.extract, to, by)
+    val r = st.map{ x => u( x ) }
+    r
+  }
 }
 
 /**
@@ -79,6 +94,17 @@ class ROuter[T, P[T] <: XInner[T]](val u: P[T]) {
 object RobustSelfBuilder {
 
   def main( args: Array[ String ] ) {
+    
+    def linSearch(from: Double, to: Double, by: Double) : Stream[ Double ] = {
+      val len = ( ( to - from ) / by).ceil.toInt
+      linspace( from, by ).take(  len + 1)
+    }
+
+    def iLinSearch(from: Int, to: Int, by: Int) : Stream[ Int ] = {
+      val len = ( ( to - from ) / by).ceil.toInt
+      linspace( from, by ).take(  len + 1).map(_.toInt)
+    }
+    
   
     val v1 = new B(200)                                             // B[Int]
     val v2 = new B("200")                                         // B[Int]
@@ -97,6 +123,9 @@ object RobustSelfBuilder {
     val v11 : C[String] = v9.make("101")                       //  v9u.Self = C[String], we cannot see the type in the IDE
     val v12 = v5("2002")                                             // D[String]
     
-  }
+      
+    val u14 = v6.toStream(200, 1,iLinSearch)
+    val u15 : Stream[_] = v6.toStream(100, 1,iLinSearch)    
+}
   
 }

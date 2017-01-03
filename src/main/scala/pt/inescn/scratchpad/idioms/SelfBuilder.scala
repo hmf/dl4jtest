@@ -15,24 +15,29 @@ trait Inner[T] {
   type Self <: Inner[T]
   
   def apply(t:T) : Self
+  def extract : T
 }
 
 class InnerA[T](v: T) extends Inner[T] {
   type Self = InnerA[T]
   def apply(t:T) : Self = new InnerA[T](t)
+  def extract = v
 }
 
 class InnerB[T](v: T) extends Inner[T]{
   type Self = InnerB[T]
   def apply(t:T) : Self = new InnerB[T](t)
+  def extract = v
 }
 
 class InnerC[T](v: T) extends Inner[T]{
   type Self = InnerB[T]                                           // IMPORTANT: BUG, we don't get the correct concrete type
   def apply(t:T) : Self = new InnerB[T](t)
+  def extract = v
 }
 
 import scala.language.higherKinds
+import pt.inescn.scratchpad.StreamBuilder._
 
 /**
  * This is a container class higher-kind. It allows us to "dynamically" construct new instances of P[T]
@@ -50,6 +55,16 @@ class Outer[T, P[T] <: Inner[T]](val u: P[T]) {
   /* // In the case we do not use the constraint P[T] <: Inner[T]
      def duplicate(v:T) : P[T] = u(v) // This is not possible because u has type P[T], 
                                                      // its not a class so we do not know what constructors are available*/
+  
+  type Gen[U] = (T, T, U) => Stream[ T ]
+  
+  // type mismatch; found : scala.collection.immutable.Stream[Outer.this.u.Self] required: Stream[P[T]]
+  //def toStream[U](to: T, by: U, g: Gen[U])  : Stream[P[T]]= {
+  def toStream[U](to: T, by: U, g: Gen[U]) = {
+    val st = g(u.extract, to, by)
+    val r = st.map{ x => u( x ) }
+    r
+  }
 }
 
 
@@ -59,7 +74,17 @@ class Outer[T, P[T] <: Inner[T]](val u: P[T]) {
 object SelfBuilder {
 
   def main( args: Array[ String ] ) {
-  
+    
+    def linSearch(from: Double, to: Double, by: Double) : Stream[ Double ] = {
+      val len = ( ( to - from ) / by).ceil.toInt
+      linspace( from, by ).take(  len + 1)
+    }
+
+    def iLinSearch(from: Int, to: Int, by: Int) : Stream[ Int ] = {
+      val len = ( ( to - from ) / by).ceil.toInt
+      linspace( from, by ).take(  len + 1).map(_.toInt)
+    }
+    
     // Pack the inner type into the outer type
     val u = new InnerA(100)                                       // InnerA[Int]
     val u1 = new InnerA("100")                                  // InnerA[String]
@@ -83,6 +108,9 @@ object SelfBuilder {
     //val u12 :  InnerC[Int] = u10.make(1001)             // But we have to expand the type explicitly, same compile erro as above
     // Important: the types in the IDE are not expanded so we cannot see them 
     val u13 = u9(102)                                                  //  Important: we get type `u9.Self`
+    
+    val u14 = u2.toStream(100, 1,iLinSearch)
+    val u15 : Stream[_] = u2.toStream(100, 1,iLinSearch)
     
   }
   
