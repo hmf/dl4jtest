@@ -29,6 +29,7 @@ trait SParameterRange[ P[T] <: SParameter[ T], T, U, B, E, C, G ] {
   val generator : Option[  Gen ]
 
   //def apply( begin: P[T]): SParameterRange[ P, T, U, TBEGIN, TMISSING, TMISSING, TMISSING]
+  def makeStreamable: SStreamableParameterRange[ P, T, U, B, E, C, G]
 
   def from[Q[S] <: SParameter[S],S]( nbegin: Q[S] ): SParameterRange[ Q, S, U, TBEGIN, E, C, G ]
   def to( nend: P[T] ): SParameterRange[ P, T, U, B, TEND, C, G ]
@@ -67,11 +68,13 @@ import scala.language.implicitConversions
 
 object SParameterRange {
 
-  implicit def enableBuild[P[T] <: pt.inescn.scratchpad.SParameter[T],T,U]( builder: SParameterRange[ P, T, Double, TBEGIN, TEND, TCONFIG, TGEN ] ) = 
+  implicit def enableBuild[P[T] <: pt.inescn.scratchpad.SParameter[T],T,U]( range: SParameterRange[ P, T, Double, TBEGIN, TEND, TCONFIG, TGEN ] ) = 
     new SSafeBuild[P, T] {
       def build() : SStreamableParameterRange[ P, T, Double, TBEGIN, TEND, TCONFIG, TGEN ] = 
-      new SLinearParameterRange[ P, T, TBEGIN, TEND, TCONFIG, TGEN ]( builder.begin, builder.end, builder.config, builder.generator ) 
-             with SStreamableParameterRange[ P, T, Double, TBEGIN, TEND, TCONFIG, TGEN ]
+      /*new SLinearParameterRange[ P, T, TBEGIN, TEND, TCONFIG, TGEN ]( range.begin, range.end, range.config, range.generator ) 
+             with SStreamableParameterRange[ P, T, Double, TBEGIN, TEND, TCONFIG, TGEN ]*/
+      range.makeStreamable
+      
   }
   
 }
@@ -91,8 +94,8 @@ private class SLinearParameterRange[ P[T] <: SParameter[T], T, B, E, C, G ](
     this( Some(nbegin), None, None, None )
   }
   
-  def apply( nbegin: P[T]): SParameterRange[ P, T, Double, TBEGIN, TMISSING, TMISSING, TMISSING] = 
-    new SLinearParameterRange[ P, T, TBEGIN, TMISSING, TMISSING, TMISSING ]( Some(nbegin), None, None, None )
+  def makeStreamable: SStreamableParameterRange[ P, T, Double, B, E, C, G] = 
+    new SLinearParameterRange[ P, T, B, E, C, G ]( begin, end, config, generator) with SStreamableParameterRange[ P, T, Double, B, E, C, G]
   
   def from[Q[S] <: SParameter[ S],S]( nbegin: Q[S] ): SParameterRange[ Q, S, Double, TBEGIN, E, C, G ] 
     = new SLinearParameterRange[ Q, S, TBEGIN, E, C, G ]( Some(nbegin), None, config, None)
