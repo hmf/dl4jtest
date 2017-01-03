@@ -35,21 +35,20 @@ trait SParameterRange[ P[T] <: SParameter[ T], T, U, B, E, C, G ] {
   def to( nend: P[T] ): SParameterRange[ P, T, U, B, TEND, C, G ]
   def by( nconfig: U ): SParameterRange[ P, T, U, B, E, TCONFIG, G ]
   def using (gen: Gen) : SParameterRange[ P, T, U, B, E, C, TGEN ]
-  
-  // TODO: remove and hide
-   //def toStream
-  // ?? def toStream: Stream[P[T]#Self]
-   //def toStream: Stream[ _ ]
-   //def toStream: Stream[ SParameter[T] ]
-   //def toStream: Stream[ P[T] ]
 }
 
-// TODO: remove extends and use self
-trait SStreamableParameterRange[ P[T] <: SParameter[T], T, U, B, E, C, G ] extends SParameterRange[ P, T, U, B, E, C, G ]  {
-  // TODO; this : SParameter[ T ] =>
-  def toStream : Stream[P[T]#Self] 
-  //def toStream: Stream[ SParameter[T] ]
-  //def toStream: Stream[ P[T] ]
+// Alternatively extends SParameterRange[ P, T, U, B, E, C, G ]
+trait SStreamableParameterRange[ P[T] <: SParameter[T], T, U, B, E, C, G ]   {
+  this : SParameterRange[ P, T, U, B, E, C, G ] =>
+  
+  def toStream : Stream[P[T]#Self] = { 
+    val f = generator.get
+    val st = f(begin.get.value, end.get.value, config.get)
+    val o = begin.get
+    val r = st.map{ x => o( x ) }
+    r
+  }
+  
 }
 
 trait SSafeBuild[ P[T] <: SParameter[T], T] {
@@ -71,8 +70,6 @@ object SParameterRange {
   implicit def enableBuild[P[T] <: pt.inescn.scratchpad.SParameter[T],T,U]( range: SParameterRange[ P, T, Double, TBEGIN, TEND, TCONFIG, TGEN ] ) = 
     new SSafeBuild[P, T] {
       def build() : SStreamableParameterRange[ P, T, Double, TBEGIN, TEND, TCONFIG, TGEN ] = 
-      /*new SLinearParameterRange[ P, T, TBEGIN, TEND, TCONFIG, TGEN ]( range.begin, range.end, range.config, range.generator ) 
-             with SStreamableParameterRange[ P, T, Double, TBEGIN, TEND, TCONFIG, TGEN ]*/
       range.makeStreamable
       
   }
@@ -109,31 +106,6 @@ private class SLinearParameterRange[ P[T] <: SParameter[T], T, B, E, C, G ](
   def using( gen : (T, T, Double) => Stream[ T ] ): SParameterRange[ P, T, Double, B, E, C, TGEN ] =  {
     new SLinearParameterRange[ P, T, B, E, C, TGEN]( begin, end, config, Some(gen) )
   }
-
-  // a to b with length = l
-  // from a  by delta (no b!!)
-  // a to b by delta ?
-
- /*
-  // TODO: make parameterizable by StreamBuilder
-  def toStream: Stream[ P ] = {
-    val len = ( ( end.get.value - begin.get.value  ) / config.get ).ceil.toInt
-    linspace( begin.get.value, end.get.value ).map{ x => begin.get.apply( x ) }.take(  len )
-  }
- */
-  // TODO: how do we return a P[T]
-  def toStream : Stream[P[T]#Self] = { 
-  //def toStream: Stream[ _ ] = { 
-  //def toStream: Stream[ SParameter[T] ] = { 
-  //def toStream: Stream[ P[T] ] = { 
-    val f = generator.get
-    val st = f(begin.get.value, end.get.value, config.get)
-    val o = begin.get
-    //val r = st.map{ x => begin.get.apply( x ) }
-    val r = st.map{ x => o( x ) }
-    r
-  }
-  
 }
 
 /** 
@@ -157,25 +129,11 @@ case class XSlearningRate( val value: Double = 0.0) extends SParameter[ Double ]
 
 object SParameterTest {
   
-  /*
-    def linSearch(from: SlearningRate, to: SlearningRate, by: Double) : Stream[ SlearningRate ] = {
-      val len = ( ( to.value - from.value ) / by).ceil.toInt
-      linspace( from.value, by ).map{ x => from.apply( x ) }.take(  len + 1)
-    }*/
-  /*
-   // TODO: can we get rid of SlearningRate ?
-    def linSearch(from: Double, to: Double, by: Double) : Stream[ SlearningRate ] = {
-      val len = ( ( to - from ) / by).ceil.toInt
-      linspace( from, by ).map{ x => SlearningRate.apply( x ) }.take(  len + 1)
-    }*/
     def linSearch(from: Double, to: Double, by: Double) : Stream[ Double ] = {
       val len = ( ( to - from ) / by).ceil.toInt
       linspace( from, by ).take(  len + 1)
     }
     
-// TODO: Add phantom type G for the generator
-// TODO: How to make generators independent from type P 
-
   def main( args: Array[ String ] ) {
     
     val t0 = SlearningRate()
@@ -199,16 +157,25 @@ object SParameterTest {
     t5.foreach { x => println( x ) }
 
     val u0 = XSlearningRate()
-    val u1  = new SLinearParameterRange( u0 ) // TODO: Hide constructor and use companion object with apply
-    // TODO: should fail compilation
+    val u1  = new SLinearParameterRange( u0 )
     val u2 = u1.from(XSlearningRate(1.0)).to(XSlearningRate(3)).by(1).using(linSearch).build().toStream
     u2.foreach { x => println( x ) }
+    // compilation fails
+    //val u3 = u1.toStream  
     
-    //val w2 = t.from(SlearningRate( 0.0 )).to(SlearningRate( 0.01 )).by(0.001 )
-    //val w3 = w2 build()
-    //val w4 = w3.toStream
-    //val w4 = w2.toStream
-    //w4.foreach { x => println( x ) }
+    val w2 = s from(SlearningRate( 0.0 )) to(SlearningRate( 0.03 )) by(0.02 ) using(linSearch)
+    // need to set the type otherwise compile error: recursive value w3 needs type
+    // setting the type explicitly does not solve this, alternatively use the dot notation
+    //val w3 : Stream[SlearningRate[Double]] = w2 build() toStream 
+    /*
+         type mismatch;
+         [error]  found   : Unit
+         [error]  required: Int
+         [error]     w3.foreach { x => println( x ) }
+                                           ^
+     */
+    val w3 = w2.build().toStream 
+    w3.foreach { x => println( x ) }
   }
  
   
