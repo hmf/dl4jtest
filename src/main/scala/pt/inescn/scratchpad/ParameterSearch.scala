@@ -2,124 +2,18 @@ package pt.inescn.scratchpad
 
 import StreamBuilder._
 
-// Parameters are value classes
 
-/**
- *
- * @see http://stackoverflow.com/questions/19642053/when-to-use-val-or-def-in-scala-traits
- */
-trait Parameter[ T ] {
-  def value: T // must be a def or var so that we can override and initialize from the extended class
-  //val na : Parameter[Nothing] = Naught
+//case class learningRate( override val value: Double ) extends SParameter[ Double ] { def apply( v: Double ) = new learningRate( v ) }
+//case class ParamThree( override val value: Double ) extends SParameter[ Double ] { def apply( v: Double ) = new learningRate( v ) }
 
-  //def from[ T, U](begin : this.type): ParameterRange[ T, U, BEGIN, MISSING, MISSING ] 
-  def apply( v: T ): Parameter[ T ]
-}
+//import pt.inescn.scratchpad.ParamOne
 
-import scala.{ Option, Some, None }
+case class ParamThree[T]( val value: T = 0.0) extends Parameter[ T ] { 
+  type Self = ParamThree[T]
 
-//case object Naught extends Parameter[Nothing] { def value = this}
-
-trait ParameterRange[ P <: Parameter[ _ ], U, B, E, C ] {
-  var begin: P
-  var end: P
-  var config: Option[ U ]
-
-  def to( nend: P ): ParameterRange[ P, U, B, END, C ]
-  def by[ V ]( nconfig: V ): ParameterRange[ P, V, B, E, CONFIG ]
-
-  //def toStream: Stream[ P ]
-}
-
-trait StreamableParameterRange[ P <: Parameter[ _ ], U, B, E, C ] extends ParameterRange[ P, U, B, E, C ]  {
-  def toStream: Stream[ P ]
-}
-
-/*
-trait StreamableParameterRange[ P <: Parameter[ _ ], U, B, E, C ] extends ParameterRange[ P, U, B, E, C ]  {
-  def toStream: Stream[ P ]
-}
-*/
-
-// Can also use `abstract class`
-trait BEGIN
-trait END
-trait CONFIG
-trait MISSING
-
-// TODO: pimp my class and add toStream
-// How do we define and hide the ParameterRange.toStream
-trait SafeBuild[ P <: Parameter[ _ ], U ] {
-  def build(): StreamableParameterRange[ P, U, BEGIN, END, CONFIG ]
-}
-
-import scala.language.implicitConversions
-
-object ParameterRange {
-
-  def apply[ P <: Parameter[ _ ], U ]( begin: P, end: P, config: U ): ParameterRange[ P, U, BEGIN, END, CONFIG ] =
-    new LinearParameterRange[ P, U, BEGIN, END, CONFIG ]( begin, end, Some( config ) )
-
-  def from[ P <: Parameter[ _ ], U, B, E, S ]( begin: P ): ParameterRange[ P, U, BEGIN, MISSING, MISSING ] =
-    new LinearParameterRange[ P, U, BEGIN, MISSING, MISSING ]( begin )
-
-  implicit def enableBuild[ P <: Parameter[ _ ], U ]( builder: ParameterRange[ P, U, BEGIN, END, CONFIG ] ) = new SafeBuild[P,U] {
-    def build() : StreamableParameterRange[ P, U, BEGIN, END, CONFIG ] = 
-      new LinearParameterRange[ P, U, BEGIN, END, CONFIG ]( builder.begin ) with StreamableParameterRange[ P, U, BEGIN, END, CONFIG ]
-  }
-}
-
-private class LinearParameterRange[ P <: Parameter[ _ ], U, B, E, C ]( override var begin: P, override var end: P, override var config: Option[ U ] )
-    extends ParameterRange[ P, U, B, E, C ] {
-
-  //var x: U = _
-
-  def this( begin: P ) {
-    this( begin, begin, None )
+  def apply( v: T ) : Self = new ParamThree( v ) 
   }
 
-  def to( nend: P ): ParameterRange[ P, U, B, END, C ] = new LinearParameterRange[ P, U, B, END, C ]( begin, nend, config )
-  def by[ V ]( nconfig: V ): ParameterRange[ P, V, B, E, CONFIG ] = new LinearParameterRange[ P, V, B, E, CONFIG ]( begin, end, Some( nconfig ) )
-
-  // a to b with length = l
-  // from a  by delta (no b!!)
-  // a to b by delta ?
-
-  def toStream: Stream[ P ] = ??? /* TODO {
-    val len = ( ( end.value - begin.value  ) / config.get ).ceil.toInt
-    linspace( begin.value, end.value ).map{ x => learningRate( x ) }.take(  len )
-  }*/
-}
-
-object test {
-  val x = ParameterRange( learningRate( 0.0 ), learningRate( 0.01 ), 0.001 )
-
-  val z1 = ParameterRange.from( learningRate( 0.0 ) )
-  val z2 = z1.to( learningRate( 0.01 ) )
-  val z3 = z2.by( 0.001 )
-  // val z4 = z3.toStream hidden, cannot use
-
-  import ParameterRange._
-  val y1 = from( learningRate( 0.0 ) )
-  val y2 = y1.to( learningRate( 0.01 ) )
-  val y3 = y2.by( 0.001 )
-  //val y4 = y2.build()  // compile error
-  val y4 = y3.build()
-  //val y5 = y3.toStream // compile error
-  val y5 = y4.toStream
-
-  println( "????????????" )
-  val len = ( ( 0.01 - 0.0 ) / 0.001 ).ceil.toInt
-  val v1 = linspace( 0.0, 0.001 ).map{ x => learningRate( x ) }.take( len )
-  v1.foreach { x => println( x ) }
-
-  //import ParameterRange._
-  //val t1 = to( learningRate( 0.0 ), learningRate( 0.01 ), learningRate( 0.001 ) )
-
-}
-
-case class learningRate( override val value: Double ) extends Parameter[ Double ] { def apply( v: Double ) = new learningRate( v ) }
-case class pValue( override val value: Double ) extends Parameter[ Double ] { def apply( v: Double ) = new learningRate( v ) }
 
 import scala.language.higherKinds
 
@@ -139,11 +33,11 @@ trait Model[ T, U[ T ], P ] {
 }
 
 object ModelAParams {
-  type w = learningRate #: pValue #: HNil
+  type w = ParamOne[Double] #: ParamThree[Double] #: HNil
 }
 
 // Ok
-//class ModelA[ T, U[ T ] ]( val params: learningRate #: pValue #: HNil ) extends Model[ T, U, Double ] {
+//class ModelA[ T, U[ T ] ]( val params: learningRate #: ParamThree #: HNil ) extends Model[ T, U, Double ] {
 class ModelA[ T, U[ T ] ]( val params: ModelAParams.w ) extends Model[ T, U, Double ] {
   def fit( data: U[ T ] ): Unit = {}
   def predict( datum: T ): Double = { 0.0 }
@@ -302,30 +196,30 @@ object SearchParameters {
 
     //val w = "str" :: true :: 1.0 :: HList.HNil
     val x = "str" :: true :: 1.0 :: HNil
-    val p1 = new learningRate( 0.001 ) :: new pValue( 0.05 ) :: HNil
+    val p1 = ParamOne( 0.001 ) :: new ParamThree( 0.05 ) :: HNil
     val m1 = new ModelA( p1 )
     // cannot use (compile)
     // m1.fit(1)
-    //val p2 = new pValue( 0.05 ) :: new learningRate( 0.001 )  :: HNil
+    //val p2 = new ParamThree( 0.05 ) :: new learningRate( 0.001 )  :: HNil
     // Compilation error
     // type mismatch;
-    // [error]  found   : pt.inescn.utils.HCons[pt.inescn.scratchpad.pValue,pt.inescn.utils.HCons[pt.inescn.scratchpad.learningRate,pt.inescn.utils.HNil]]
+    // [error]  found   : pt.inescn.utils.HCons[pt.inescn.scratchpad.ParamThree,pt.inescn.utils.HCons[pt.inescn.scratchpad.learningRate,pt.inescn.utils.HNil]]
     // [error]  required: pt.inescn.scratchpad.ModelAParams.w
-    // [error]     (which expands to)  pt.inescn.utils.HCons[pt.inescn.scratchpad.learningRate,pt.inescn.utils.HCons[pt.inescn.scratchpad.pValue,pt.inescn.utils.HNil]]
+    // [error]     (which expands to)  pt.inescn.utils.HCons[pt.inescn.scratchpad.learningRate,pt.inescn.utils.HCons[pt.inescn.scratchpad.ParamThree,pt.inescn.utils.HNil]]
     //val m2 = new ModelA(p2)   
     val p3 = 0.001 :: 0.05 :: HNil
     // Compilation error
     // type mismatch;
     // [error]  found   : pt.inescn.utils.HCons[Double,pt.inescn.utils.HCons[Double,pt.inescn.utils.HNil]]
     // [error]  required: pt.inescn.scratchpad.ModelAParams.w
-    // [error]     (which expands to)  pt.inescn.utils.HCons[pt.inescn.scratchpad.learningRate,pt.inescn.utils.HCons[pt.inescn.scratchpad.pValue,pt.inescn.utils.HNil]]
+    // [error]     (which expands to)  pt.inescn.utils.HCons[pt.inescn.scratchpad.learningRate,pt.inescn.utils.HCons[pt.inescn.scratchpad.ParamThree,pt.inescn.utils.HNil]]
     //val m3 = new ModelA(p3)   
 
     val ps = 0.001 to 1 by 0.1
     ps.toList.foreach( println )
     //val ps1 =  new learningRate( 0.001 ).value to  new learningRate( 1 ).value
     //val ps1 =  new learningRate( 0.001 ) to  new learningRate( 1 )
-    println( new learningRate( 0.001 ).value )
+    println( ParamOne( 0.001 ).value )
     //println(new learningRate( 0.001 ).valuex)
   }
 }

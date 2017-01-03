@@ -11,6 +11,11 @@ package pt.inescn.scratchpad.idioms
  * @see  http://stackoverflow.com/questions/14729996/scala-implementing-method-with-return-type-of-concrete-instance
  * @see  http://stackoverflow.com/questions/4313139/how-to-use-scalas-this-typing-abstract-types-etc-to-implement-a-self-type
  * 
+ * TODO: (parts 2,3 and 4)
+ * @see http://jim-mcbeath.blogspot.pt/2009/09/type-safe-builder-in-scala-using-church.html
+ * @see http://jim-mcbeath.blogspot.pt/2009/09/type-safe-builder-in-scala-part-2.html
+ * @see http://jim-mcbeath.blogspot.pt/2009/09/type-safe-builder-in-scala-part-3.html
+ * @see http://jim-mcbeath.blogspot.pt/2009/09/type-safe-builder-in-scala-part-4.html
  */
 
 trait StrictSelf[T <: StrictSelf[T]] { self: T =>
