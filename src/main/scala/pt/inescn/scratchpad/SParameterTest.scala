@@ -10,9 +10,10 @@ import StreamBuilder._
  * @see http://stackoverflow.com/questions/19642053/when-to-use-val-or-def-in-scala-traits
  */
 trait SParameter[ T ] {
-  def value: T // must be a def or var so that we can override and initialize from the extended class
+  type Self <: SParameter[T]
   
-  def apply( v: T ): SParameter[ T ]
+  def apply( v: T ): Self
+  def value: T // must be a def or var so that we can override and initialize from the extended class
 }
 
 import scala.{ Option, Some, None }
@@ -35,14 +36,18 @@ trait SParameterRange[ P[T] <: SParameter[ T], T, U, B, E, C ] {
   def using (gen: Gen) : SParameterRange[ P, T, U, B, E, TCONFIG ]
   
   // TODO: remove and hide
-   def toStream: Stream[ SParameter[T] ]
+   //def toStream
+  def toStream: Stream[P[T]#Self]
+   //def toStream: Stream[ _ ]
+   //def toStream: Stream[ SParameter[T] ]
    //def toStream: Stream[ P[T] ]
 }
 
 // TODO: remove extends and use self
 trait SStreamableParameterRange[ P[T] <: SParameter[T], T, U, B, E, C ] extends SParameterRange[ P, T, U, B, E, C ]  {
-  // TODO; this : SParameter[ T ] => 
-  def toStream: Stream[ SParameter[T] ]
+  // TODO; this : SParameter[ T ] =>
+  def toStream : Stream[P[T]#Self] 
+  //def toStream: Stream[ SParameter[T] ]
   //def toStream: Stream[ P[T] ]
 }
 
@@ -101,7 +106,9 @@ private class SLinearParameterRange[ P[T] <: SParameter[T], T, B, E, C ](
   }
  */
   // TODO: how do we return a P[T]
-  def toStream: Stream[ SParameter[T] ] = { 
+  def toStream : Stream[P[T]#Self] = { 
+  //def toStream: Stream[ _ ] = { 
+  //def toStream: Stream[ SParameter[T] ] = { 
   //def toStream: Stream[ P[T] ] = { 
     val f = generator.get
     val st = f(begin.get.value, end.get.value, config.get)
@@ -113,10 +120,17 @@ private class SLinearParameterRange[ P[T] <: SParameter[T], T, B, E, C ](
   
 }
 
-case class SlearningRate( override val value: Double = 0.0) extends SParameter[ Double ] { 
-  def apply( v: Double ) = new SlearningRate( v ) 
+case class SlearningRate( val value: Double = 0.0) extends SParameter[ Double ] { 
+  type Self = SlearningRate
+
+  def apply( v: Double ) : Self = new SlearningRate( v ) 
   }
 
+case class XSlearningRate[T]( val value: T = 0.0) extends SParameter[ T ] { 
+  type Self = XSlearningRate[T]
+
+  def apply( v: T ) : Self = new XSlearningRate( v ) 
+  }
 
 object SParameterTest {
   
@@ -142,7 +156,9 @@ object SParameterTest {
   def main( args: Array[ String ] ) {
     
     val t0 = SlearningRate()
-    val t  = new SLinearParameterRange( t0 ) // TODO: Hide constructor and use companion object with apply
+    val t  : SLinearParameterRange[SParameter, Double, Nothing, Nothing, Nothing] = new SLinearParameterRange( t0 ) // TODO: Hide constructor and use companion object with apply
+    // pt.inescn.scratchpad.SlearningRate takes no type parameters, expected: one
+    //val t  : SLinearParameterRange[SlearningRate, Double, Nothing, Nothing, Nothing] = new SLinearParameterRange( t0 ) // TODO: Hide constructor and use companion object with apply
     // TODO: how can we get the specific Paramater[T] and not the base trait?  
     val t1 = t from SlearningRate( 0.0 )
     val t2 = t1 using( linSearch )
@@ -159,7 +175,11 @@ object SParameterTest {
     val s5 = s4.toStream
     t5.foreach { x => println( x ) }
 
-
+    val u0 = XSlearningRate()
+    //val u1  : SLinearParameterRange[SParameter, Double, Nothing, Nothing, Nothing] = new SLinearParameterRange( t0 ) // TODO: Hide constructor and use companion object with apply
+    val u1  = new SLinearParameterRange( u0 ) // TODO: Hide constructor and use companion object with apply
+    // TODO: should fail compilation
+    val u2 = u1.toStream
     
     //val w2 = t.from(SlearningRate( 0.0 )).to(SlearningRate( 0.01 )).by(0.001 )
     //val w3 = w2 build()

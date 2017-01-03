@@ -60,7 +60,10 @@ class Outer[T, P[T] <: Inner[T]](val u: P[T]) {
   
   // type mismatch; found : scala.collection.immutable.Stream[Outer.this.u.Self] required: Stream[P[T]]
   //def toStream[U](to: T, by: U, g: Gen[U])  : Stream[P[T]]= {
-  def toStream[U](to: T, by: U, g: Gen[U]) = {
+  // Ok
+  //def toStream[U](to: T, by: U, g: Gen[U]) = {
+  // Ok 
+  def toStream[U](to: T, by: U, g: Gen[U]) : Stream[P[T]#Self] = {
     val st = g(u.extract, to, by)
     val r = st.map{ x => u( x ) }
     r

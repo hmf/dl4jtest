@@ -81,7 +81,10 @@ class ROuter[T, P[T] <: XInner[T]](val u: P[T]) {
   
   // type mismatch; found : scala.collection.immutable.Stream[Outer.this.u.Self] required: Stream[P[T]]
   //def toStream[U](to: T, by: U, g: Gen[U])  : Stream[P[T]]= {
+  // Ok
   def toStream[U](to: T, by: U, g: Gen[U]) = {
+  // Fails !!
+  //def toStream[U](to: T, by: U, g: Gen[U]) : Stream[P[T]#Self] = {
     val st = g(u.extract, to, by)
     val r = st.map{ x => u( x ) }
     r
