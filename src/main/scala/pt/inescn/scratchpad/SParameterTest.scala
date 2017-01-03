@@ -7,7 +7,6 @@ import StreamBuilder._
 
 /**
  *
- * @see http://jim-mcbeath.blogspot.pt/2009/09/type-safe-builder-in-scala-part-2.html
  * @see http://stackoverflow.com/questions/19642053/when-to-use-val-or-def-in-scala-traits
  */
 trait SParameter[ T ] {
