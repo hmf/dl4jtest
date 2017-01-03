@@ -8,6 +8,9 @@ package pt.inescn.scratchpad.idioms
  * 2. Phantom types
  *    Are used to hold state to ensure that the constructor parameters are valid (safe)
  *
+ * TODO:
+ * @see http://jim-mcbeath.blogspot.pt/2009/09/type-safe-builder-in-scala-using-church.html
+ * 
  * @see http://blog.rafaelferreira.net/2008/07/type-safe-builder-pattern-in-scala.html
  *          Dick Wall has also some example on contructon builder. .
  */

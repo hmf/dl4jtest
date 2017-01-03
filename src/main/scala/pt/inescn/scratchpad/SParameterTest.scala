@@ -19,7 +19,7 @@ trait SParameter[ T ] {
 import scala.{ Option, Some, None }
 import scala.language.higherKinds
 
-trait SParameterRange[ P[T] <: SParameter[ T], T, U, B, E, C ] {
+trait SParameterRange[ P[T] <: SParameter[ T], T, U, B, E, C, G ] {
   
   type Gen = (T, T, U) => Stream[ T ]
   
@@ -28,12 +28,12 @@ trait SParameterRange[ P[T] <: SParameter[ T], T, U, B, E, C ] {
   val config:       Option[ U ]
   val generator : Option[  Gen ]
 
-  def apply( begin: P[T]): SParameterRange[ P, T, U, TBEGIN, TMISSING, TMISSING]
+  def apply( begin: P[T]): SParameterRange[ P, T, U, TBEGIN, TMISSING, TMISSING, TMISSING]
 
-  def from[Q[S] <: SParameter[S],S]( nbegin: Q[S] ): SParameterRange[ Q, S, U, TBEGIN, E, C ]
-  def to( nend: P[T] ): SParameterRange[ P, T, U, B, TEND, C ]
-  def by( nconfig: U ): SParameterRange[ P, T, U, B, E, TCONFIG ]
-  def using (gen: Gen) : SParameterRange[ P, T, U, B, E, TCONFIG ]
+  def from[Q[S] <: SParameter[S],S]( nbegin: Q[S] ): SParameterRange[ Q, S, U, TBEGIN, E, C, G ]
+  def to( nend: P[T] ): SParameterRange[ P, T, U, B, TEND, C, G ]
+  def by( nconfig: U ): SParameterRange[ P, T, U, B, E, TCONFIG, G ]
+  def using (gen: Gen) : SParameterRange[ P, T, U, B, E, C, TGEN ]
   
   // TODO: remove and hide
    //def toStream
@@ -44,7 +44,7 @@ trait SParameterRange[ P[T] <: SParameter[ T], T, U, B, E, C ] {
 }
 
 // TODO: remove extends and use self
-trait SStreamableParameterRange[ P[T] <: SParameter[T], T, U, B, E, C ] extends SParameterRange[ P, T, U, B, E, C ]  {
+trait SStreamableParameterRange[ P[T] <: SParameter[T], T, U, B, E, C, G ] extends SParameterRange[ P, T, U, B, E, C, G ]  {
   // TODO; this : SParameter[ T ] =>
   def toStream : Stream[P[T]#Self] 
   //def toStream: Stream[ SParameter[T] ]
@@ -52,23 +52,25 @@ trait SStreamableParameterRange[ P[T] <: SParameter[T], T, U, B, E, C ] extends 
 }
 
 // Can also use `abstract class`
-trait SBEGIN
+/* TOOD;: remove
+ trait SBEGIN
 trait SEND
 trait SCONFIG
+trait SGEN
 trait SMISSING
-
+*/
 object SParameterRange {
 
   type SPDouble = SParameter[ Double ]
   type SGen = (SParameterRange.SPDouble, SParameterRange.SPDouble, Option[Double]) => Stream[SParameterRange.SPDouble]
 }
 
-private class SLinearParameterRange[ P[T] <: SParameter[T], T, B, E, C ]( 
+private class SLinearParameterRange[ P[T] <: SParameter[T], T, B, E, C, G ]( 
                                                                           val begin:       Option[P[T]], 
                                                                           val end:          Option[P[T]], 
                                                                           val config:      Option[ Double ],
                                                                           val generator: Option[ (T,T,Double) => Stream[T]] )
-    extends SParameterRange[ P, T, Double, B, E, C ] {
+    extends SParameterRange[ P, T, Double, B, E, C, G ] {
   
   def this( ){
     this( None, None, None, None )
@@ -78,20 +80,20 @@ private class SLinearParameterRange[ P[T] <: SParameter[T], T, B, E, C ](
     this( Some(nbegin), None, None, None )
   }
   
-  def apply( nbegin: P[T]): SParameterRange[ P, T, Double, TBEGIN, TMISSING, TMISSING] = 
-    new SLinearParameterRange[ P, T, TBEGIN, TMISSING, TMISSING ]( Some(nbegin), None, None, None )
+  def apply( nbegin: P[T]): SParameterRange[ P, T, Double, TBEGIN, TMISSING, TMISSING, TMISSING] = 
+    new SLinearParameterRange[ P, T, TBEGIN, TMISSING, TMISSING, TMISSING ]( Some(nbegin), None, None, None )
   
-  def from[Q[S] <: SParameter[ S],S]( nbegin: Q[S] ): SParameterRange[ Q, S, Double, TBEGIN, E, C ] 
-    = new SLinearParameterRange[ Q, S, TBEGIN, E, C ]( Some(nbegin), None, config, None)
+  def from[Q[S] <: SParameter[ S],S]( nbegin: Q[S] ): SParameterRange[ Q, S, Double, TBEGIN, E, C, G ] 
+    = new SLinearParameterRange[ Q, S, TBEGIN, E, C, G ]( Some(nbegin), None, config, None)
     
-  def to( nend: P[T] ): SParameterRange[ P, T, Double, B, TEND, C ] 
-    = new SLinearParameterRange[ P,T,  B, TEND, C ]( begin, Some(nend), config, generator )
+  def to( nend: P[T] ): SParameterRange[ P, T, Double, B, TEND, C, G ] 
+    = new SLinearParameterRange[ P,T,  B, TEND, C, G ]( begin, Some(nend), config, generator )
 
-  def by( nconfig: Double ): SParameterRange[ P, T, Double, B, E, TCONFIG ] 
-    = new SLinearParameterRange[ P, T, B, E, TCONFIG ]( begin, end, Some( nconfig ), generator )
+  def by( nconfig: Double ): SParameterRange[ P, T, Double, B, E, TCONFIG, G ] 
+    = new SLinearParameterRange[ P, T, B, E, TCONFIG, G ]( begin, end, Some( nconfig ), generator )
   
-  def using( gen : (T, T, Double) => Stream[ T ] ): SParameterRange[ P, T, Double, B, E, TCONFIG ] =  {
-    new SLinearParameterRange[ P, T, B, E, TCONFIG ]( begin, end, config, Some(gen) )
+  def using( gen : (T, T, Double) => Stream[ T ] ): SParameterRange[ P, T, Double, B, E, C, TGEN ] =  {
+    new SLinearParameterRange[ P, T, B, E, C, TGEN]( begin, end, config, Some(gen) )
   }
 
   // a to b with length = l
@@ -120,16 +122,23 @@ private class SLinearParameterRange[ P[T] <: SParameter[T], T, B, E, C ](
   
 }
 
-case class SlearningRate( val value: Double = 0.0) extends SParameter[ Double ] { 
-  type Self = SlearningRate
+/** 
+ *  An example of a parameter. 
+ */
+case class SlearningRate[T]( val value: T = 0.0) extends SParameter[ T ] { 
+  type Self = SlearningRate[T]
 
-  def apply( v: Double ) : Self = new SlearningRate( v ) 
+  def apply( v: T ) : Self = new SlearningRate( v ) 
   }
 
-case class XSlearningRate[T]( val value: T = 0.0) extends SParameter[ T ] { 
-  type Self = XSlearningRate[T]
+/**
+ * Should not define these classes without the polymorphic parameter. If we do
+ * then the types will only show the generic SParameter. See examples below. 
+ */
+case class XSlearningRate( val value: Double = 0.0) extends SParameter[ Double ] { 
+  type Self = XSlearningRate
 
-  def apply( v: T ) : Self = new XSlearningRate( v ) 
+  def apply( v: Double ) : Self = new XSlearningRate( v ) 
   }
 
 object SParameterTest {
@@ -156,10 +165,8 @@ object SParameterTest {
   def main( args: Array[ String ] ) {
     
     val t0 = SlearningRate()
-    val t  : SLinearParameterRange[SParameter, Double, Nothing, Nothing, Nothing] = new SLinearParameterRange( t0 ) // TODO: Hide constructor and use companion object with apply
-    // pt.inescn.scratchpad.SlearningRate takes no type parameters, expected: one
-    //val t  : SLinearParameterRange[SlearningRate, Double, Nothing, Nothing, Nothing] = new SLinearParameterRange( t0 ) // TODO: Hide constructor and use companion object with apply
-    // TODO: how can we get the specific Paramater[T] and not the base trait?  
+    val t  = new SLinearParameterRange( t0 ) // TODO: Hide constructor and use companion object with apply
+    //val x = t.toStream // TODO: compile should fail 
     val t1 = t from SlearningRate( 0.0 )
     val t2 = t1 using( linSearch )
     val t3 = t2 to SlearningRate( 1.0 )
@@ -176,10 +183,10 @@ object SParameterTest {
     t5.foreach { x => println( x ) }
 
     val u0 = XSlearningRate()
-    //val u1  : SLinearParameterRange[SParameter, Double, Nothing, Nothing, Nothing] = new SLinearParameterRange( t0 ) // TODO: Hide constructor and use companion object with apply
     val u1  = new SLinearParameterRange( u0 ) // TODO: Hide constructor and use companion object with apply
     // TODO: should fail compilation
-    val u2 = u1.toStream
+    val u2 = u1.from(XSlearningRate(1.0)).to(XSlearningRate(3)).by(1).using(linSearch).toStream
+    u2.foreach { x => println( x ) }
     
     //val w2 = t.from(SlearningRate( 0.0 )).to(SlearningRate( 0.01 )).by(0.001 )
     //val w3 = w2 build()

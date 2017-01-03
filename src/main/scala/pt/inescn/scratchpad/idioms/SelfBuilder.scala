@@ -44,17 +44,19 @@ import pt.inescn.scratchpad.StreamBuilder._
  * In order to ensure the return of concrete types, we use the declaration of type `Self`. Note that
  * this solution is not robust.  We may inadvertently return the wrong inner types.  See BUG above.
  * 
- * IMPORTANT: the `def make(t: T) : P[T]` will fail. The compiler creates an existential type. We
- * can leave this so but the IDE will not show the expanded type. See main's examples. 
+ * IMPORTANT: the `def make(t: T) : P[T]` will fail. This is not possible because u has type P[T],  
+ * its not a class so we do not know what constructors are available. So we use the constraint 
+ * P[T] <: Inner[T] to provide that information. For this same function he compiler creates an existential 
+ * type if we do not indicate the type explicitly. We can leave this so but the IDE will not show the expanded type. 
+ * See main's examples. However we can use the type alias `Self`to ensure the type is visible. Same for the case of 
+ * `toStream`
  */
 class Outer[T, P[T] <: Inner[T]](val u: P[T]) {
 //class Outer[T, P[T]](u: P[T]) {
   def convertTo[Q[S]<: Inner[S],S](v: Q[S]) : Outer[S, Q] = new Outer(v)
   def extract : P[T] = u 
-  def make(t: T)  = u(t) // : P[T] type mismatch; found : Outer.this.u.Self required: P[T]
-  /* // In the case we do not use the constraint P[T] <: Inner[T]
-     def duplicate(v:T) : P[T] = u(v) // This is not possible because u has type P[T], 
-                                                     // its not a class so we do not know what constructors are available*/
+  // Note: we could either use the type Self as is or leave the compiler to use existential typing
+  def make(t: T)  : P[T]#Self = u(t) // : P[T] type mismatch; found : Outer.this.u.Self required: P[T]
   
   type Gen[U] = (T, T, U) => Stream[ T ]
   
@@ -104,11 +106,12 @@ object SelfBuilder {
     val u9 = new InnerC(101)                                       // InnerC[Int]
     val u10 = new Outer(u9)                                        // Outer[Int, InnerC]
     // Careful, we might have an unexpected type
-    val u11 : InnerB[Int] = u9(102)    
+    //val u11 : InnerB[Int] = u9(102)    
     // We can check for the correct type
     //val u11 : InnerC[Int] = u9(102)                          // type mismatch; found : pt.inescn.scratchpad.SParameterTest.u9.Self (which expands to) 
                                                                                 // pt.inescn.scratchpad.InnerB[Int] required: pt.inescn.scratchpad.InnerC[Int]
-    //val u12 :  InnerC[Int] = u10.make(1001)             // But we have to expand the type explicitly, same compile erro as above
+    //val u12 :  InnerC[Int] = u10.make(1001)             // But we have to expand the type explicitly, same compile error as above
+    val u12  = u10.make(1001)             // But we have to expand the type explicitly, same compile error as above
     // Important: the types in the IDE are not expanded so we cannot see them 
     val u13 = u9(102)                                                  //  Important: we get type `u9.Self`
     

@@ -37,6 +37,7 @@ trait TStreamableParameterRange[ P <: TParameter[ _ ], U, B, E, C ] extends TPar
 trait TBEGIN
 trait TEND
 trait TCONFIG
+trait TGEN
 trait TMISSING
 
 // TODO: pimp my class and add toStream

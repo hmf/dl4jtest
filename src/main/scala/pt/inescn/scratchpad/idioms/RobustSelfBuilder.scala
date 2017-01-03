@@ -65,26 +65,29 @@ import pt.inescn.scratchpad.StreamBuilder._
  * In order to ensure the return of concrete types, we use the declaration of type `Self`. Note that
  * this solution is not robust.  We may inadvertently return the wrong inner types.  See BUG above.
  * 
- * IMPORTANT: the `def make(t: T) : P[T]` will fail. The compiler creates an existential type. We
- * can leave this so but the IDE will not show the expanded type. See main's examples. 
+ * IMPORTANT: the `def make(t: T) : P[T]` will fail. This is not possible because u has type P[T],  
+ * its not a class so we do not know what constructors are available. So we use the constraint 
+ * P[T] <: Inner[T] to provide that information. For this same function he compiler creates an existential 
+ * type if we do not indicate the type explicitly. We can leave this so but the IDE will not show the expanded type. 
+ * See main's examples. However we can use the type alias `Self`to ensure the type is visible. Same for the case of 
+ * `toStream`
  */
-class ROuter[T, P[T] <: XInner[T]](val u: P[T]) {
+class ROuter[T, P[T] <: XInner[T] with StrictSelf[_]](val u: P[T]) {
 //class Outer[T, P[T]](u: P[T]) {
-  def convertTo[Q[S]<: XInner[S],S](v: Q[S]) : ROuter[S, Q] = new ROuter(v)
+  def convertTo[Q[S]<: XInner[S] with StrictSelf[_],S](v: Q[S]) : ROuter[S, Q] = new ROuter(v)
   def extract : P[T] = u 
-  def make(t: T) = u(t) // : P[T] type mismatch; found : ROuter.this.u.Self required: P[T]
-  /* // In the case we do not use the constraint P[T] <: Inner[T]
-     def duplicate(v:T) : P[T] = u(v) // This is not possible because u has type P[T], 
-                                                     // its not a class so we do not know what constructors are available*/
+  // Note: we could either use the type Self as is or leave the compiler to use existential typing
+  def make(t: T) : P[T]#Self = u(t) // : P[T] type mismatch; found : ROuter.this.u.Self required: P[T]
   
   type Gen[U] = (T, T, U) => Stream[ T ]
   
   // type mismatch; found : scala.collection.immutable.Stream[Outer.this.u.Self] required: Stream[P[T]]
   //def toStream[U](to: T, by: U, g: Gen[U])  : Stream[P[T]]= {
   // Ok
-  def toStream[U](to: T, by: U, g: Gen[U]) = {
+  //def toStream[U](to: T, by: U, g: Gen[U]) = {
   // Fails !!
   //def toStream[U](to: T, by: U, g: Gen[U]) : Stream[P[T]#Self] = {
+  def toStream[U](to: T, by: U, g: Gen[U]) : Stream[P[T]#Self] = {
     val st = g(u.extract, to, by)
     val r = st.map{ x => u( x ) }
     r
@@ -123,7 +126,8 @@ object RobustSelfBuilder {
     val v9 = v7.convertTo(v4)                                     // ROuter[String, C]
     val v10 = v9.extract                                               //  InnerB[String]
     // We can also create new instances of the inner type 
-    val v11 : C[String] = v9.make("101")                       //  v9u.Self = C[String], we cannot see the type in the IDE
+    //val v11 : C[String] = v9.make("101")                       //  v9u.Self = C[String], we cannot see the type in the IDE
+    val v11  = v9.make("101")                       //  v9u.Self = C[String], we cannot see the type in the IDE
     val v12 = v5("2002")                                             // D[String]
     
       
