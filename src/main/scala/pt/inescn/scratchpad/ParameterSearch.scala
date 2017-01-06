@@ -8,7 +8,7 @@ import StreamBuilder._
 
 //import pt.inescn.scratchpad.ParamOne
 
-case class ParamThree[T]( val value: T = 0.0) extends Parameter[ T ] { 
+case class ParamThree[T]( val value: T = 0.0) extends Parameter[ T ] with StrictSelf[ParamThree[T]] {
   type Self = ParamThree[T]
 
   def apply( v: T ) : Self = new ParamThree( v ) 
@@ -221,5 +221,7 @@ object SearchParameters {
     //val ps1 =  new learningRate( 0.001 ) to  new learningRate( 1 )
     println( ParamOne( 0.001 ).value )
     //println(new learningRate( 0.001 ).valuex)
+    
+    
   }
 }
