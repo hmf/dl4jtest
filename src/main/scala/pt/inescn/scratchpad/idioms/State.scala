@@ -1,7 +1,20 @@
 package pt.inescn.scratchpad.idioms
 
+/**
+ * Example from http://jim-mcbeath.blogspot.pt/2009/09/type-safe-builder-in-scala-part-4.html
+ * It shows how to create a state machine using type-level programming so that we can record
+ * what methods have been called and how many times. 
+ * 
+ * Note that this implementation uses structural typing and therefore requires the use of 
+ *   `import scala.language.reflectiveCalls`
+ * Structural typing s found in the use of the state machine type `TT` and the anonymous builder 
+ * class created via the implicit ` specsOK(spec:CompleteSpecs)`
+ * 
+ * Synopsis: we want to calculate the are of a pyramid. We can do so using several combinations 
+ * of 
+ */
 import scala.language.implicitConversions
-import scala.language.reflectiveCalls // TODO
+import scala.language.reflectiveCalls 
 
 object Pyramid {
 
@@ -158,11 +171,5 @@ object State {
     //Pyramid().setWidth(2).setHeight(2).build        //only one BASE param, need 2
     //Pyramid().setWidth(2).setLength(3).setArea(6).setHeight(2).build  //too many BASE params
     //Pyramid().setWidth(2).setWidth(3).setHeight(2).build  //setWidth called twice
-
-    /*
-    val x0 = Pyramid()
-    val _ = specsOK(x0)
-    val x1 = x0.setWidth(2)
-    val x2 = specsOK(x1)*/
   }
 }
