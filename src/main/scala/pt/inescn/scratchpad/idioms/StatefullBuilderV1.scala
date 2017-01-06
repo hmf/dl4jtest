@@ -11,7 +11,8 @@ package pt.inescn.scratchpad.idioms
  * class created via the implicit ` specsOK(spec:CompleteSpecs)`
  * 
  * Synopsis: we want to calculate the are of a pyramid. We can do so using several combinations 
- * of 
+ * of the various dimensions. We need therefore ensure that the correct set of dimensions are set 
+ * so that the area may be calculated. 
  */
 import scala.language.implicitConversions
 import scala.language.reflectiveCalls 
@@ -105,7 +106,9 @@ object Pyramid {
 
     }
 
-    //Starting point: nothing is set
+    /*
+     * Starting point: nothing is set
+     */
     def apply() = new Specs {
         type TT = {
             type COUNT_LENGTH = ZERO
@@ -118,8 +121,10 @@ object Pyramid {
         }
     }
 
-    //Required ending point: two base measures, one height measure,
-    //no single parameter more than once
+    /*
+     * Required ending point: two base measures, one height measure,
+     * no single parameter more than once
+     */
     type CompleteSpecs = Specs {
         type TT <: {
             type COUNT_LENGTH <: ZERO_OR_ONE
@@ -132,7 +137,9 @@ object Pyramid {
         }
     }
 
-    //Calc1 includes the first set of values that can be calculated
+    /**
+     * Calc1 includes the first set of values that can be calculated
+     */
     class Calc1 private[Pyramid](spec:CompleteSpecs) {
         import java.lang.Math.sqrt
 
@@ -159,7 +166,7 @@ object Pyramid {
 
 }
 
-object State {
+object StatefullBuilderV1 {
   
   def main( args: Array[ String ] ) {
     import Pyramid._       //we need the implicit conversion to be in scope

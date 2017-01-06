@@ -1,5 +1,11 @@
 package pt.inescn.scratchpad.idioms
 
+
+/**
+ * This is an altered version of  the example from http://jim-mcbeath.blogspot.pt/2009/09/type-safe-builder-in-scala-part-4.html
+ * For the original, see `StatefullBuilderV1`.
+ */
+
 // http://jim-mcbeath.blogspot.pt/2009/09/type-safe-builder-in-scala-part-4.html
 import scala.language.implicitConversions
 //import scala.language.reflectiveCalls // TODO
@@ -28,8 +34,10 @@ object StateO {
     //The class that manages the state of our specification
     class Base() { self:Base =>
       
+        //We maintain compiler-time state to count the two types of calls
        type ST <: BaseState
-       
+
+       /*
         //We maintain compiler-time state to count the two types of calls
         type TT <: {
             type COUNT_LENGTH <: COUNTER
@@ -40,18 +48,18 @@ object StateO {
             type COUNT_EDGE <: COUNTER
             type COUNT_VERT <: COUNTER          // height or edge
         }
-
+       */
        /*
         class SpecsWith extends Base {
         }*/
 
         //def setLength = new SpecsWith {
-        def setLength = new Base {
+        /*def setLength = new Base {
             type TT = self.TT {
                 type COUNT_LENGTH = self.TT#COUNT_LENGTH#Count
                 type COUNT_BASE = self.TT#COUNT_BASE#Count
             }
-        }
+        }*/
         
         def setSLength = new Base {
             type ST = BaseState {
@@ -66,12 +74,12 @@ object StateO {
         }
 
         //def setWidth = new SpecsWith {
-        def setWidth = new Base {
+       /*        def setWidth = new Base {
             type TT = self.TT {
                 type COUNT_WIDTH = self.TT#COUNT_WIDTH#Count
                 type COUNT_BASE = self.TT#COUNT_BASE#Count
             }
-        }
+        }*/
 
         def setSWidth = new Base {
             type ST = BaseState {
@@ -86,12 +94,12 @@ object StateO {
         }
         
         //def setArea = new SpecsWith {
-        def setArea = new Base {
+        /*def setArea = new Base {
             type TT = self.TT {
                 type COUNT_AREA = self.TT#COUNT_AREA#Count
                 type COUNT_BASE = self.TT#COUNT_BASE#Count
             }
-        }
+        }*/
         
         def setSArea = new Base {
             type ST = BaseState  {
@@ -106,12 +114,12 @@ object StateO {
         }
 
         //def setHeight = new SpecsWith {
-        def setHeight = new Base {
+        /*def setHeight = new Base {
             type TT = self.TT {
                 type COUNT_HEIGHT = self.TT#COUNT_HEIGHT#Count
                 type COUNT_VERT = self.TT#COUNT_VERT#Count
             }
-        }
+        }*/
         
         def setSHeight = new Base {
             type ST = BaseState {
@@ -126,12 +134,12 @@ object StateO {
         }
 
         //def setEdge = new SpecsWith {
-        def setEdge = new Base {
+        /*def setEdge = new Base {
             type TT = self.TT {
                 type COUNT_EDGE = self.TT#COUNT_EDGE#Count
                 type COUNT_VERT = self.TT#COUNT_VERT#Count
             }
-        }
+        }*/
         
         def setSEdge = new Base {
             type ST = BaseState {
@@ -160,7 +168,7 @@ object StateO {
             type COUNT_VERT = ZERO
         }
           
-        type TT = {
+        /*type TT = {
             type COUNT_LENGTH = ZERO
             type COUNT_WIDTH = ZERO
             type COUNT_AREA = ZERO
@@ -168,9 +176,11 @@ object StateO {
             type COUNT_HEIGHT = ZERO
             type COUNT_EDGE = ZERO
             type COUNT_VERT = ZERO
-        }
+        }*/
     }
         
+    //Required ending point: two base measures, one height measure,
+    //no single parameter more than once
     type SCompleteSpecs = Base {
           type ST <: BaseState {
               type COUNT_LENGTH <: ZERO_OR_ONE
@@ -183,6 +193,7 @@ object StateO {
           }
     }
 
+    /*
     //Required ending point: two base measures, one height measure,
     //no single parameter more than once
     type CompleteSpecs = Base {
@@ -195,33 +206,41 @@ object StateO {
             type COUNT_EDGE <: ZERO_OR_ONE
             type COUNT_VERT = ONE
         }
-    }
+    }*/
     
     //Calc1 includes the first set of values that can be calculated
     class Calc2(spec:SCompleteSpecs) {
     }
+
+    trait Builder {
+      def build : Calc2
+    }
     
-    implicit def specsSOK(spec:SCompleteSpecs) = new {
+    implicit def specsSOK(spec:SCompleteSpecs) = new Builder {
         def build = new Calc2(spec)
     }
 
+    /*
     //Calc1 includes the first set of values that can be calculated
     class Calc1(spec:CompleteSpecs) {
     }
-
-    implicit def specsOK(spec:CompleteSpecs) = new {
+    
+    implicit def specsOK(spec:CompleteSpecs) = new  {
         def build = new Calc1(spec)
     }
-
+  */
 }
 
-object StatefulBuilder {
+object StatefullBuilderV2 {
   
   def main( args: Array[ String ] ) {
     
     import StateO._       //we need the implicit conversion to be in scope
-    val p = StateO().setLength.setWidth.setHeight.build
+    
+    val p = StateO().setSLength.setSWidth.setSHeight.build
 
+    // An easy way to debug the type is t call the implicit converter manually
+    // The error will show the type in its expanded form
     val q = StateO()
     //val _ = specsSOK(q)
     val q0 = StateO().setSLength
@@ -233,18 +252,10 @@ object StatefulBuilder {
     val _  = specsSOK(qn)
     val c1 = qn.build
     
-    //StateO().setWidth(2).setHeight(2).build        //only one BASE param, need 2
-    //StateO().setWidth(2).setLength(3).setArea(6).setHeight(2).build  //too many BASE params
-    //StateO().setWidth(2).setWidth(3).setHeight(2).build  //setWidth called twice
+    // In the IDE if we hover over the `build` we cab see the type
     //StateO().setSWidth.setSHeight.build        //only one BASE param, need 2
     //StateO().setSWidth.setSLength.setSArea.setSHeight.build  //too many BASE params
     //StateO().setSWidth.setSWidth.setSHeight.build  //setWidth called twice
-    
-    val x0 = StateO()
-    //val _ = specsOK(x0)
-    //val x1 = x0.setWidth
-    val x1 = x0.setLength
-    //val x2 = specsOK(x1)
     
   }
 }
