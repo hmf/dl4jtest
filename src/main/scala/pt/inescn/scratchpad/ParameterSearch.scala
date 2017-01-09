@@ -18,7 +18,7 @@ import pt.inescn.utils.HList.{ :: => #: } // rename the type for compatibility
 trait Model[ T, U[ T ], P ] {
   //type params = HList
   //val params : List[Parameter]
-  val params: HList
+  //val params: HList
 
   def fit( data: U[ T ] ): Unit
   def predict( datum: T ): P
@@ -39,14 +39,28 @@ case class ParamTwo[ T ]( val value: T = 0.0 ) extends Parameter[ T ] with Stric
   def apply( v: T ): Self = new ParamTwo( v )
 }
 
+case class ParamThree[ T ]( val value: Integer = 0 ) extends Parameter[ Integer ] with StrictSelf[ ParamThree[ T ] ] {
+  type Self = ParamThree[ T ]
+
+  def apply( v: Integer ): Self = new ParamThree( v )
+}
 
 object ModelAParams {
-  type w = ParamOne[ Double ] #: ParamTwo[ Double ] #: HNil
+  type w = ParamOne[ Double ] #: ParamTwo[ Double ] #: ParamThree[ Double ] #: HNil
 }
 
 // Ok
 //class ModelA[ T, U[ T ] ]( val params: learningRate #: ParamThree #: HNil ) extends Model[ T, U, Double ] {
 class ModelA[ T, U[ T ] ]( val params: ModelAParams.w ) extends Model[ T, U, Double ] {
+  def fit( data: U[ T ] ): Unit = {
+    val v1 = params.head
+    val v2 = params.tail.head
+    val v3 = params.tail.tail.head
+  }
+  def predict( datum: T ): Double = { 0.0 }
+}
+
+class ModelB[ T, U[ T ] ]( val v1 : ParamOne[_],  val v2 : ParamTwo[_], val3 : ParamThree[_]) extends Model[ T, U, Double ] {
   def fit( data: U[ T ] ): Unit = {}
   def predict( datum: T ): Double = { 0.0 }
 }
@@ -83,8 +97,25 @@ object GridPramaterSearch extends ParameterSearch {
 
   def cartesian2[ A, B ]( list: Seq[ Seq[ A ] ], acc: Seq[ A ], f: Seq[ A ] => B ): Unit = {
     list match {
-      case Nil    => f( acc )
-      case h :: t => h.map { x => cartesian2( t, x +: acc, f ) }
+      case Nil => f( acc )
+      case h :: t =>
+        println( s"acc = $acc" )
+        println( s"h = $h" )
+        println( s"t = $t" )
+        h.map { x => cartesian2( t, x +: acc, f ) }
+    }
+  }
+
+  def cartesian2a[ A, B ]( list: Seq[ Seq[ A ] ], acc: Seq[ A ], f: Seq[ A ] => B ): Seq[ B ] = {
+    list match {
+      case Nil =>
+        println( s"acc* = $acc" )
+        List( f( acc ) )
+      case h :: t =>
+        println( s"acc = $acc" )
+        println( s"h = $h" )
+        println( s"t = $t" )
+        h.flatMap { x => cartesian2a( t, x +: acc, f ) }
     }
   }
 
@@ -120,6 +151,7 @@ object GridPramaterSearch extends ParameterSearch {
    * @see http://stackoverflow.com/questions/21141853/scala-streams-how-to-avoid-to-keeping-a-reference-to-the-head-and-other-elemen
    */
   def cartesian5[ A, B ]( list: => Stream[ Seq[ A ] ], f: Seq[ A ] => B ): Stream[ B ] = {
+    //@scala.annotation.tailrec
     def loop( lst: => Stream[ Seq[ A ] ], acc: Seq[ A ] ): Stream[ B ] = {
       lst match {
         case Stream.Empty => List( f( acc ) ).toStream
@@ -132,7 +164,7 @@ object GridPramaterSearch extends ParameterSearch {
   def cartesian6[ A, B ]( list: Stream[ Stream[ A ] ], acc: Seq[ A ], f: Seq[ A ] => B ): Stream[ B ] = {
     list match {
       case Stream.Empty => List( f( acc ) ).toStream
-      case h #:: t      => h.toStream.flatMap { x => cartesian4( t, x +: acc, f ) }
+      case h #:: t      => h.flatMap { x => cartesian6( t, x +: acc, f ) }
     }
   }
 
@@ -150,6 +182,40 @@ object GridPramaterSearch extends ParameterSearch {
     innerProduct( listOfLists.reverse, List( Nil ) )
   }
 
+  /**
+   * @see http://codereview.stackexchange.com/questions/151408/cartesian-product-in-scala
+   */
+  def cartesianProduct[ T ]( in: Seq[ Seq[ T ] ] ): Seq[ Seq[ T ] ] = {
+    @scala.annotation.tailrec
+    def loop( acc: Seq[ Seq[ T ] ], rest: Seq[ Seq[ T ] ] ): Seq[ Seq[ T ] ] = {
+      rest match {
+        case Nil =>
+          acc
+        case seq :: remainingSeqs =>
+          // Equivalent of: 
+          // val next = seq.flatMap(i => acc.map(a => i+: a))
+          val next = for {
+            i <- seq
+            a <- acc
+          } yield i +: a
+          loop( next, remainingSeqs )
+      }
+    }
+    loop( Seq( Nil ), in.reverse )
+  }
+
+  /*
+  def cartesian7[ A, B ]( list: Stream[ Stream[ A ] ], acc: Seq[ HList ], f: Seq[ HList ] => B ): Stream[ B ] = {
+    list match {
+      case Stream.Empty => List( f( acc ) ).toStream
+      case h #:: t      => h.flatMap { x => cartesian7( t, x +: acc, f ) }
+    }
+  }*/
+
+  def genCartesian(l: HList) = {
+    
+  }
+  
 }
 
 /**
@@ -166,14 +232,17 @@ object SearchParameters {
   def main( args: Array[ String ] ) {
 
     val l = List( List( 1, 2, 3 ), List( 4, 5, 6 ) )
-    val c1 = GridPramaterSearch.cartesian( l )
+    /*val c1 = GridPramaterSearch.cartesian( l )
     c1.foreach { x => println( x.mkString( "<", ",", ">" ) ) }
 
     val c2 = GridPramaterSearch.cartesian0( l )
     //c2.foreach { x => println( x.mkString("<", ",", ">") ) }
+*/
+    //GridPramaterSearch.cartesian2( l, List(), { x: Seq[ Int ] => println( x.mkString( "<", ",", ">" ) ) } )
+    val c0 = GridPramaterSearch.cartesian2a( l, List(), { x: Seq[ Int ] => x.mkString( "<", ",", ">" ) } )
+    println( c0 )
 
-    GridPramaterSearch.cartesian2( l, List(), { x: Seq[ Int ] => println( x.mkString( "<", ",", ">" ) ) } )
-
+    /*
     // Accumulate list before executing `for each` - will OOM
     val c3 = GridPramaterSearch.cartesian3( l, List(), { x: Seq[ Int ] => x.mkString( "<", ",", ">" ) } )
     c3.foreach { println }
@@ -242,8 +311,10 @@ object SearchParameters {
     
     val g1 = List( t0.toStream, t1.toStream )
     //def g2 = GridPramaterSearch.cartesian5( l1.toStream, { x: Seq[ Int ] => x.mkString( "<", ",", ">" ) } )
-    def g2 = GridPramaterSearch.cartesian5( g1.toStream, { x: Seq[ Parameter[Double] ] => x  } )
+    def g2 = GridPramaterSearch.cartesian5( g1.toStream, { x: Seq[ Parameter[_] ] => x  } )
     g2.foreach { println }
-
+*/
+    val m1 = new ModelB( ParamOne( 0.001 ), ParamTwo( 0.05 ), ParamThree(100) )
+    
   }
 }

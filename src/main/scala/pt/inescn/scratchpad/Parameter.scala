@@ -46,7 +46,8 @@ trait Parameter[ T ] { self: StrictSelf[ _ ] =>
 
 // Note <: and >: for polymorphic types
 // =:= and <:< are types and used in implicits
-class ParameterRange[ P[ T ] <: Parameter[ T ] with StrictSelf[ _ ], Q[ T ] <: Parameter[ T ], T, U ](
+//class ParameterRange[ P[ T ] <: Parameter[ T ] with StrictSelf[ _ ], Q[ T ] <: Parameter[ T ], T, U ](
+class ParameterRange[ P[ T ] <: Parameter[ T ], Q[ T ] <: Parameter[ T ], T, U ](
     val begin: P[ T ],
     val end: Q[ T ],
     val config: U,
@@ -74,6 +75,11 @@ object ParameterExample {
     linspace( from, by ).take( len + 1 )
   }
 
+  def linSearchI( from: Int, to: Int, by: Int ): Stream[ Int ] = {
+    val len = ( ( to - from ) / by ).ceil.toInt
+    linspace( from, by ).take( len + 1 ).map( x => x.toInt )
+  }
+
   /**
    *  An example of a parameter.
    */
@@ -99,16 +105,32 @@ object ParameterExample {
     def apply( v: T ): Self = new ParamTwo( v )
   }
 
+  /**
+   * Example of enforcing the type. Removed StrictSelf[_] in ParameterRange[ P[ T ] <: Parameter[ T ] with StrictSelf[_], ...)
+   * This lets us check for the correct types in a given Parameter.
+   */
+  case class ParamThree( val value: Int = 0 ) extends Parameter[ Int ] with StrictSelf[ ParamThree ] {
+    type Self = ParamThree
+
+    def apply( v: Int ): Self = new ParamThree( v )
+  }
+
   def main( args: Array[ String ] ) {
 
     val t0 = new ParameterRange( ParamOne( 0.0 ), ParamOne( 1.0 ), 0.1, linSearch )
     val t1 = t0.toStream
     t1.foreach { x => println( x ) }
 
+    //val p = ParamThree( 0.0 ) // compilation fails, must be integer
+    val x0 = new ParameterRange( ParamThree( 0 ), ParamThree( 10 ), 1, linSearchI ) // compilation fails as expected, must all be integers 
+    val x1 = x0.toStream
+    x1.foreach { x => println( x ) }
+
     /*val x0 = new ParameterRange( ParamOne( 0.0 ), ParamOne( 1 ), 0.1, linSearch ) // compilation fails as expected 
     val x1 = x0.toStream
     x1.foreach { x => println( x ) }*/
 
+    // NOT WORKING. Prefer having safe contained type
     // This will return a generic Parameter if we do not use the ParameterRange[ P[ T ] <: Parameter[ T ] with StrictSelf[_], ...) constraint
     /*val s0  = new ParameterRange( XSlearningRate( 0.0 ), XSlearningRate( 1.0 ), 0.2, linSearch ) // ParameterRange[Parameter, Parameter, Double, Double]
     val s1 = s0.toStream
@@ -124,7 +146,7 @@ object ParameterExample {
 
     /*val w0  = new ParameterRange( ParamOne( 0.0 ), ParamTwo( 1.0 ), 0.2, linSearch ) // compilation fails as expected 
     val w1 = w0.toStream
-    w1.foreach { x => println( x ) }*/
+    w1.foreach { x => println( x ) }
   }
 
 }
