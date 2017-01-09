@@ -2,18 +2,10 @@ package pt.inescn.scratchpad
 
 import StreamBuilder._
 
-
 //case class learningRate( override val value: Double ) extends SParameter[ Double ] { def apply( v: Double ) = new learningRate( v ) }
 //case class ParamThree( override val value: Double ) extends SParameter[ Double ] { def apply( v: Double ) = new learningRate( v ) }
 
 //import pt.inescn.scratchpad.ParamOne
-
-case class ParamThree[T]( val value: T = 0.0) extends Parameter[ T ] with StrictSelf[ParamThree[T]] {
-  type Self = ParamThree[T]
-
-  def apply( v: T ) : Self = new ParamThree( v ) 
-  }
-
 
 import scala.language.higherKinds
 
@@ -32,8 +24,24 @@ trait Model[ T, U[ T ], P ] {
   def predict( datum: T ): P
 }
 
+/**
+ *  An example of a parameter.
+ */
+case class ParamOne[ T ]( val value: T = 0.0 ) extends Parameter[ T ] with StrictSelf[ ParamOne[ T ] ] {
+  type Self = ParamOne[ T ]
+
+  def apply( v: T ): Self = new ParamOne( v )
+}
+
+case class ParamTwo[ T ]( val value: T = 0.0 ) extends Parameter[ T ] with StrictSelf[ ParamTwo[ T ] ] {
+  type Self = ParamTwo[ T ]
+
+  def apply( v: T ): Self = new ParamTwo( v )
+}
+
+
 object ModelAParams {
-  type w = ParamOne[Double] #: ParamThree[Double] #: HNil
+  type w = ParamOne[ Double ] #: ParamTwo[ Double ] #: HNil
 }
 
 // Ok
@@ -150,6 +158,11 @@ object GridPramaterSearch extends ParameterSearch {
  */
 object SearchParameters {
 
+  def linSearch( from: Double, to: Double, by: Double ): Stream[ Double ] = {
+    val len = ( ( to - from ) / by ).ceil.toInt
+    linspace( from, by ).take( len + 1 )
+  }
+
   def main( args: Array[ String ] ) {
 
     val l = List( List( 1, 2, 3 ), List( 4, 5, 6 ) )
@@ -196,7 +209,7 @@ object SearchParameters {
 
     //val w = "str" :: true :: 1.0 :: HList.HNil
     val x = "str" :: true :: 1.0 :: HNil
-    val p1 = ParamOne( 0.001 ) :: new ParamThree( 0.05 ) :: HNil
+    val p1 = ParamOne( 0.001 ) :: new ParamTwo( 0.05 ) :: HNil
     val m1 = new ModelA( p1 )
     // cannot use (compile)
     // m1.fit(1)
@@ -221,7 +234,16 @@ object SearchParameters {
     //val ps1 =  new learningRate( 0.001 ) to  new learningRate( 1 )
     println( ParamOne( 0.001 ).value )
     //println(new learningRate( 0.001 ).valuex)
+
+    val t0 = new ParameterRange( ParamOne( 0.0 ), ParamOne( 1.0 ), 0.1, linSearch )
+    val t1 = new ParameterRange( ParamTwo( 0.0 ), ParamTwo( 1.0 ), 0.1, linSearch )
+    //val t1 = t0.toStream
+    //t1.foreach { x => println( x ) }
     
-    
+    val g1 = List( t0.toStream, t1.toStream )
+    //def g2 = GridPramaterSearch.cartesian5( l1.toStream, { x: Seq[ Int ] => x.mkString( "<", ",", ">" ) } )
+    def g2 = GridPramaterSearch.cartesian5( g1.toStream, { x: Seq[ Parameter[Double] ] => x  } )
+    g2.foreach { println }
+
   }
 }

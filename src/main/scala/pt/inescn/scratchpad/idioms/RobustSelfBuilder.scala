@@ -8,6 +8,9 @@ package pt.inescn.scratchpad.idioms
  * inheritance layer with `StrictSelf`. See comments on compilation errors One issue
  * we have is that the IDE does not expand the self types. . 
  * 
+ * Note that Svcala's Predef uses another way to do this.
+ * @see http://blog.bruchez.name/2015/11/generalized-type-constraints-in-scala.html
+ * 
  * @see  http://stackoverflow.com/questions/14729996/scala-implementing-method-with-return-type-of-concrete-instance
  * @see  http://stackoverflow.com/questions/4313139/how-to-use-scalas-this-typing-abstract-types-etc-to-implement-a-self-type
  * 

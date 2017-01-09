@@ -5,27 +5,27 @@ import StreamBuilder._
 // Parameters are value classes
 
 /**
- * This file holds the class that describe a Parameter and a Parameter Range. The code uses 
+ * This file holds the class that describe a Parameter and a Parameter Range. The code uses
  * several standard type constraints and implicit constraints. We want to ensure that:
- * 1. The `ParameterRange` uses the same `Parameter` for its `begin` and `end` of range. 
+ * 1. The `ParameterRange` uses the same `Parameter` for its `begin` and `end` of range.
  * 2. Make sure that when we do create a `Parameter` of a given type, only that type will be returned
  * 3. Make sure that any type you do create will always require the explicit use of the polymorphic type `T`
  *    This has an important advantages. It allows the IDE to show the type in an expanded form. If
- *    this were not so, a `ParameterRange` containing generic `Parameter`s could be created . 
- * 
+ *    this were not so, a `ParameterRange` containing generic `Parameter`s could be created .
+ *
  * (1) The `ParameterRange` constructor has the additional parameter  (implicit ev1: P[T] =:= Q[T]).
  *       This ensures range limit compatibility.
- *       
+ *
  * (2) See RobustSelfBuilder which ensure that any `Paramater`a client user defines will be of that type.
  *       We enforce that a Parameter be also a`StrictSelf[ T ]`.  This type uses a lower and upper bounds
  *       to ensure the type is exactly of the extending class (see the `Parameter` self).
- *       
+ *
  *  (3) We add the restriction  `P[ T ] <: Parameter[ T ] with StrictSelf[_]` to the `ParameterRange`.
  *       This ensures that a Parameter must also have polymorphic StrictSelf[_]. So if a generic `Parameter`
  *       is inferred, this constraint will cause a compilation failure.
  *       Note that the use of  (implicit ev1: P[T] =:= Q[T], ev2: P[T] <:< Parameter[ T ]) will not ensure this
  *       constraint.
- * 
+ *
  * @see http://blog.bruchez.name/2015/11/generalized-type-constraints-in-scala.html
  * @see http://stackoverflow.com/questions/19642053/when-to-use-val-or-def-in-scala-traits
  */
@@ -37,7 +37,7 @@ trait StrictSelf[ T <: StrictSelf[ T ] ] { self: T =>
   type Self >: self.type <: T
 }
 
-trait Parameter[ T ] { self:StrictSelf[_] =>
+trait Parameter[ T ] { self: StrictSelf[ _ ] =>
   type Self <: Parameter[ T ]
 
   def apply( v: T ): Self
@@ -46,17 +46,17 @@ trait Parameter[ T ] { self:StrictSelf[_] =>
 
 // Note <: and >: for polymorphic types
 // =:= and <:< are types and used in implicits
-class ParameterRange[ P[ T ] <: Parameter[ T ] with StrictSelf[_], Q[T] <: Parameter[ T ], T, U ](
+class ParameterRange[ P[ T ] <: Parameter[ T ] with StrictSelf[ _ ], Q[ T ] <: Parameter[ T ], T, U ](
     val begin: P[ T ],
     val end: Q[ T ],
     val config: U,
     //val generator: ( T, T, U ) => Stream[ T ] )  (implicit ev1: P[T] =:= Q[T], ev2: P[T] <:< Parameter[ T ]) {
-    val generator: ( T, T, U ) => Stream[ T ] )  (implicit ev1: P[T] =:= Q[T]) {
-  
+    val generator: ( T, T, U ) => Stream[ T ] )( implicit ev1: P[ T ] =:= Q[ T ] ) {
+
   type Gen = ( T, T, U ) => Stream[ T ]
 
   //def toStream (implicit ev: P[T] =:= Q[T]): Stream[ P[ T ]#Self ] = {
-  def toStream : Stream[ P[ T ]#Self ] = {
+  def toStream: Stream[ P[ T ]#Self ] = {
     val st = generator( begin.value, end.value, config )
     val o = begin
     val r = st.map{ x => o( x ) }
@@ -65,38 +65,38 @@ class ParameterRange[ P[ T ] <: Parameter[ T ] with StrictSelf[_], Q[T] <: Param
 }
 
 /**
- *  An example of a parameter.
+ * sbt "run-main pt.inescn.scratchpad.ParameterExample"
  */
-case class ParamOne[ T ]( val value: T = 0.0 ) extends Parameter[ T ] with StrictSelf[ParamOne[T]] {
-  type Self = ParamOne[ T ]
-
-  def apply( v: T ): Self = new ParamOne( v )
-}
-
-/**
- * Should not define these classes without the polymorphic parameter. If we do
- * then the types will only show the generic Parameter. See examples below.
- */
-case class XSlearningRate( val value: Double = 0.0 ) extends Parameter[ Double ] with StrictSelf[XSlearningRate] {
-  type Self = XSlearningRate
-
-  def apply( v: Double ): Self = new XSlearningRate( v )
-}
-
-case class ParamTwo[ T ]( val value: T = 0.0 ) extends Parameter[ T ] with StrictSelf[ParamTwo[T]] {
-  type Self = ParamTwo[ T ]
-
-  def apply( v: T ): Self = new ParamTwo( v )
-}
-
-/**
- * sbt "run-main pt.inescn.scratchpad.SParameterTest"
- */
-object SParameterTest {
+object ParameterExample {
 
   def linSearch( from: Double, to: Double, by: Double ): Stream[ Double ] = {
     val len = ( ( to - from ) / by ).ceil.toInt
     linspace( from, by ).take( len + 1 )
+  }
+
+  /**
+   *  An example of a parameter.
+   */
+  case class ParamOne[ T ]( val value: T = 0.0 ) extends Parameter[ T ] with StrictSelf[ ParamOne[ T ] ] {
+    type Self = ParamOne[ T ]
+
+    def apply( v: T ): Self = new ParamOne( v )
+  }
+
+  /**
+   * Should not define these classes without the polymorphic parameter. If we do
+   * then the types will only show the generic Parameter. See examples below.
+   */
+  case class XSlearningRate( val value: Double = 0.0 ) extends Parameter[ Double ] with StrictSelf[ XSlearningRate ] {
+    type Self = XSlearningRate
+
+    def apply( v: Double ): Self = new XSlearningRate( v )
+  }
+
+  case class ParamTwo[ T ]( val value: T = 0.0 ) extends Parameter[ T ] with StrictSelf[ ParamTwo[ T ] ] {
+    type Self = ParamTwo[ T ]
+
+    def apply( v: T ): Self = new ParamTwo( v )
   }
 
   def main( args: Array[ String ] ) {
