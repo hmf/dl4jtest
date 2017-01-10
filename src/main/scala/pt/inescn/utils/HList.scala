@@ -9,8 +9,6 @@ sealed trait HList {
   def ::[ U ]( v: U ): Prepend[ U ]
   def prepend[ A ]( a: A ): Prepend[ A ]
   def append[ L <: HList ]( l: L ): Append[ L ]
-
-  def map[ B ]( f: Any => B ): HList
 }
 
 /**
@@ -24,6 +22,7 @@ sealed trait HList {
  * Mapping
  * @see https://github.com/milessabin/shapeless/issues/73
  * @see http://www.hyperlambda.com/posts/hlist-map-in-scala/
+ * @see https://xuwei-k.github.io/shapeless-sxr/shapeless-2.10-2.0.0-M1/polyntraits.scala.html
  */
 
 final case class HCons[ H, T <: HList ]( head: H, tail: T ) extends HList {
@@ -35,22 +34,6 @@ final case class HCons[ H, T <: HList ]( head: H, tail: T ) extends HList {
 
   def prepend[ A ]( a: A ): Prepend[ A ] = HCons( a, this )
   def append[ L <: HList ]( l: L ): Append[ L ] = HCons( head, tail.append( l ) )
-
-  def map[ B ]( f: Any => B )  = HCons( f( head ), tail.map( f ) )
-
-  /*
-  def map[ B ]( f: Any => B ) = {
-    def loop( list: HList, acc: HList ): HList = {
-      list match {
-        case HNil => acc
-        case HCons( h, t ) =>
-          println( h )
-          loop( t, f(h) :: acc )
-      }
-    }
-    loop( this, HNil )
-  }*/
-  
 }
 
 //sealed class HNil extends HList {
@@ -62,8 +45,6 @@ case object HNil extends HList {
 
   def prepend[ A ]( a: A ): Prepend[ A ] = HCons( a, this )
   def append[ L <: HList ]( l: L ): Append[ L ] = l
-
-  def map[ B ]( f: Any => B ) = HNil
 }
 
 // aliases for building HList types and for pattern matching
@@ -125,6 +106,39 @@ object HListExample {
     }
   }*/
 
+  import scala.language.implicitConversions
+  
+  // http://stackoverflow.com/questions/5598085/where-does-scala-look-for-implicits/5598107#5598107
+  // http://stackoverflow.com/questions/20616525/scala-type-override
+  //  Iterable[+A] : map and flatMap
+  sealed trait Mapper[ A, T[ A ], B ] {
+    //type Out <: T[B]
+    type Out[X] //= T[X]
+    def map( l: T[ A ], f: A => B ): Out[B]
+  }
+
+  object Mappers {
+    
+    implicit def typedMapper[ A, T[ A ] <: Iterable[ A ], B ]: Mapper[ A, T, B ] =
+      new Mapper[ A, T, B ] {
+        override type Out[X] = Iterable[X]
+        //override type Out <: Iterable[ B ]
+        //def map( l: T[ A ], f: A => B ) : this.Out = {
+        def map( l: T[ A ], f: A => B ) = {
+          println( "map" )
+          l.map( f )
+        }
+      }
+    
+    implicit def IntMapper = typedMapper[Int, List, Int]
+  }
+
+  //def testMapper[ A, T[ A ], B ]( l: T[ A ], f: A => B )( implicit mapper: Mapper[ A, T, B ] ): T[B] = {
+  def testMapper[ A, T[ A ], B ]( l: T[ A ], f: A => B )( implicit mapper: Mapper[ A, T, B ] ) : Mapper[A, T, B]#Out[B]= {
+    println( mapper )
+    mapper.map(l, f)
+  }
+
   def genCartesian[ A, B ]( list: HList, acc: HList ): HList = {
     list match {
       case HNil => acc
@@ -155,8 +169,12 @@ object HListExample {
     val l6 = List( 1, 2 ) :: List( 3.0, 4.0 ) :: HNil
     val l7 = genCartesian( l6, HNil )
     println( l7 )
-    val l8 = l7.map { x => x }
-    println( l8 )
+
+    import Mappers.IntMapper
+    val m1 : pt.inescn.utils.HListExample.Mapper[Int,List,Int] = IntMapper
+    val l8 = testMapper( List( 1, 2, 3 ), { x: Int => x + 1 } )(IntMapper )
+    val l9 = testMapper( List( 1, 2, 3 ), { x: Int => x + 1 } )
+   println(l9)
   }
 
 }
