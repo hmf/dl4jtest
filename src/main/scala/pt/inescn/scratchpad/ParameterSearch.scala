@@ -13,7 +13,7 @@ import scala.language.higherKinds
 import pt.inescn.utils.HList
 import pt.inescn.utils.HNil
 import pt.inescn.utils.HList.{ :: => #: } // rename the type for compatibility
-//import pt.inescn.utils.HList.HNil
+import pt.inescn.utils.HList.HNil
 
 trait Model[ T, U[ T ], P ] {
   //type params = HList
@@ -39,14 +39,14 @@ case class ParamTwo[ T ]( val value: T = 0.0 ) extends Parameter[ T ] with Stric
   def apply( v: T ): Self = new ParamTwo( v )
 }
 
-case class ParamThree[ T ]( val value: Integer = 0 ) extends Parameter[ Integer ] with StrictSelf[ ParamThree[ T ] ] {
-  type Self = ParamThree[ T ]
+case class ParamThree( val value: Int = 0 ) extends Parameter[ Int ] with StrictSelf[ ParamThree] {
+  type Self = ParamThree
 
-  def apply( v: Integer ): Self = new ParamThree( v )
+  def apply( v: Int ): Self = new ParamThree( v )
 }
 
 object ModelAParams {
-  type w = ParamOne[ Double ] #: ParamTwo[ Double ] #: ParamThree[ Double ] #: HNil
+  type w = ParamOne[ Double ] #: ParamTwo[ Double ] #: ParamThree #: HNil
 }
 
 // Ok
@@ -60,7 +60,7 @@ class ModelA[ T, U[ T ] ]( val params: ModelAParams.w ) extends Model[ T, U, Dou
   def predict( datum: T ): Double = { 0.0 }
 }
 
-class ModelB[ T, U[ T ] ]( val v1 : ParamOne[_],  val v2 : ParamTwo[_], val3 : ParamThree[_]) extends Model[ T, U, Double ] {
+class ModelB[ T, U[ T ] ]( val v1 : ParamOne[_],  val v2 : ParamTwo[_], val3 : ParamThree) extends Model[ T, U, Double ] {
   def fit( data: U[ T ] ): Unit = {}
   def predict( datum: T ): Double = { 0.0 }
 }
@@ -212,10 +212,8 @@ object GridPramaterSearch extends ParameterSearch {
     }
   }*/
 
-  def genCartesian(l: HList) = {
-    
-  }
-  
+  //import pt.inescn.utils.HNil.{ :: => #: } // rename the type for compatibility
+
 }
 
 /**
@@ -242,7 +240,6 @@ object SearchParameters {
     val c0 = GridPramaterSearch.cartesian2a( l, List(), { x: Seq[ Int ] => x.mkString( "<", ",", ">" ) } )
     println( c0 )
 
-    /*
     // Accumulate list before executing `for each` - will OOM
     val c3 = GridPramaterSearch.cartesian3( l, List(), { x: Seq[ Int ] => x.mkString( "<", ",", ">" ) } )
     c3.foreach { println }
@@ -278,7 +275,7 @@ object SearchParameters {
 
     //val w = "str" :: true :: 1.0 :: HList.HNil
     val x = "str" :: true :: 1.0 :: HNil
-    val p1 = ParamOne( 0.001 ) :: new ParamTwo( 0.05 ) :: HNil
+    val p1 = ParamOne( 0.001 ) :: ParamTwo( 0.05 ) :: ParamThree( 1 ) :: HNil
     val m1 = new ModelA( p1 )
     // cannot use (compile)
     // m1.fit(1)
@@ -313,8 +310,8 @@ object SearchParameters {
     //def g2 = GridPramaterSearch.cartesian5( l1.toStream, { x: Seq[ Int ] => x.mkString( "<", ",", ">" ) } )
     def g2 = GridPramaterSearch.cartesian5( g1.toStream, { x: Seq[ Parameter[_] ] => x  } )
     g2.foreach { println }
-*/
-    val m1 = new ModelB( ParamOne( 0.001 ), ParamTwo( 0.05 ), ParamThree(100) )
+
     
+    //val m1 = new ModelB( ParamOne( 0.001 ), ParamTwo( 0.05 ), ParamThree(100) )
   }
 }

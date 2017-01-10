@@ -65,6 +65,8 @@ class ParameterRange[ P[ T ] <: Parameter[ T ], Q[ T ] <: Parameter[ T ], T, U ]
   }
 }
 
+// TODO: use DSL for range creation (use companion object)
+
 /**
  * sbt "run-main pt.inescn.scratchpad.ParameterExample"
  */

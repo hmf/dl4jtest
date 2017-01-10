@@ -13,7 +13,7 @@ object TestHList {
   import pt.inescn.utils.HNil
   import pt.inescn.utils.HList.{ :: => #:: } // rename the type for compatibility
   import pt.inescn.utils.HList
-  //import pt.inescn.utils.HList.HNil
+  import pt.inescn.utils.HList.HNil
 
   // Avoid issues with Lists :: constructor/de-constructor
   //type  w = String :: Boolean :: Double :: HNil
