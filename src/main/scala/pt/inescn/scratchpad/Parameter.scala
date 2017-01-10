@@ -146,7 +146,7 @@ object ParameterExample {
 
     /*val w0  = new ParameterRange( ParamOne( 0.0 ), ParamTwo( 1.0 ), 0.2, linSearch ) // compilation fails as expected 
     val w1 = w0.toStream
-    w1.foreach { x => println( x ) }
+    w1.foreach { x => println( x ) }*/
   }
 
 }
