@@ -135,8 +135,13 @@ object HListExample {
   //  Iterable[+A] : map and flatMap
   sealed trait Mapper[ A, T[ A ], B ] {
     //type Out <: T[B]
+<<<<<<< HEAD
     type Out[ X ] //= T[X]
     def map( l: T[ A ], f: A => B ): Out[ B ]
+=======
+    //type Out[X] //= T[X]
+    def map( l: T[ A ], f: A => B ): Out[B]
+>>>>>>> refs/remotes/origin/master
   }
 
   object Mappers {
@@ -146,7 +151,11 @@ object HListExample {
         override type Out[ X ] = Iterable[ X ]
         //override type Out <: Iterable[ B ]
         //def map( l: T[ A ], f: A => B ) : this.Out = {
+<<<<<<< HEAD
         def map( l: T[ A ], f: A => B ): Out[ B ] = {
+=======
+        def map( l: T[ A ], f: A => B ) : Out[B] = {
+>>>>>>> refs/remotes/origin/master
           println( "map" )
           l.map( f )
         }
