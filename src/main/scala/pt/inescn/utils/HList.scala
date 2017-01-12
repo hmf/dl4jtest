@@ -2,19 +2,20 @@ package pt.inescn.utils
 
 import scala.language.higherKinds
 
-  // ***************************************************
-  // https://github.com/underscoreio/shapeless-guide/blob/develop/dist/shapeless-guide.pdf
-  //  Sections 7.2.1 How Poly works
-  // https://github.com/1ambda/scala/tree/master/type-level-programming
-  
-  trait Case[P, A] {
-    type Result
-    def apply(a: A) : Result
-  }
-  
-  trait Poly {
-    def apply[A](arg: A)(implicit cse : Case[this.type, A]): cse.Result = cse.apply(arg)
-  }
+// ***************************************************
+// https://github.com/underscoreio/shapeless-guide/blob/develop/dist/shapeless-guide.pdf
+//  Sections 7.2.1 How Poly works
+// https://github.com/1ambda/scala/tree/master/type-level-programming
+// http://www.lihaoyi.com/post/ImplicitDesignPatternsinScala.html
+
+trait Case[ P, A ] {
+  type Result
+  def apply( a: A ): Result
+}
+
+trait Poly {
+  def apply[ A ]( arg: A )( implicit cse: Case[ this.type, A ] ): cse.Result = cse.apply( arg )
+}
 
 sealed trait HList {
   type Prepend[ A ] <: HList
@@ -24,8 +25,8 @@ sealed trait HList {
   def ::[ U ]( v: U ): Prepend[ U ]
   def prepend[ A ]( a: A ): Prepend[ A ]
   def append[ L <: HList ]( l: L ): Append[ L ]
-  
-  def map(p: Poly) : Mapped
+
+  def map( p: Poly ): Mapped
 }
 
 /**
@@ -40,6 +41,33 @@ sealed trait HList {
  * @see https://github.com/milessabin/shapeless/issues/73
  * @see http://www.hyperlambda.com/posts/hlist-map-in-scala/
  * @see https://xuwei-k.github.io/shapeless-sxr/shapeless-2.10-2.0.0-M1/polyntraits.scala.html
+ *
+ * Typelevel
+ * @see http://gigiigig.github.io/tlp-step-by-step/introduction.htmls
+ * @see https://github.com/1ambda/scala/tree/master/type-level-programming/src
+ * @see http://typelevel.org/blog/
+ * @see https://www.scala-exercises.org/
+ * @see http://slick.lightbend.com/talks/scalaio2014/Type-Level_Computations.pdf
+ *
+ * https://skillsmatter.com/explore?q=tag%3Atypelevel
+ *
+ *  https://github.com/milessabin/shapeless/tree/master/examples/src/main/scala/shapeless/examples
+ *
+ *  HList
+ *  https://github.com/milessabin/shapeless/blob/master/core/src/main/scala/shapeless/syntax/hlists.scala
+ * https://github.com/milessabin/shapeless/blob/master/core/src/main/scala/shapeless/hlists.scala
+ *    /**
+ * Maps a higher rank function across this `HList`.
+ * */
+ * def map(f : Poly)(implicit mapper : Mapper[f.type, L]) : mapper.Out = mapper(l)
+ *
+ * /**
+ * Flatmaps a higher rank function across this `HList`.
+ * */
+ * def flatMap(f : Poly)(implicit mapper : FlatMapper[f.type, L]) : mapper.Out = mapper(l)
+ *
+ * Mapper
+ * https://github.com/milessabin/shapeless/blob/fcc15a6897ad9aad10e19d0b2432ccf0a9630515/core/src/main/scala/shapeless/ops/hlists.scala
  */
 
 final case class HCons[ H, T <: HList ]( head: H, tail: T ) extends HList {
@@ -53,7 +81,7 @@ final case class HCons[ H, T <: HList ]( head: H, tail: T ) extends HList {
   def prepend[ A ]( a: A ): Prepend[ A ] = HCons( a, this )
   def append[ L <: HList ]( l: L ): Append[ L ] = HCons( head, tail.append( l ) )
   //def map(p: Poly)  = HCons( p(head), tail.map( p ) )
-  def map(p: Poly): Mapped = HCons( head, tail.map( p ) )
+  def map( p: Poly ): Mapped = HCons( head, tail.map( p ) )
 }
 
 //sealed class HNil extends HList {
@@ -66,7 +94,7 @@ case object HNil extends HList {
 
   def prepend[ A ]( a: A ): Prepend[ A ] = HCons( a, this )
   def append[ L <: HList ]( l: L ): Append[ L ] = l
-  def map(p: Poly) : Mapped = this
+  def map( p: Poly ): Mapped = this
 }
 
 // aliases for building HList types and for pattern matching
@@ -85,6 +113,7 @@ object HList {
 // If we use the sealed class type
 //object HNil extends HNil
 
+// sbt "run-main pt.inescn.utils.HListExample"
 object HListExample {
   import HList._
 
@@ -135,13 +164,8 @@ object HListExample {
   //  Iterable[+A] : map and flatMap
   sealed trait Mapper[ A, T[ A ], B ] {
     //type Out <: T[B]
-<<<<<<< HEAD
     type Out[ X ] //= T[X]
     def map( l: T[ A ], f: A => B ): Out[ B ]
-=======
-    //type Out[X] //= T[X]
-    def map( l: T[ A ], f: A => B ): Out[B]
->>>>>>> refs/remotes/origin/master
   }
 
   object Mappers {
@@ -151,11 +175,7 @@ object HListExample {
         override type Out[ X ] = Iterable[ X ]
         //override type Out <: Iterable[ B ]
         //def map( l: T[ A ], f: A => B ) : this.Out = {
-<<<<<<< HEAD
         def map( l: T[ A ], f: A => B ): Out[ B ] = {
-=======
-        def map( l: T[ A ], f: A => B ) : Out[B] = {
->>>>>>> refs/remotes/origin/master
           println( "map" )
           l.map( f )
         }
@@ -191,8 +211,8 @@ object HListExample {
   // Curried and arg-swapped version of Mapper
   type MapperOf[ A, B ] = { type l[ T[ _ ] ] = Mapper1[ A, T, B ] }
   def map1[ A, B, T[ _ ]: MapperOf[ A, B ]#l ]( ta: T[ A ] )( f: A => B ): T[ B ] = implicitly[ Mapper1[ A, T, B ] ].map( ta )( f )
-  def map2[ A, B, T[ _ ]: MapperOf[ A, B ]#l ]( ta: T[ A ] , f: A => B ): T[ B ] = implicitly[ Mapper1[ A, T, B ] ].map( ta )( f )
-  def map3[ A, B, T[ _ ]: MapperOf[ A, B ]#l ]( ta: T[ A ] , f: A => B ): T[ B ] = implicitly[ Mapper1[ A, T, B ] ].mapx( ta, f )
+  def map2[ A, B, T[ _ ]: MapperOf[ A, B ]#l ]( ta: T[ A ], f: A => B ): T[ B ] = implicitly[ Mapper1[ A, T, B ] ].map( ta )( f )
+  def map3[ A, B, T[ _ ]: MapperOf[ A, B ]#l ]( ta: T[ A ], f: A => B ): T[ B ] = implicitly[ Mapper1[ A, T, B ] ].mapx( ta, f )
 
   //def map4[ A, B, T[_] ]( ta: T[ A ] , f: A => B ): T[ B ] = implicitly[ Mapper1[ A, T, B ] ].map( ta ) ( f )
   val t1 = map1( List( -1, -2, -3 ): Iterable[ Any ] )( _.toString )
@@ -202,13 +222,13 @@ object HListExample {
   // iterableMapper would work.
   val t3 = map1[ Int, Int, Iterable ]( List( 1, 2, 3 ) )( _ * 2 ) // Works  
 
-  val t4 = map2( List( -1, -2, -3 ): Iterable[ Any ],  { x : Any => x.toString } )
+  val t4 = map2( List( -1, -2, -3 ): Iterable[ Any ], { x: Any => x.toString } )
   println( t4 )
-  val t5 = map2( List( -1, -2, -3 ): Iterable[ Any ],  { x : Any => x.toString } )
+  val t5 = map2( List( -1, -2, -3 ): Iterable[ Any ], { x: Any => x.toString } )
   println( t5 )
-  
+
   ///////////////
-  
+
   def genCartesian[ A, B ]( list: HList, acc: HList ): HList = {
     list match {
       case HNil => acc
@@ -239,7 +259,6 @@ object HListExample {
     }
   }
 
-  
   // ***************************************************
   // https://github.com/underscoreio/shapeless-guide/blob/develop/dist/shapeless-guide.pdf
   //  Sections 7.2.1 How Poly works
@@ -255,43 +274,64 @@ object HListExample {
   }
   */
   object myPoly extends Poly {
-    
+
+    /*
     implicit def anyCase = {
-      new Case[this.type, Any] {
+      new Case[ this.type, Any ] {
         type Result = Any
-        def apply(v: Any)  : Any = v 
+        def apply( v: Any ): Any = v
       }
-    }
-    
+    }*/
+
     implicit def intCase = {
-      new Case[this.type, Int] {
+      new Case[ this.type, Int ] {
         type Result = Double
-        def apply(num: Int)  : Double = num / 2.0 
+        def apply( num: Int ): Double = num / 2.0
       }
     }
-    
+
     implicit def stringCase = {
-      new Case[this.type, String] {
+      new Case[ this.type, String ] {
         type Result = Int
-        def apply(str: String)  : Int = str.length 
+        def apply( str: String ): Int = str.length
       }
     }
-    
+
   }
 
-    def genCartesianM( list: HList, acc: HList ): HList = {
+  def genCartesianM( list: HList, acc: HList ): HList = {
     list match {
       case HNil => acc
       case h :: t =>
         println( h )
-        val nh = myPoly.apply( h )
+        //val nh = myPoly.apply( h )
         genCartesian( t, h :: acc )
     }
   }
 
+  /**
+   * pg 88
+   * There is some subtle scoping behaviour here that allows the compiler to 
+   * locate instances of Case without any additional imports. Case has an extra type
+   * parameter P referencing the singleton type of the Poly . The implicit scope
+   * for Case[P, A] includes the companion objects for Case , P , and A . We’ve as-
+   * signed P to be myPoly.type and the companion object for myPoly.type is
+   * myPoly itself. In other words, Cases defined in the body of the Poly are 
+   * always in scope no matter where the call site is.
+   */
+
+  def combineHList_1( list: HList ): HList = {
+    list match {
+      case HNil => list
+      case h :: t =>
+        val v1 = h
+        h :: "End" :: HNil
+    }
+  }
+
   // ***************************************************
-  
-  
+
+  // sbt "run-main pt.inescn.utils.HListExample"
   def main( args: Array[ String ] ) {
     val l1 = "One" :: 2 :: HNil
     val l2 = "Three" :: 4.0 :: HNil
@@ -306,6 +346,9 @@ object HListExample {
     val l5 = l1.prepend( "Zero" )
     val "Zero" :: "One" :: 2 :: HNil = l4
     val "Zero" :: "One" :: 2 :: HNil = l5
+
+    val r1 = combineHList_1( l1 )
+    println( s"Combine 1: $r1" )
 
     genCartesian( l3, HNil )
     genCartesian( HNil, HNil )
@@ -323,19 +366,108 @@ object HListExample {
     val l10 = genCartesianL( l6, HNil )
     println( l7 )
 
+    // http://docs.scala-lang.org/tutorials/FAQ/finding-implicits.html
     //val l11 = Seq(42, 42f, "Blah")
-    val p1 = myPoly.apply(123)
-    println(s"Poly(123) = $p1")
-    val p2 = myPoly.apply("123")
-    println(s"Poly('123') = $p2")
-    
-    val p3 = 123 :: "123" :: HNil 
-    val p4 = genCartesianM(p3, HNil)
-    println(p4)
-    val p5 = p3.map(myPoly)
-    println(p5)
+    //val p1 = myPoly.apply(123)
+    val p1 = myPoly( 123 )
+    println( s"Poly(123) = $p1" )
+    val p2 = myPoly.apply( "456" )
+    println( s"Poly('123') = $p2" )
+
+    val p3 = 123 :: "456" :: HNil
+    val p4 = genCartesianM( p3, HNil )
+    println( "p4 = " + p4 )
+    val p5 = p3.map( myPoly )
+    println( "p5 = " + p5 )
     val v1 = p5.head
     val v2 = p5.tail.head
+
+    // Nothing new here
+    def callPoly1( a: Int, b: String ) = {
+      val v1 = myPoly( a )
+      val v2 = myPoly( b )
+      ( v1, v2 )
+    }
+
+    // As expected, companion object in scope
+    def callPoly2( a: Int, b: String )( implicit cse1: Case[ _, Int ], cse2: Case[ _, String ] ) = {
+      val v1 = cse1( a )
+      val v2 = cse2( b )
+      ( v1, v2 )
+    }
+
+    def callPoly3( a: Int, b: String, p: Poly ) = {
+      val t0 = implicitly[ Case[ myPoly.type, Int ] ] // The self-referencing of the this.type allows us to avoid importing the implicits
+      val v1 = t0( a )
+      val t1 = implicitly[ Case[ myPoly.type, String ] ] // The self-referencing of the this.type allows us to avoid importing the implicits
+      val v2 = t1( b )
+      ( v1, v2 )
+    }
+
+    def callPoly4( a: Int, b: String, p: Poly)( implicit cse1: Case[ p.type, Int ], cse2: Case[ p.type, String ] ) = {
+      val v1 = p( a )
+      val v2 = p( b )
+      (v1, v2)
+    }
+
+    def callPoly5[T1, T2]( a: T1, b: T2, p: Poly)( implicit cse1: Case[ p.type, T1 ], cse2: Case[ p.type, T2] ) = {
+      val v1 = p( a )
+      val v2 = p( b )
+      (v1, v2)
+    }
+    
+    /*
+    // def implicitly[T](implicit e: T) = e 
+    def implicitlyPoly[T[_,_], P](implicit e: T[P,_]) = e 
+    
+    def callPoly5( a: Int, b: String, p: Poly) = {
+      import p._  
+      
+      val t0 = implicitlyPoly[ Case[ p.type, Int ] ] // The self-referencing of the this.type allows us to avoid importing the implicits
+      //val t0 = implicitly[ Case[ p.type, Int ] ] // The self-referencing of the this.type allows us to avoid importing the implicits
+      val v1 = t0( a )
+      val t1 = implicitly[ Case[ p.type, String ] ] // The self-referencing of the this.type allows us to avoid importing the implicits
+      val v2 = t1( b )
+      ( v1, v2 )
+    }
+*/
+    /*
+    def callPoly( a: Int, b: String, p: Poly ) = {
+      //import p.apply
+      //import p._
+      //import myPoly._
+      //val t1 = implicitly[Case[ p.type, String ] ] 
+
+      val v1 = p( a ) // this does not compile because pt.inescn.utils.Case[p.type,Int] <> pt.inescn.utils.Case[myPoly.type,Int]
+      val v2 = p( b ) // this does not compile because pt.inescn.utils.Case[p.type,Int] <> pt.inescn.utils.Case[myPoly.type,Int]
+      (v1, v2)
+    }*/
+
+    // Ok 
+    callPoly1( 1, "2" )
+
+    // Needs import
+    //import myPoly._
+    //callPoly2( 1, "2")
+
+    // Needs import
+    //import myPoly._
+    //callPoly3( 1, "2", myPoly)
+
+    // Compiler finds implicits based on object type
+    val (v3, v4) = callPoly4( 1, "2", myPoly)
+    println( s"v3 = $v3" )
+    println( s"v4 = $v4" )
+    
+    // Compiler finds implicits based on object type
+    val (v5, v6) = callPoly5( 1, "2", myPoly)
+    println( s"v3 = $v5" )
+    println( s"v4 = $v6" )
+    
+    // Avoid import
+    //import myPoly._
+    //callPoly( 1, "2", myPoly )
+
   }
 
 }
