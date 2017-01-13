@@ -7,6 +7,10 @@ import scala.language.higherKinds
 //  Sections 7.2.1 How Poly works
 // https://github.com/1ambda/scala/tree/master/type-level-programming
 // http://www.lihaoyi.com/post/ImplicitDesignPatternsinScala.html
+//
+// http://docs.scala-lang.org/tutorials/FAQ/chaining-implicits.html
+// http://docs.scala-lang.org/tutorials/FAQ/finding-implicits.html
+// http://docs.scala-lang.org/tutorials/FAQ/context-bounds.html
 
 trait Case[ P, A ] {
   type Result
@@ -396,7 +400,7 @@ object HListExample {
       ( v1, v2 )
     }
 
-    def callPoly3( a: Int, b: String, p: Poly ) = {
+    def callPoly3( a: Int, b: String) = {
       val t0 = implicitly[ Case[ myPoly.type, Int ] ] // The self-referencing of the this.type allows us to avoid importing the implicits
       val v1 = t0( a )
       val t1 = implicitly[ Case[ myPoly.type, String ] ] // The self-referencing of the this.type allows us to avoid importing the implicits
@@ -416,21 +420,57 @@ object HListExample {
       (v1, v2)
     }
     
-    /*
     // def implicitly[T](implicit e: T) = e 
-    def implicitlyPoly[T[_,_], P](implicit e: T[P,_]) = e 
-    
+    //def implicitlyPoly[T[_,_] , A, B](implicit e: T[A,B]) = e 
+    //def implicitlyPoly[A, B](implicit e: Case[A,B]) = e 
+    //def implicitlyPoly[A](p:Poly)(implicit e: Case[p.type,A]) = e 
+    //def implicitlyPoly(v: Int, p:Poly)(implicit e: Case[p.type,Int]) = p(v) 
+    def implicitlyPoly(p: Poly)( implicit cse: Case[ p.type, Int ]) = cse
+
+    /*
     def callPoly5( a: Int, b: String, p: Poly) = {
-      import p._  
+      //import p._  
       
-      val t0 = implicitlyPoly[ Case[ p.type, Int ] ] // The self-referencing of the this.type allows us to avoid importing the implicits
+      //val t0 = implicitlyPoly[ Case, p.type, Int ] // The self-referencing of the this.type allows us to avoid importing the implicits
+      //val t0 = implicitlyPoly[ Int ](p) // The self-referencing of the this.type allows us to avoid importing the implicits
+      val t0 = implicitlyPoly(a, p) // The self-referencing of the this.type allows us to avoid importing the implicits
       //val t0 = implicitly[ Case[ p.type, Int ] ] // The self-referencing of the this.type allows us to avoid importing the implicits
       val v1 = t0( a )
-      val t1 = implicitly[ Case[ p.type, String ] ] // The self-referencing of the this.type allows us to avoid importing the implicits
+      //val t1 = implicitly[ Case[ p.type, String ] ] // The self-referencing of the this.type allows us to avoid importing the implicits
+      //val v2 = t1( b )
+      ( v1, v2 )
+    }*/
+
+    def callPoly7( a: Int, b: String, p: Poly)( implicit cse: Case[ p.type, Int ]) = {
+      //import myPoly._
+     // import p._
+      val t0 = implicitlyPoly(p) // The self-referencing of the this.type allows us to avoid importing the implicits
+      val t1 = implicitly[Case[ p.type, Int ]] // The self-referencing of the this.type allows us to avoid importing the implicits
+      val v1 = t0(a)
+      val v2 = t1(a)
+      (v1, v2)
+    }
+    
+    /*
+    def callPoly6( a: Int, b: String, p: Poly) = {
+      val t0 = implicitly[ Case[ p.type, Int ] ] 
+      val v1 = t0( a )
+      val t1 = implicitly[ Case[ p.type, String ] ] 
       val v2 = t1( b )
       ( v1, v2 )
     }
-*/
+    */
+
+    // We need to declare the implicits in order to propogate the context
+    def callCallPoly4( a: Int, b: String, p: Poly)( implicit cse1: Case[ p.type, Int ], cse2: Case[ p.type, String ] ) = {
+      callPoly4( a, b, p)
+    }
+    
+    // We need to declare the implicits in order to propogate the context
+    def callCallPoly5[T1, T2]( a: T1, b: T2, p: Poly)( implicit cse1: Case[ p.type, T1 ], cse2: Case[ p.type, T2] ) = {
+      callPoly5(a, b, p)
+    }
+    
     /*
     def callPoly( a: Int, b: String, p: Poly ) = {
       //import p.apply
@@ -443,6 +483,9 @@ object HListExample {
       (v1, v2)
     }*/
 
+    val c1 = implicitlyPoly(myPoly)
+    val v0 = c1(1)
+     
     // Ok 
     callPoly1( 1, "2" )
 
@@ -452,7 +495,7 @@ object HListExample {
 
     // Needs import
     //import myPoly._
-    //callPoly3( 1, "2", myPoly)
+    //callPoly3( 1, "2")
 
     // Compiler finds implicits based on object type
     val (v3, v4) = callPoly4( 1, "2", myPoly)
@@ -468,6 +511,12 @@ object HListExample {
     //import myPoly._
     //callPoly( 1, "2", myPoly )
 
+    // We need to declare the implicits in order to propogate the context
+    val (v7, v8) = callCallPoly4( 1, "2", myPoly)
+    
+    // We need to declare the implicits in order to propogate the context
+    val (v9, v10) = callCallPoly5( 1, "2", myPoly)
+    
   }
 
 }
