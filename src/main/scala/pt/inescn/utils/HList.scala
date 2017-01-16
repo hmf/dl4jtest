@@ -113,12 +113,15 @@ object HList {
   //type HNil = HNil.type
   
   //def map(f : Poly)(implicit mapper : Mapper0[f.type, L]) : mapper.Out = mapper(l)
-
+  //def map[S, B, T <:HList](hc: T, f: S=>B)(implicit ev: Mapper0[S, T, B]) = ev(hc, f)
+  //def map[P <: Poly, T <:HList](p: P, hc: T)(implicit ev: Mapper1[P, T]) = ev(hc)
+  def map[P <: Poly, H <:HList](p: P, hc: H)(implicit ev: Mapper1[P, H]) = ev(hc)
 }
 
 
 //import HList._ 
 
+// TOOD: move this into HList Object?
 // http://www.hyperlambda.com/posts/hlist-map-in-scala/
 object Mapper0 {
   implicit def cellMapper[ S, H, T <: HList, B ]
@@ -135,7 +138,7 @@ object Mapper0 {
       }
     }
 
-  implicit def nilMapper[ S, HC <: HNil, B ]: Mapper0[ S, HC, B ] =
+  implicit def nilMapper0[ S, HC <: HNil, B ]: Mapper0[ S, HC, B ] =
     new Mapper0[ S, HC, B ] {
       type Out = HNil
       def apply( hc: HC, f: S => B ) = {
@@ -144,6 +147,36 @@ object Mapper0 {
       }
     }
 }
+
+import scala.language.implicitConversions
+
+sealed trait Mapper1[ P, HL <: HList] {
+  type Out <: HList
+  def apply( hl: HL): Out
+}
+
+// (cse: pt.inescn.utils.Case[p.type,H]) cse.Result
+object Mapper1 {
+  implicit def cellMapper[ P <: Poly, H, T <: HList]
+                                    ( implicit cse: pt.inescn.utils.Case[P,H], evTail: Mapper1[ P, T] ): Mapper1[ P, HCons[H, T]] =
+    new Mapper1[ P, HCons[H, T]] {
+      type Out = HCons[cse.Result , evTail.Out]
+      def apply( hc: HCons[H , T]) = {
+        println( s"apply(Cons(${hc.head},${hc.tail})) = ${cse(hc.head)}" )
+        HCons( cse(hc.head), evTail( hc.tail) )
+      }
+    }
+
+  implicit def nilMapper1[ S, HC <: HNil]: Mapper1[ S, HC] =
+    new Mapper1[ S, HC] {
+      type Out = HNil
+      def apply( hc: HC) = {
+        println( "end." )
+        HNil
+      }
+    }
+}
+
 
 // If we use the sealed class type
 //object HNil extends HNil
@@ -183,7 +216,7 @@ object HListExample {
     //case 3 :: "i" :: HNil => "invalid"
     case _                        => "unknown"
   }
-
+  
   /*
   def cartesian7[ A, B ]( list: Stream[ Stream[ A ] ], acc: Seq[ HList ], f: Seq[ HList ] => B ): Stream[ B ] = {
     list match {
@@ -356,6 +389,11 @@ object HListExample {
     val l5 = l1.prepend( "Zero" )
     val "Zero" :: "One" :: 2 :: HNil = l4
     val "Zero" :: "One" :: 2 :: HNil = l5
+    
+    import Mapper1._
+    val v0 = map(myPoly, HNil)
+    val v1 = map(myPoly, l1)
+    println( v1 )
 
     val r1 = combineHList_1( l1 )
     println( s"Combine 1: $r1" )
