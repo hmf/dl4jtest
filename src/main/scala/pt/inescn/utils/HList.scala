@@ -115,13 +115,14 @@ object HList {
   //def map(f : Poly)(implicit mapper : Mapper0[f.type, L]) : mapper.Out = mapper(l)
   //def map[S, B, T <:HList](hc: T, f: S=>B)(implicit ev: Mapper0[S, T, B]) = ev(hc, f)
   //def map[P <: Poly, T <:HList](p: P, hc: T)(implicit ev: Mapper1[P, T]) = ev(hc)
+  // TODO: place as member of HList?
   def map[P <: Poly, H <:HList](p: P, hc: H)(implicit ev: Mapper1[P, H]) = ev(hc)
 }
 
 
 //import HList._ 
 
-// TOOD: move this into HList Object?
+// TODO: rewrite example in site as example
 // http://www.hyperlambda.com/posts/hlist-map-in-scala/
 object Mapper0 {
   implicit def cellMapper[ S, H, T <: HList, B ]
@@ -150,6 +151,7 @@ object Mapper0 {
 
 import scala.language.implicitConversions
 
+// TODO: move this into HList Object?
 sealed trait Mapper1[ P, HL <: HList] {
   type Out <: HList
   def apply( hl: HL): Out
