@@ -13,7 +13,7 @@ import scala.language.higherKinds
 import pt.inescn.utils.HList
 import pt.inescn.utils.HNil
 import pt.inescn.utils.HList.{ :: => #: } // rename the type for compatibility
-import pt.inescn.utils.HList.HNil
+//import pt.inescn.utils.HList.HNil
 
 trait Model[ T, U[ T ], P ] {
   //type params = HList
@@ -46,7 +46,7 @@ case class ParamThree( val value: Int = 0 ) extends Parameter[ Int ] with Strict
 }
 
 object ModelAParams {
-  type w = ParamOne[ Double ] #: ParamTwo[ Double ] #: ParamThree #: HNil
+  type w = ParamOne[ Double ] #: ParamTwo[ Double ] #: ParamThree #: HNil.type
 }
 
 // Ok

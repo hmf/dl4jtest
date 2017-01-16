@@ -2,6 +2,21 @@ package pt.inescn.utils
 
 import scala.language.higherKinds
 
+/*
+// http://www.hyperlambda.com/posts/hlist-map-in-scala/
+sealed trait Mapper0[S, HL <: HList, B] {
+    type Out <: HList
+    def apply(hl: HL, f: S => B): Out
+}*/
+sealed trait Mapper0[ S, HL <: HList, B ] {
+  type Out <: HList
+  def apply( hl: HL, f: S => B ): Out
+}
+
+
+// https://xuwei-k.github.io/shapeless-sxr/shapeless-2.10-2.0.0-M1/shapeless/ops/coproduct.scala.html
+//trait Mapper0[F <: Poly, C <: Coproduct] extends DepFn1[C] { type Out <: Coproduct }
+
 // 
 sealed trait HList {
   type Prepend[ A ] <: HList
@@ -10,7 +25,7 @@ sealed trait HList {
 
   def ::[ U ]( v: U ): Prepend[ U ]
   def prepend[ A ]( a: A ): Prepend[ A ]
-  def append[ L <: HList ]( l: L ): Append[ L ]
+  def append[ L <: HList ]( l: L ): Append[L]
 
   def map( p: Poly ): Mapped
 }
@@ -59,7 +74,7 @@ sealed trait HList {
 final case class HCons[ H, T <: HList ]( head: H, tail: T ) extends HList {
 
   type Prepend[ A ] = HCons[ A, HCons[ H, T ] ]
-  type Append[ L <: HList ] = HCons[ H, T#Append[ L ] ]
+  type Append[L <: HList] = HCons[H, T#Append[L]]
   type Mapped = HCons[ H, T#Mapped ]
 
   def ::[ U ]( v: U ): Prepend[ U ] = HCons( v, this )
@@ -71,7 +86,9 @@ final case class HCons[ H, T <: HList ]( head: H, tail: T ) extends HList {
 }
 
 //sealed class HNil extends HList {
-case object HNil extends HList {
+sealed trait HNil extends HList
+//object HNil extends HNil {
+case object HNil extends HNil {
   type Prepend[ A ] = HCons[ A, HNil.type ]
   type Append[ L <: HList ] = L
   type Mapped = this.type
@@ -93,7 +110,39 @@ object HList {
   // to this this embedded object as well as `import pt.inescn.utils.HNil`to get the type (class). 
   // The `import HList.HNil` also causes the  IDE to complain of ambiguous reference being  imported twice
   //val HNil = new HNil 
-  type HNil = HNil.type
+  //type HNil = HNil.type
+  
+  //def map(f : Poly)(implicit mapper : Mapper0[f.type, L]) : mapper.Out = mapper(l)
+
+}
+
+
+//import HList._ 
+
+// http://www.hyperlambda.com/posts/hlist-map-in-scala/
+object Mapper0 {
+  implicit def cellMapper[ S, H, T <: HList, B ]
+                                    //( implicit evH: H =:= S, evTail: Mapper0[ S, T, B ] ): Mapper0[ S, H :: T, B ] =
+                                    ( implicit evH: H =:= S, evTail: Mapper0[ S, T, B ] ): Mapper0[ S, HCons[H, T], B ] =
+    new Mapper0[ S, HCons[H, T], B ] {
+    //new Mapper0[ S, H :: T, B ] {
+      //type Out = B :: evTail.Out
+      type Out = HCons[B , evTail.Out]
+      //def apply( hc: H :: T, f: S => B ) = {
+      def apply( hc: HCons[H , T], f: S => B ) = {
+        println( "apply" )
+        HCons( f( evH( hc.head ) ), evTail( hc.tail, f ) )
+      }
+    }
+
+  implicit def nilMapper[ S, HC <: HNil, B ]: Mapper0[ S, HC, B ] =
+    new Mapper0[ S, HC, B ] {
+      type Out = HNil
+      def apply( hc: HC, f: S => B ) = {
+        println( "end." )
+        HNil
+      }
+    }
 }
 
 // If we use the sealed class type
@@ -255,6 +304,32 @@ object HListExample {
     }
   }
 
+  object myPoly extends Poly {
+
+    /*
+    implicit def anyCase = {
+      new Case[ this.type, Any ] {
+        type Result = Any
+        def apply( v: Any ): Any = v
+      }
+    }*/
+
+    implicit def intCase = {
+      new Case[ this.type, Int ] {
+        type Result = Double
+        def apply( num: Int ): Double = num / 2.0
+      }
+    }
+
+    implicit def stringCase = {
+      new Case[ this.type, String ] {
+        type Result = Int
+        def apply( str: String ): Int = str.length
+      }
+    }
+
+  }
+
   def combineHList_1( list: HList ): HList = {
     list match {
       case HNil => list
@@ -275,7 +350,7 @@ object HListExample {
     // Check the values
     val "One" :: 2 :: "Three" :: 4.0 :: HNil = l3
     // Check the types
-    val checkl: HCons[ String, HCons[ Int, HCons[ String, HCons[ Double, HNil ] ] ] ] = l3
+    val checkl: HCons[ String, HCons[ Int, HCons[ String, HCons[ Double, HNil.type ] ] ] ] = l3
 
     val l4 = "Zero" :: l1
     val l5 = l1.prepend( "Zero" )
