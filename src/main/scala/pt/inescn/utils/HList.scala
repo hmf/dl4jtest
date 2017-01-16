@@ -2,16 +2,6 @@ package pt.inescn.utils
 
 import scala.language.higherKinds
 
-/*
-// http://www.hyperlambda.com/posts/hlist-map-in-scala/
-sealed trait Mapper0[S, HL <: HList, B] {
-    type Out <: HList
-    def apply(hl: HL, f: S => B): Out
-}*/
-sealed trait Mapper0[ S, HL <: HList, B ] {
-  type Out <: HList
-  def apply( hl: HL, f: S => B ): Out
-}
 
 
 // https://xuwei-k.github.io/shapeless-sxr/shapeless-2.10-2.0.0-M1/shapeless/ops/coproduct.scala.html
@@ -117,36 +107,6 @@ object HList {
   //def map[P <: Poly, T <:HList](p: P, hc: T)(implicit ev: Mapper1[P, T]) = ev(hc)
   // TODO: place as member of HList?
   def map[P <: Poly, H <:HList](p: P, hc: H)(implicit ev: Mapper1[P, H]) = ev(hc)
-}
-
-
-//import HList._ 
-
-// TODO: rewrite example in site as example
-// http://www.hyperlambda.com/posts/hlist-map-in-scala/
-object Mapper0 {
-  implicit def cellMapper[ S, H, T <: HList, B ]
-                                    //( implicit evH: H =:= S, evTail: Mapper0[ S, T, B ] ): Mapper0[ S, H :: T, B ] =
-                                    ( implicit evH: H =:= S, evTail: Mapper0[ S, T, B ] ): Mapper0[ S, HCons[H, T], B ] =
-    new Mapper0[ S, HCons[H, T], B ] {
-    //new Mapper0[ S, H :: T, B ] {
-      //type Out = B :: evTail.Out
-      type Out = HCons[B , evTail.Out]
-      //def apply( hc: H :: T, f: S => B ) = {
-      def apply( hc: HCons[H , T], f: S => B ) = {
-        println( "apply" )
-        HCons( f( evH( hc.head ) ), evTail( hc.tail, f ) )
-      }
-    }
-
-  implicit def nilMapper0[ S, HC <: HNil, B ]: Mapper0[ S, HC, B ] =
-    new Mapper0[ S, HC, B ] {
-      type Out = HNil
-      def apply( hc: HC, f: S => B ) = {
-        println( "end." )
-        HNil
-      }
-    }
 }
 
 import scala.language.implicitConversions
