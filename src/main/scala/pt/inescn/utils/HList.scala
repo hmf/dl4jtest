@@ -104,24 +104,26 @@ object HList {
   
   //def map(f : Poly)(implicit mapper : Mapper0[f.type, L]) : mapper.Out = mapper(l)
   //def map[S, B, T <:HList](hc: T, f: S=>B)(implicit ev: Mapper0[S, T, B]) = ev(hc, f)
-  //def map[P <: Poly, T <:HList](p: P, hc: T)(implicit ev: Mapper1[P, T]) = ev(hc)
+  //def map[P <: Poly, T <:HList](p: P, hc: T)(implicit ev: Mapper[P, T]) = ev(hc)
   // TODO: place as member of HList?
-  def map[P <: Poly, H <:HList](p: P, hc: H)(implicit ev: Mapper1[P, H]) = ev(hc)
+  def map[P <: Poly, H <:HList](p: P, hc: H)(implicit ev: Mapper[P, H]) = ev(hc)
 }
 
 import scala.language.implicitConversions
 
+
 // TODO: move this into HList Object?
-sealed trait Mapper1[ P, HL <: HList] {
+sealed trait Mapper[ P, HL <: HList] {
   type Out <: HList
   def apply( hl: HL): Out
 }
 
+
 // (cse: pt.inescn.utils.Case[p.type,H]) cse.Result
-object Mapper1 {
+object Mapper {
   implicit def cellMapper[ P <: Poly, H, T <: HList]
-                                    ( implicit cse: pt.inescn.utils.Case[P,H], evTail: Mapper1[ P, T] ): Mapper1[ P, HCons[H, T]] =
-    new Mapper1[ P, HCons[H, T]] {
+                                    ( implicit cse: pt.inescn.utils.Case[P,H], evTail: Mapper[ P, T] ): Mapper[ P, HCons[H, T]] =
+    new Mapper[ P, HCons[H, T]] {
       type Out = HCons[cse.Result , evTail.Out]
       def apply( hc: HCons[H , T]) = {
         println( s"apply(Cons(${hc.head},${hc.tail})) = ${cse(hc.head)}" )
@@ -129,8 +131,8 @@ object Mapper1 {
       }
     }
 
-  implicit def nilMapper1[ S, HC <: HNil]: Mapper1[ S, HC] =
-    new Mapper1[ S, HC] {
+  implicit def nilMapper[ S, HC <: HNil]: Mapper[ S, HC] =
+    new Mapper[ S, HC] {
       type Out = HNil
       def apply( hc: HC) = {
         println( "end." )
@@ -300,7 +302,6 @@ object HListExample {
   }
 
   object myPoly extends Poly {
-
     /*
     implicit def anyCase = {
       new Case[ this.type, Any ] {
@@ -308,22 +309,28 @@ object HListExample {
         def apply( v: Any ): Any = v
       }
     }*/
-
     implicit def intCase = {
       new Case[ this.type, Int ] {
         type Result = Double
         def apply( num: Int ): Double = num / 2.0
       }
     }
-
     implicit def stringCase = {
       new Case[ this.type, String ] {
         type Result = Int
         def apply( str: String ): Int = str.length
       }
     }
-
+    /* TODO
+    implicit def listCase[X] = {
+      new Case[ this.type, List[X] ] {
+        type Result = Int
+        def apply( lst: List[X]): Int = lst.length
+      }
+    }*/
+    
   }
+  
 
   def combineHList_1( list: HList ): HList = {
     list match {
@@ -352,10 +359,12 @@ object HListExample {
     val "Zero" :: "One" :: 2 :: HNil = l4
     val "Zero" :: "One" :: 2 :: HNil = l5
     
-    import Mapper1._
+    import Mapper._
     val v0 = map(myPoly, HNil)
     val v1 = map(myPoly, l1)
     println( v1 )
+    // TODO: val v2 = map(myPoly, l3)
+    // println( v2 )
 
     val r1 = combineHList_1( l1 )
     println( s"Combine 1: $r1" )
