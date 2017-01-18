@@ -71,6 +71,7 @@ object HList {
   //type HNil = HNil.type
   
   def map[P <: Poly, H <:HList](p: P, hc: H)(implicit ev: Mapper[P, H]) = ev(hc)
+  def map0[P <: Poly, H](p: P, hc: H)(implicit cse: pt.inescn.utils.Case[P,H]) = cse(hc)
 }
 
 import scala.language.implicitConversions
@@ -119,6 +120,12 @@ object Mapper {
       new Case[ this.type, String ] {
         type Result = Int
         def apply( str: String ): Int = str.length
+      }
+    }
+    implicit def listCase[H <: HList] = {
+      new Case[ this.type, H] {
+        type Result <: H
+        def apply( l: H): H = l
       }
     }
   }
@@ -188,13 +195,22 @@ object HListExpandType {
     val v0 = map(myPoly, HNil)
     //val v1 = map(myPoly, l1)(cellMapper)
     val v1 = map(myPoly, l1)
+    //val v1 = map[myPoly.type, HList](myPoly, l1)
     println( v1 )
+    val l6 = HNil
+    val l7 = l6.append("Null" :: HNil)
+    val v1a = map(myPoly,l7)
     // https://issues.scala-lang.org/browse/SI-8286
     // https://gist.github.com/puffnfresh/8540756#comment-991433
     // https://issues.scala-lang.org/browse/SI-5070
     // http://stackoverflow.com/questions/31905870/implicit-conversion-classes-for-type-aliased-function-types-fail-to-compile-in-s
     val v2 = map(myPoly, l3)
     // println( v2 )
+    // Prepend works, it is not recursive
+    val v3 = map(myPoly, l5)
+    println(v3)
+    // No unpacking here, so it is good too
+    val v4 = map0(myPoly, l3)
   }
 
 }
