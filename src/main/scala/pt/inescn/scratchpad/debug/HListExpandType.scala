@@ -62,7 +62,7 @@ object HList {
   //type HNil = HNil.type
 
   def map[ P <: Poly, H <: HList ]( p: P, hc: H )( implicit ev: Mapper[ P, H ] ) = ev( hc )
-  def map0[ P <: Poly, H ]( p: P, hc: H )( implicit cse: pt.inescn.utils.Case[ P, H ] ) = cse( hc )
+  //def map0[ P <: Poly, H ]( p: P, hc: H )( implicit cse: pt.inescn.utils.Case[ P, H ] ) = cse( hc )
 }
 
 import scala.language.implicitConversions
@@ -116,12 +116,13 @@ object myPoly extends Poly {
       def apply( num: Double): Int = num.toInt
     }
   }
+  /*
   implicit def listCase[ H <: HList ] = {
     new Case[ this.type, H ] {
       type Result <: H
       def apply( l: H ): H = l
     }
-  }
+  }*/
 }
 
 // If we use the sealed class type
@@ -201,7 +202,7 @@ object HListExpandType {
     val v3 = map( myPoly, l5 )
     println( v3 )
     // No unpacking here, so it is good too
-    val v4 = map0( myPoly, l3 )
+    //val v4 = map0( myPoly, l3 )
   }
 
 }

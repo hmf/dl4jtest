@@ -2,8 +2,6 @@ package pt.inescn.utils
 
 import scala.language.higherKinds
 
-
-
 // https://xuwei-k.github.io/shapeless-sxr/shapeless-2.10-2.0.0-M1/shapeless/ops/coproduct.scala.html
 //trait Mapper0[F <: Poly, C <: Coproduct] extends DepFn1[C] { type Out <: Coproduct }
 
@@ -15,7 +13,7 @@ sealed trait HList {
 
   def ::[ U ]( v: U ): Prepend[ U ]
   def prepend[ A ]( a: A ): Prepend[ A ]
-  def append[ L <: HList ]( l: L ): Append[L]
+  def append[ L <: HList ]( l: L ): Append[ L ]
 
   def map( p: Poly ): Mapped
 }
@@ -64,7 +62,7 @@ sealed trait HList {
 final case class HCons[ H, T <: HList ]( head: H, tail: T ) extends HList {
 
   type Prepend[ A ] = HCons[ A, HCons[ H, T ] ]
-  type Append[L <: HList] = HCons[H, T#Append[L]]
+  type Append[ L <: HList ] = HCons[ H, T#Append[ L ] ]
   type Mapped = HCons[ H, T#Mapped ]
 
   def ::[ U ]( v: U ): Prepend[ U ] = HCons( v, this )
@@ -101,46 +99,42 @@ object HList {
   // The `import HList.HNil` also causes the  IDE to complain of ambiguous reference being  imported twice
   //val HNil = new HNil 
   //type HNil = HNil.type
-  
+
   //def map(f : Poly)(implicit mapper : Mapper0[f.type, L]) : mapper.Out = mapper(l)
   //def map[S, B, T <:HList](hc: T, f: S=>B)(implicit ev: Mapper0[S, T, B]) = ev(hc, f)
   //def map[P <: Poly, T <:HList](p: P, hc: T)(implicit ev: Mapper[P, T]) = ev(hc)
   // TODO: place as member of HList?
-  def map[P <: Poly, H <:HList](p: P, hc: H)(implicit ev: Mapper[P, H]) = ev(hc)
+  def map[ P <: Poly, H <: HList ]( p: P, hc: H )( implicit ev: Mapper[ P, H ] ) = ev( hc )
 }
 
 import scala.language.implicitConversions
 
-
 // TODO: move this into HList Object?
-sealed trait Mapper[ P, HL <: HList] {
+sealed trait Mapper[ P, HL <: HList ] {
   type Out <: HList
-  def apply( hl: HL): Out
+  def apply( hl: HL ): Out
 }
-
 
 // (cse: pt.inescn.utils.Case[p.type,H]) cse.Result
 object Mapper {
-  implicit def cellMapper[ P <: Poly, H, T <: HList]
-                                    ( implicit cse: pt.inescn.utils.Case[P,H], evTail: Mapper[ P, T] ): Mapper[ P, HCons[H, T]] =
-    new Mapper[ P, HCons[H, T]] {
-      type Out = HCons[cse.Result , evTail.Out]
-      def apply( hc: HCons[H , T]) = {
-        println( s"apply(Cons(${hc.head},${hc.tail})) = ${cse(hc.head)}" )
-        HCons( cse(hc.head), evTail( hc.tail) )
+  implicit def cellMapper[ P <: Poly, H, T <: HList ]( implicit cse: pt.inescn.utils.Case[ P, H ], evTail: Mapper[ P, T ] ): Mapper[ P, HCons[ H, T ] ] =
+    new Mapper[ P, HCons[ H, T ] ] {
+      type Out = HCons[ cse.Result, evTail.Out ]
+      def apply( hc: HCons[ H, T ] ) = {
+        println( s"apply(Cons(${hc.head},${hc.tail})) = ${cse( hc.head )}" )
+        HCons( cse( hc.head ), evTail( hc.tail ) )
       }
     }
 
-  implicit def nilMapper[ S, HC <: HNil]: Mapper[ S, HC] =
-    new Mapper[ S, HC] {
+  implicit def nilMapper[ S, HC <: HNil ]: Mapper[ S, HC ] =
+    new Mapper[ S, HC ] {
       type Out = HNil
-      def apply( hc: HC) = {
+      def apply( hc: HC ) = {
         println( "end." )
         HNil
       }
     }
 }
-
 
 // If we use the sealed class type
 //object HNil extends HNil
@@ -180,7 +174,7 @@ object HListExample {
     //case 3 :: "i" :: HNil => "invalid"
     case _                        => "unknown"
   }
-  
+
   /*
   def cartesian7[ A, B ]( list: Stream[ Stream[ A ] ], acc: Seq[ HList ], f: Seq[ HList ] => B ): Stream[ B ] = {
     list match {
@@ -321,6 +315,12 @@ object HListExample {
         def apply( str: String ): Int = str.length
       }
     }
+    implicit def doubleCase = {
+      new Case[ this.type, Double ] {
+        type Result = Int
+        def apply( num: Double ): Int = num.toInt
+      }
+    }
     /* TODO
     implicit def listCase[X] = {
       new Case[ this.type, List[X] ] {
@@ -328,9 +328,8 @@ object HListExample {
         def apply( lst: List[X]): Int = lst.length
       }
     }*/
-    
+
   }
-  
 
   def combineHList_1( list: HList ): HList = {
     list match {
@@ -358,13 +357,20 @@ object HListExample {
     val l5 = l1.prepend( "Zero" )
     val "Zero" :: "One" :: 2 :: HNil = l4
     val "Zero" :: "One" :: 2 :: HNil = l5
-    
+
     import Mapper._
-    val v0 = map(myPoly, HNil)
-    val v1 = map(myPoly, l1)
+      //val v0 = map(myPoly, HNil)(nilMapper)
+    val v0 = map( myPoly, HNil )
+    //val v1 = map(myPoly, l1)(cellMapper)
+    val v1 = map( myPoly, l1 )
     println( v1 )
-    // TODO: val v2 = map(myPoly, l3)
-    // println( v2 )
+    val l6 = HNil
+    val l7 = l6.append( "Null" :: HNil )
+    val v1a = map( myPoly, l7 )
+    val v2 = map( myPoly, l3 )
+    println( v2 )
+    val v3 = map( myPoly, l5 )
+    println( v3 )
 
     val r1 = combineHList_1( l1 )
     println( s"Combine 1: $r1" )
@@ -372,18 +378,18 @@ object HListExample {
     genCartesian( l3, HNil )
     genCartesian( HNil, HNil )
 
-    val l6 = List( 1, 2 ) :: List( 3.0, 4.0 ) :: HNil
-    val l7 = genCartesian( l6, HNil )
-    println( l7 )
+    val l8 = List( 1, 2 ) :: List( 3.0, 4.0 ) :: HNil
+    val l9 = genCartesian( l8, HNil )
+    println( l9 )
 
     import Mappers.IntMapper
     val m1: pt.inescn.utils.HListExample.Mapper[ Int, List, Int ] = IntMapper
-    val l8 = testMapper( List( 1, 2, 3 ), { x: Int => x + 1 } )( IntMapper )
-    val l9 = testMapper( List( 1, 2, 3 ), { x: Int => x + 1 } )
-    println( l9 )
+    val l10 = testMapper( List( 1, 2, 3 ), { x: Int => x + 1 } )( IntMapper )
+    val l11 = testMapper( List( 1, 2, 3 ), { x: Int => x + 1 } )
+    println( l11 )
 
-    val l10 = genCartesianL( l6, HNil )
-    println( l7 )
+    val l12 = genCartesianL( l9, HNil )
+    println( l12 )
 
     val p3 = 123 :: "456" :: HNil
     val p4 = genCartesianM( p3, HNil )
@@ -393,6 +399,6 @@ object HListExample {
     val v1 = p5.head
     val v2 = p5.tail.head
     */
-  }
+}
 
 }
