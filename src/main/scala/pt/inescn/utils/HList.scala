@@ -185,6 +185,7 @@ object HListExample {
 
   import scala.language.implicitConversions
 
+  /* TODO
   // http://stackoverflow.com/questions/5598085/where-does-scala-look-for-implicits/5598107#5598107
   // http://stackoverflow.com/questions/20616525/scala-type-override
   //  Iterable[+A] : map and flatMap
@@ -254,6 +255,16 @@ object HListExample {
   println( t5 )
 
   ///////////////
+  def genCartesianL[ A, T[ A ], B ]( list: HList, acc: HList )( implicit mapper: Mapper[ A, T, B ] ): HList = {
+    list match {
+      case HNil => acc
+      case h :: t =>
+        println( h )
+        //val t = mapper.map( h, x => x )
+        genCartesian( t, h :: acc )
+    }
+  }
+* */
 
   def genCartesian[ A, B ]( list: HList, acc: HList ): HList = {
     list match {
@@ -275,34 +286,9 @@ object HListExample {
     }
   }
 */
-  def genCartesianL[ A, T[ A ], B ]( list: HList, acc: HList )( implicit mapper: Mapper[ A, T, B ] ): HList = {
-    list match {
-      case HNil => acc
-      case h :: t =>
-        println( h )
-        //val t = mapper.map( h, x => x )
-        genCartesian( t, h :: acc )
-    }
-  }
 
-  def genCartesianM( list: HList, acc: HList ): HList = {
-    list match {
-      case HNil => acc
-      case h :: t =>
-        println( h )
-        //val nh = myPoly.apply( h )
-        genCartesian( t, h :: acc )
-    }
-  }
-
+  // Traversable
   object myPoly extends Poly {
-    /*
-    implicit def anyCase = {
-      new Case[ this.type, Any ] {
-        type Result = Any
-        def apply( v: Any ): Any = v
-      }
-    }*/
     implicit def intCase = {
       new Case[ this.type, Int ] {
         type Result = Double
@@ -321,23 +307,38 @@ object HListExample {
         def apply( num: Double ): Int = num.toInt
       }
     }
-    /* TODO
-    implicit def listCase[X] = {
-      new Case[ this.type, List[X] ] {
+    implicit def listCase[ X ] = {
+      new Case[ this.type, List[ X ] ] {
         type Result = Int
-        def apply( lst: List[X]): Int = lst.length
+        def apply( lst: List[ X ] ): Int = lst.length
       }
-    }*/
+    }
 
   }
 
-  def combineHList_1( list: HList ): HList = {
+  /* TODO
+  def genCartesianM[P <: Poly,H <: HList]( p: P, list: H, acc: H )( implicit cse: pt.inescn.utils.Case[ P, H ]): H = {
     list match {
-      case HNil => list
+      case HNil => acc
       case h :: t =>
-        val v1 = h
-        h :: "End" :: HNil
+        println( h )
+        //val nh = p.apply( h )
+        genCartesianM( p, t, h :: acc )
     }
+  } */
+
+  def combineHList[A]( l1 : List[A], l2: List[A], l3: List[A]) : List[List[A]] = {
+    l1.flatMap { x1 => l2.flatMap { x2 => l3.map { x3 => List(x1, x2, x3) }} }
+  }
+  
+  def combineHList_0[A, B, C]( l1 : List[A], l2: List[B], l3: List[C])  = {
+    l1.flatMap { x1 => l2.flatMap { x2 => l3.map { x3 => HCons(x1, HCons(x2, HCons(x3, HNil))) } } }
+  }
+  
+  // map[ P <: Poly, H <: HList ]( p: P, hc: H )( implicit ev: Mapper[ P, H ] ) = ev( hc )
+  //def combineHList_1( list: HList ): HList = {
+  def combineHList_1[ P <: Poly, H <: HList ]( p: P, list: H )( implicit ev: Mapper[ P, H ] ) = {
+    ev( list )
   }
 
   // ***************************************************
@@ -359,7 +360,7 @@ object HListExample {
     val "Zero" :: "One" :: 2 :: HNil = l5
 
     import Mapper._
-      //val v0 = map(myPoly, HNil)(nilMapper)
+    //val v0 = map(myPoly, HNil)(nilMapper)
     val v0 = map( myPoly, HNil )
     //val v1 = map(myPoly, l1)(cellMapper)
     val v1 = map( myPoly, l1 )
@@ -372,16 +373,26 @@ object HListExample {
     val v3 = map( myPoly, l5 )
     println( v3 )
 
-    val r1 = combineHList_1( l1 )
+    println("Combines:____________________")
+    val r0 = combineHList( List( 1, 2 ), List( 3, 4 ), List(5, 6))
+    println( s"Combine 0: $r0" )
+    
+    val r1 = combineHList_0( List( 1, 2 ), List( 3.0, 4.0 ), List(true, false))
     println( s"Combine 1: $r1" )
+    
+    //import EMapper._
+    val l8 = List( 1, 2 ) :: List( 3.0, 4.0 ) :: HNil
+    val r2 = combineHList_1( myPoly, l8 )
+    println( s"Combine 1: $r2" )
 
     genCartesian( l3, HNil )
     genCartesian( HNil, HNil )
 
-    val l8 = List( 1, 2 ) :: List( 3.0, 4.0 ) :: HNil
-    val l9 = genCartesian( l8, HNil )
-    println( l9 )
+    val l9 = List( 1, 2 ) :: List( 3.0, 4.0 ) :: HNil
+    val l10 = genCartesian( l9, HNil )
+    println( l10 )
 
+    /*
     import Mappers.IntMapper
     val m1: pt.inescn.utils.HListExample.Mapper[ Int, List, Int ] = IntMapper
     val l10 = testMapper( List( 1, 2, 3 ), { x: Int => x + 1 } )( IntMapper )
@@ -390,15 +401,15 @@ object HListExample {
 
     val l12 = genCartesianL( l9, HNil )
     println( l12 )
-
-    val p3 = 123 :: "456" :: HNil
-    val p4 = genCartesianM( p3, HNil )
-    println( "p4 = " + p4 )
+    */
+    val p3 = 123.0 :: "456" :: HNil
+    //val p4 = genCartesianM( myPoly, p3, HNil )
+    //println( "p4 = " + p4 )
     /*val p5 = p3.map( myPoly )
     println( "p5 = " + p5 )
     val v1 = p5.head
     val v2 = p5.tail.head
     */
-}
+  }
 
 }
