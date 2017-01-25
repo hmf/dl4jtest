@@ -138,6 +138,40 @@ object Mapper {
 
 // If we use the sealed class type
 //object HNil extends HNil
+sealed trait EMapper[ P, HL <: HList ] {
+  type Out <: HList
+  def apply( hl: HL ): Out
+}
+
+/*
+  def combineHList_0[A, B, C]( l1 : List[A], l2: List[B], l3: List[C])  = {
+    l1.flatMap { x1 => l2.flatMap { x2 => l3.map { x3 => HCons(x1, HCons(x2, HCons(x3, HNil))) } } }
+  }
+ */
+object EMapper {
+  //implicit def cellMapper[ X, P <: Poly, H <: scala.collection.Traversable[X], T <: HList ]
+  implicit def cellMapper[ X, P <: PolyC, H[_] <: scala.collection.immutable.List[_], T <: HList ]
+                   ( implicit cse: pt.inescn.utils.CaseC[ P, X, H ], evTail: EMapper[ P, T ] ): EMapper[ P, HCons[ H[X], T ] ] =
+    new EMapper[ P, HCons[ H[X], T ] ] {
+      type Out = HCons[ cse.Result, evTail.Out ]
+      def apply( hc: HCons[ H[X], T ] ) = {
+        println( s"??? apply(Cons(${hc.head},${hc.tail})) = ${cse( hc.head )}" )
+        //def flatMap = hc.head.flatMap { x : X => ??? }  //no need to add : X
+        val tail = evTail( hc.tail )
+        val hd = cse( hc.head )
+        HCons( hd, tail )
+      }
+    }
+
+  implicit def nilMapper[ S, HC <: HNil ]: EMapper[ S, HC ] =
+    new EMapper[ S, HC ] {
+      type Out = HNil
+      def apply( hc: HC ) = {
+        println( "??? end." )
+        HNil
+      }
+    }
+}
 
 // sbt "run-main pt.inescn.utils.HListExample"
 object HListExample {
@@ -307,13 +341,25 @@ object HListExample {
         def apply( num: Double ): Int = num.toInt
       }
     }
+    implicit def listIntCase = {
+      new Case[ this.type, List[ Int ] ] {
+        type Result = Int
+        def apply( lst: List[ Int ] ): Int = lst.length
+      }
+    }
+    implicit def listDoubleCase = {
+      new Case[ this.type, List[ Double ] ] {
+        type Result = Int
+        def apply( lst: List[ Double ] ): Int = lst.length
+      }
+    }
+    /*
     implicit def listCase[ X ] = {
       new Case[ this.type, List[ X ] ] {
         type Result = Int
         def apply( lst: List[ X ] ): Int = lst.length
       }
-    }
-
+    }*/
   }
 
   /* TODO
@@ -327,17 +373,68 @@ object HListExample {
     }
   } */
 
-  def combineHList[A]( l1 : List[A], l2: List[A], l3: List[A]) : List[List[A]] = {
-    l1.flatMap { x1 => l2.flatMap { x2 => l3.map { x3 => List(x1, x2, x3) }} }
+  def combineHList[ A ]( l1: List[ A ], l2: List[ A ], l3: List[ A ] ): List[ List[ A ] ] = {
+    l1.flatMap { x1 => l2.flatMap { x2 => l3.map { x3 => List( x1, x2, x3 ) } } }
   }
-  
-  def combineHList_0[A, B, C]( l1 : List[A], l2: List[B], l3: List[C])  = {
-    l1.flatMap { x1 => l2.flatMap { x2 => l3.map { x3 => HCons(x1, HCons(x2, HCons(x3, HNil))) } } }
+
+  def combineHList_0[ A, B, C ]( l1: List[ A ], l2: List[ B ], l3: List[ C ] ) = {
+    l1.flatMap { x1 => l2.flatMap { x2 => l3.map { x3 => HCons( x1, HCons( x2, HCons( x3, HNil ) ) ) } } }
   }
-  
+
+  def combineHList_1[ A, B, C ]( l1: List[ A ], l2: List[ B ], l3: List[ C ] ) = {
+    def hlist( x1: A, x2: B, x3: C ) = HCons( x1, HCons( x2, HCons( x3, HNil ) ) )
+
+    type R = HCons[ A, HCons[ B, HCons[ C, HNil.type ] ] ]
+    def map( l: List[ C ], x: A, y: B, m: ( A, B, C ) => R ) = {
+      l.map { z => m( x, y, z ) }
+    }
+
+    type MP = ( List[ C ], A, B, ( A, B, C ) => R ) => List[ R ]
+    def flatMap2( l: List[ B ], nl: List[ C ], x: A, m: MP ) = {
+      //l.flatMap { y => map(l3, x, y, hlist) }
+      l.flatMap { y => m( nl, x, y, hlist ) }
+    }
+
+    type MQ = ( List[ B ], List[ C ], A, MP ) => List[ R ]
+    def flatMap3( l: List[ A ], nl: List[ B ], nnl: List[ C ], m: MQ ) = {
+      l.flatMap { y => m( nl, nnl, y, map ) }
+    }
+    //l1.flatMap { x1 => l2.flatMap { x2 => l3.map { x3 =>  hlist(x1, x2, x3) } } }
+    //l1.flatMap { x1 => l2.flatMap { x2 => map(l3, x1, x2, hlist) }  }
+    //l1.flatMap { x1 => flatMap2(l2, l3, x1, map) }
+    flatMap3( l1, l2, l3, flatMap2 )
+  }
+
+  def combineHList_2[ A, B, C ]( l1: List[ A ], l2: List[ B ], l3: List[ C ] ) = {
+
+    type R = HCons[ A, HCons[ B, HCons[ C, HNil.type ] ] ]
+    type MR = ( A, B, C ) => R
+    def hlist( x1: A, x2: B, x3: C ) = HCons( x1, HCons( x2, HCons( x3, HNil ) ) )
+
+    type MP = ( List[ C ], A, B, ( A, B, C ) => R ) => List[ R ]
+    def map( l: List[ C ], x: A, y: B, m: MR ) = {
+      l.map { z => m( x, y, z ) }
+    }
+
+    type MQ = ( List[ B ], List[ C ], A, MP, MR ) => List[ R ]
+    def flatMap2( l: List[ B ], nl: List[ C ], x: A, m: MP, m0: MR ) = {
+      //l.flatMap { y => map(l3, x, y, hlist) }
+      l.flatMap { y => m( nl, x, y, m0 ) }
+    }
+
+    type MT = ( List[ A ], List[ B ], List[ C ], MQ, MP, MR ) => List[ R ]
+    def flatMap3( l: List[ A ], nl: List[ B ], nnl: List[ C ], m: MQ, m0: MP, m1: MR ) = {
+      l.flatMap { y => m( nl, nnl, y, m0, m1 ) }
+    }
+    //l1.flatMap { x1 => l2.flatMap { x2 => l3.map { x3 =>  hlist(x1, x2, x3) } } }
+    //l1.flatMap { x1 => l2.flatMap { x2 => map(l3, x1, x2, hlist) }  }
+    //l1.flatMap { x1 => flatMap2(l2, l3, x1, map) }
+    flatMap3( l1, l2, l3, flatMap2, map, hlist )
+  }
+
   // map[ P <: Poly, H <: HList ]( p: P, hc: H )( implicit ev: Mapper[ P, H ] ) = ev( hc )
   //def combineHList_1( list: HList ): HList = {
-  def combineHList_1[ P <: Poly, H <: HList ]( p: P, list: H )( implicit ev: Mapper[ P, H ] ) = {
+  def combineHList_1[ P <: PolyC, H <: HList ]( p: P, list: H )( implicit ev: EMapper[ P, H ] ) = {
     ev( list )
   }
 
@@ -373,16 +470,65 @@ object HListExample {
     val v3 = map( myPoly, l5 )
     println( v3 )
 
-    println("Combines:____________________")
-    val r0 = combineHList( List( 1, 2 ), List( 3, 4 ), List(5, 6))
+    println( "Combines:____________________" )
+    val r0 = combineHList( List( 1, 2 ), List( 3, 4 ), List( 5, 6 ) )
     println( s"Combine 0: $r0" )
-    
-    val r1 = combineHList_0( List( 1, 2 ), List( 3.0, 4.0 ), List(true, false))
+
+    val r1 = combineHList_0( List( 1, 2 ), List( 3.0, 4.0 ), List( true, false ) )
     println( s"Combine 1: $r1" )
-    
-    //import EMapper._
+
+    import EMapper._
+
+    val p1 = myPoly( List( 1, 2 ) )
+    val p2 = myPoly( List( 1.0, 2.0 ) )
+    val p3 = myPoly( List( 1, 2 ) )
+
+    def callPoly_0( a: List[ Int ], p: Poly )( implicit cse1: Case[ p.type, List[ Int ] ] ) = {
+      val v1 = p( a )
+      v1
+    }
+
+    val p4 = callPoly_0( List( 1, 2 ), myPoly )
+
+    def callPoly_1[ T ]( a: List[ T ], p: Poly )( implicit cse1: Case[ p.type, List[ T ] ] ) = {
+      val v1 = p( a )
+      v1
+    }
+
+    val p5 = callPoly_1( List( 1, 2 ), myPoly )
+    val p6 = callPoly_1( List( 1.0, 2.0 ), myPoly )
+
+    def callPoly_2[ T1 ]( a: T1, p: Poly )( implicit cse1: Case[ p.type, T1 ] ) = {
+      val v1 = p( a )
+      v1
+    }
+
+    val p7 = callPoly_2( List( 1, 2 ), myPoly )
+
+    object myPolyC extends PolyC {
+      implicit def listIntCaseC = {
+        new CaseC[ this.type, Int, List ] {
+          type Result = Int
+          def apply( lst: List[ Int ] ): Int = lst.length
+        }
+      }
+      implicit def listDoubleCaseC = {
+        new CaseC[ this.type, Double, List ] {
+          type Result = Int
+          def apply( lst: List[ Double ] ): Int = lst.length
+        }
+      }
+    }
+
+    def callPoly_3[ T, C[ _ ] ]( a: C[ T ], p: PolyC )( implicit cse1: CaseC[ p.type, T, C ] ) = {
+      val v1 = p( a )
+      v1
+    }
+
+    val p8 = callPoly_3( List( 1, 2 ), myPolyC )
+
     val l8 = List( 1, 2 ) :: List( 3.0, 4.0 ) :: HNil
-    val r2 = combineHList_1( myPoly, l8 )
+    val r2 = combineHList_1( myPolyC, l8 )
     println( s"Combine 1: $r2" )
 
     genCartesian( l3, HNil )
@@ -402,7 +548,7 @@ object HListExample {
     val l12 = genCartesianL( l9, HNil )
     println( l12 )
     */
-    val p3 = 123.0 :: "456" :: HNil
+    //val p3 = 123.0 :: "456" :: HNil
     //val p4 = genCartesianM( myPoly, p3, HNil )
     //println( "p4 = " + p4 )
     /*val p5 = p3.map( myPoly )
