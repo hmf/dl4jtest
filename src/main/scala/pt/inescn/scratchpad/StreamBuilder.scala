@@ -155,6 +155,7 @@ object StreamBuilder {
    * Generates a stream of linearly spaced by `increment` values starting from a.
    */
   def linspace( a: Double, increment: Double ): Stream[ Double ] = Stream.iterate( a ) { acc => acc + increment }
+  def linspace( a: Int, increment: Int): Stream[ Int ] = Stream.iterate( a ) { acc => acc + increment }
 
   // https://groups.google.com/forum/#!topic/scala-user/QDMBgh9Z_vY
   // https://github.com/Jasper-M/implicitlogic/tree/master/src/main/scala/implicitlogic

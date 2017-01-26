@@ -52,7 +52,8 @@ trait CaseC[ P, T, A[ _ ] ] {
  * The `Case` class is then used to apply the transformation.
  */
 trait PolyC {
-  def apply[ T, A[ _ ] ]( arg: A[ T ] )( implicit cse: CaseC[ this.type, T, A ] ): cse.Result = cse.apply( arg )
+  def apply[ T, A[ _ ] ]( arg: A[ T ] )( implicit cse: CaseC[ this.type, T, A ] ): cse.Result = 
+    cse.apply( arg )
 }
 
 /**
@@ -67,13 +68,13 @@ object PolyCExample {
     implicit def listIntCaseC = {
       new CaseC[ this.type, Int, List ] {
         type Result = Int
-        def apply( lst: List[ Int ] ): Int = lst.length
+        def apply( lst: List[ Int ] ): Result = lst.length
       }
     }
     implicit def listDoubleCaseC = {
       new CaseC[ this.type, Double, List ] {
         type Result = Int
-        def apply( lst: List[ Double ] ): Int = lst.length
+        def apply( lst: List[ Double ]): Result = lst.length
       }
     }
   }
@@ -81,7 +82,7 @@ object PolyCExample {
   // sbt "run-main pt.inescn.utils.HListExample"
   def main( args: Array[ String ] ) {
 
-    def callPoly_3[ T, C[ _ ] ]( a: C[ T ], p: PolyC )( implicit cse1: CaseC[ p.type, T, C ] ) = {
+    def callPoly_3[ T, C[ _ ], ACC ]( a: C[ T ], p: PolyC )( implicit cse1: CaseC[ p.type, T, C ] ) = {
       val v1 = p( a )
       v1
     }

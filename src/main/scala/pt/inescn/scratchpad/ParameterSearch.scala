@@ -39,14 +39,14 @@ case class ParamTwo[ T ]( val value: T = 0.0 ) extends Parameter[ T ] with Stric
   def apply( v: T ): Self = new ParamTwo( v )
 }
 
-case class ParamThree( val value: Int = 0 ) extends Parameter[ Int ] with StrictSelf[ ParamThree] {
-  type Self = ParamThree
+case class ParamThree[T]( val value: T = 0 ) extends Parameter[ T ] with StrictSelf[ ParamThree[T]] {
+  type Self = ParamThree[T]
 
-  def apply( v: Int ): Self = new ParamThree( v )
+  def apply( v: T ): Self = new ParamThree( v )
 }
 
 object ModelAParams {
-  type w = ParamOne[ Double ] #: ParamTwo[ Double ] #: ParamThree #: HNil.type
+  type w = ParamOne[ Double ] #: ParamTwo[ Double ] #: ParamThree[Int] #: HNil.type
 }
 
 // Ok
@@ -60,10 +60,11 @@ class ModelA[ T, U[ T ] ]( val params: ModelAParams.w ) extends Model[ T, U, Dou
   def predict( datum: T ): Double = { 0.0 }
 }
 
-class ModelB[ T, U[ T ] ]( val v1 : ParamOne[_],  val v2 : ParamTwo[_], val3 : ParamThree) extends Model[ T, U, Double ] {
+class ModelB[ T, U[ T ] ]( val v1 : ParamOne[_],  val v2 : ParamTwo[_], val3 : ParamThree[_]) extends Model[ T, U, Double ] {
   def fit( data: U[ T ] ): Unit = {}
   def predict( datum: T ): Double = { 0.0 }
 }
+
 
 //import scala.collection.parallel.ParIterableLike
 
@@ -227,6 +228,11 @@ object SearchParameters {
     linspace( from, by ).take( len + 1 )
   }
 
+  def linISearch( from: Int, to: Int, by: Int ): Stream[ Int ] = {
+    val len = ( ( to - from ) / by ).ceil.toInt
+    linspace( from, by ).take( len + 1 )
+  }
+
   def main( args: Array[ String ] ) {
 
     val l = List( List( 1, 2, 3 ), List( 4, 5, 6 ) )
@@ -301,17 +307,27 @@ object SearchParameters {
     println( ParamOne( 0.001 ).value )
     //println(new learningRate( 0.001 ).valuex)
 
-    val t0 = new ParameterRange( ParamOne( 0.0 ), ParamOne( 1.0 ), 0.1, linSearch )
-    val t1 = new ParameterRange( ParamTwo( 0.0 ), ParamTwo( 1.0 ), 0.1, linSearch )
+    val t1 = new ParameterRange( ParamOne( 0.0 ), ParamOne( 1.0 ), 0.4, linSearch )
+    val t2 = new ParameterRange( ParamTwo( 0.0 ), ParamTwo( 1.0 ), 0.4, linSearch )
+    val t3= new ParameterRange( ParamThree( 0 ), ParamThree( 10 ), 4, linISearch )
     //val t1 = t0.toStream
     //t1.foreach { x => println( x ) }
     
-    val g1 = List( t0.toStream, t1.toStream )
+    val g1 = List( t1.toStream, t2.toStream, t3.toStream )
     //def g2 = GridPramaterSearch.cartesian5( l1.toStream, { x: Seq[ Int ] => x.mkString( "<", ",", ">" ) } )
     def g2 = GridPramaterSearch.cartesian5( g1.toStream, { x: Seq[ Parameter[_] ] => x  } )
-    g2.foreach { println }
+    //g2.foreach { println }
 
     
-    //val m1 = new ModelB( ParamOne( 0.001 ), ParamTwo( 0.05 ), ParamThree(100) )
+    //val m2 = new ModelB( ParamOne( 0.001 ), ParamTwo( 0.05 ), ParamThree(100) )
+    //val m2 = new ModelB( ParamTwo( 0.001 ), ParamTwo( 0.05 ), ParamThree(100) )
+    val pt1 = t1.toStream(1)
+    val pt2 = t2.toStream(1)
+    val pt3 = t3.toStream(1)
+    val m2 = new ModelB( pt1, pt2, pt3 )
+    val pa = g2(1)
+    val pa_ = pa.toArray
+    val pr1 = pa_(2)
+    //val m2 = new ModelB( pr1, ParamTwo( 0.05 ), ParamThree(100) )
   }
 }
