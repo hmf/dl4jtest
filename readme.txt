@@ -1,3 +1,8 @@
+
+SBT
+....
+https://gist.github.com/djspiewak/cb72c41ac335a3a9b28b3307be04aa43
+
 http://stackoverflow.com/questions/17552457/how-do-i-upload-eclipse-projects-to-github
 git init
 git remote add origin https://github.com/[username]/[reponame].git
