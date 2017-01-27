@@ -7,7 +7,7 @@ object HypeParamSearchV1 {
     val stop : T
     val config : U
     
-    def toStream : Stream[T] = ???
+    def toStream : Stream[Parameter] = ???
   }
   trait Parameter
 
@@ -29,7 +29,7 @@ object HypeParamSearchV1 {
     
     override def getParamRanges : ParamsRange = {
       val pr1 = new ParameterRange[Int, Int]  { val start = 0 ; val stop = 10 ; val config = 1 ;
-      override def toStream = Stream.iterate( start ) { acc => acc + config } take( config) }
+      override def toStream = Stream.iterate( start ) { acc => acc + config }.take( config).map { x => Param1(x) }  }
       val pr2 = new ParameterRange[Double, Double] { val start = 0.0 ; val stop = 1 ; val config = 0.1 }
       val pr3 = new ParameterRange[List[String], Double] { val start = List("a", "b", "c") ; val stop = List() ; val config = 1 }
       new ParamsRange { val ranges = Vector( pr1, pr2 , pr3)}
@@ -71,7 +71,7 @@ object HypeParamSearchV1 {
     
     val r1 = m1.getParamRanges
     val rng1 = r1.ranges
-    val p1_1 = rng1(0).toStream
+    val p1_1 = rng1(0).toStream(0)
     val p1_2 = rng1(1).toStream
     val p1_3 = rng1(2).toStream
     val p1p = new m1.Params(p1_1, p1_2)
