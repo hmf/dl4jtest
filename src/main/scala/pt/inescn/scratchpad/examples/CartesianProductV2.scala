@@ -26,11 +26,15 @@ object CartesianProductV2 {
     private type T[ X ] = Stream[ X ]
 
     implicit def crosser3[ A, B, C ] = new Crosser[ ( A, B ), C, ( A, B, C ) ] {
-      def cross( abs: T[ ( A, B ) ], cs: T[ C ] ): T[ ( A, B, C ) ] = for { ( a, b ) <- abs; c <- cs } yield ( a, b, c )
+      def cross( abs: T[ ( A, B ) ], cs: T[ C ] ): T[ ( A, B, C ) ] = 
+        //for { ( a, b ) <- abs; c <- cs } yield ( a, b, c )
+        abs.flatMap { case ( a, b) => cs.map { c => ( a, b, c ) }} 
     }
 
     implicit def crosser4[ A, B, C, D ] = new Crosser[ ( A, B, C ), D, ( A, B, C, D ) ] {
-      def cross( abcs: T[ ( A, B, C ) ], ds: T[ D ] ): T[ ( A, B, C, D ) ] = for { ( a, b, c ) <- abcs; d <- ds } yield ( a, b, c, d )
+      def cross( abcs: T[ ( A, B, C ) ], ds: T[ D ] ): T[ ( A, B, C, D ) ] = 
+        //for { ( a, b, c ) <- abcs; d <- ds } yield ( a, b, c, d )
+        abcs.flatMap { case ( a, b, c) => ds.map { d => ( a, b, c, d ) }} 
     }
   }
 

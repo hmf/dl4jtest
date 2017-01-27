@@ -500,6 +500,7 @@ object HListExample {
     }
 
     type ACC0  = HNil.type
+    //type MT = ( List[ A ], List[ B ], List[ C ], ACC0, MQ, MP ) => List[ R ]
     type MT = ( List[ A ], List[ B ], List[ C ], ACC0, MQ, MP ) => List[ R ]
     def flatMap3( l: List[ A ], nl: List[ B ], nnl: List[ C ], acc: ACC0, m: MQ, m0: MP) = {
       l.flatMap { y => m( nl, nnl, HCons(y,acc), m0) }

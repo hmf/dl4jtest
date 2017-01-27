@@ -165,3 +165,7 @@ https://amplab.cs.berkeley.edu/wp-content/uploads/2015/07/163-sparks.pdf
 https://xyclade.github.io/MachineLearning/
 https://github.com/haifengl/smile
 https://github.com/yahoo/egads
+
+https://blog.scalac.io/2015/05/07/encog-dsl.html
+http://haifengl.github.io/smile
+http://www.heatonresearch.com/encog/
