@@ -10,7 +10,7 @@ object FlatMapGenerics {
       crss
     }*/
 
-    /*
+    /* BUG - recursion
     // Ok... but
     // Need to add X to Stream[_] output
     // If we add another function with the same signature, we get an error
@@ -105,7 +105,7 @@ object FlatMapGenerics {
       1
     }
 */
-    
+
     //def f[ A: Ordering ]( a: A, b: A ) = if ( implicitly[ Ordering[ A ] ].lt( a, b ) ) a else b
 
     /*
@@ -118,17 +118,16 @@ object FlatMapGenerics {
       1
     }*/
 
-    implicit def listToStream[X](l:List[X]) = l.toStream
-    
-    
-    def duplicate8[ X, CC]( hc: CC )(implicit conv : CC => Stream[X]): Stream[X] = {
-      val crss =  hc.flatMap { x: X => List( x, x ) }
+    implicit def listToStream[ X ]( l: List[ X ] ) = l.toStream
+
+    def duplicate8[ X, CC ]( hc: CC )( implicit conv: CC => Stream[ X ] ): Stream[ X ] = {
+      val crss = hc.flatMap { x: X => List( x, x ) }
       crss
     }
-    
-    val v1 = duplicate8(List(1,2,3)) 
-    val v2 = duplicate8(Stream(1,2,3)) 
-    
+
+    val v1 = duplicate8( List( 1, 2, 3 ) )
+    val v2 = duplicate8( Stream( 1, 2, 3 ) )
+
     /*
     def duplicate7[ X: Stream ]( hc: X ): Int = {
       def doMore[ Y: Stream ]( g: Y ): Stream[ Y ] = {
@@ -149,6 +148,120 @@ object FlatMapGenerics {
       crss
     }*/
 
+    trait TA {
+      type T
+      def get: T
+    }
+
+    import pt.inescn.utils.HList._
+    import pt.inescn.utils.HList
+    import pt.inescn.utils.HCons
+    import pt.inescn.utils.HNil
+
+    class TB extends TA {
+      type T = Int :: String :: HNil.type
+      def get = 1 :: "2" :: HNil
+    }
+
+    def dynamic = {
+      new TB
+    }
+
+    def dynamic0 = {
+      new TA {
+        type T = Int :: String :: HNil.type
+        def get = 1 :: "2" :: HNil
+      }
+    }
+
+    def dynamic1 = {
+      // If we use only new TB we are creating a new "dynamic" class
+      // Cannot extend, only with
+      new TB with TA {
+        override type T = Int :: String :: HNil.type
+        override def get = 1 :: "2" :: HNil
+      }
+    }
+
+    trait Model {
+      trait ParamsRange {
+        type P
+        def get: P
+      }
+
+      def getParamRanges: ParamsRange
+    }
+
+
+    class M extends Model {
+      def getParamRanges : ParamsRange = {
+        new ParamsRange {
+          type P = String :: Int :: HNil.type
+          def get = "1" :: 2 :: HNil
+        }
+      }
+    }
+    
+    class MA extends Model {
+      // If you explicilty type the retun as ParamsRange
+      // then the Model trait's version of  ParamsRange is used 
+      def getParamRanges = {
+        new ParamsRange {
+          type P = String :: Int :: HNil.type
+          def get = "1" :: 2 :: HNil
+        }
+      }
+    }
+
+    class MB extends Model {
+      class PR extends ParamsRange {
+        type P = String :: Int :: HNil.type
+        def get = "1" :: 2 :: HNil
+      }
+
+      val prs = new PR
+      def getParamRanges : PR = prs // no need to explicitly type the return
+    }
+
+  }
+
+  def main( args: Array[ String ] ) {
+    import Test._
+
+    val v1 = new TB
+    val v1g = v1.get
+    val v1gp1 = v1g.head
+    val v1gp2 = v1g.tail.head
+
+    val v2 = dynamic
+    val v2g = v2.get
+    val v2gp1 = v2g.head
+    val v2gp2 = v2g.tail.head
+
+    val v3 = dynamic0
+    val v3g = v3.get
+    val v3gp1 = v3g.head
+    val v3gp2 = v3g.tail.head
+
+    val v4 = dynamic1
+    val v4g = v4.get
+    val v4gp1 = v4g.head
+    val v4gp2 = v4g.tail.head
+
+    val m = new M
+    val mr = m.getParamRanges
+    val mrg = mr.get
+    // val mrg_v1 = mrg.head // does not compile
+
+    val ma = new MA
+    val mar = ma.getParamRanges
+    val marg = mar.get
+    val marg_v1 = marg.head
+
+    val mb = new MB
+    val mbr = mb.getParamRanges
+    val mbrg = mbr.get
+    val mbrg_v1 = mbrg.head
   }
 
 }

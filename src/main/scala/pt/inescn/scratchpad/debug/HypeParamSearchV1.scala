@@ -19,7 +19,7 @@ object HypeParamSearchV1 {
   trait Model {
     trait Params
     trait ParamsRange  {
-      type P
+      type P 
       def get : P
     }
 
@@ -35,14 +35,15 @@ object HypeParamSearchV1 {
     //class ParamsX extends Params {
     class Params( param1: Param1, param2: Param2 ) extends super.Params
 
-    override def getParamRanges: ParamsRange = {
-      val pr1 = new ParameterRange[ Int, Int ] {
-        val start = 0; val stop = 10; val config = 1;
-        //override def toStream = Stream.iterate( start ) { acc => acc + config }.take( config ).map { x => Param1( x ) }
+    def getParamRanges = {
+      val pr1 = new ParameterRange[ Int, Int ] { val start = 0; val stop = 10; val config = 1;}
+      val pr2 = new ParameterRange[ Double, Double ] { val start = 0.0; val stop = 1.0; val config = 0.1 }
+      val pr3 = new ParameterRange[ List[ String ], Int ] { val start = List( "a", "b", "c" ); val stop = List[String](); val config = 1 }
+      new ParamsRange { 
+        type P = ParameterRange[ Int, Int ]  :: ParameterRange[ Double, Double ] :: ParameterRange[ List[ String ], Int ] :: HNil.type 
+        val tmp : P = pr1 :: pr2 :: pr3 :: HNil
+        override def get : P = pr1 :: pr2 :: pr3 :: HNil 
       }
-      val pr2 = new ParameterRange[ Double, Double ] { val start = 0.0; val stop = 1; val config = 0.1 }
-      val pr3 = new ParameterRange[ List[ String ], Double ] { val start = List( "a", "b", "c" ); val stop = List(); val config = 1 }
-      new ParamsRange { val p1 = pr1; val p2 = pr2; val p3 = pr3 }
     }
     override def fit( p: super.Params ): Boolean = true
     override def predict: Boolean = true
@@ -54,11 +55,15 @@ object HypeParamSearchV1 {
     case class Param2( v: Int ) extends Parameter
     class Params( param1: Param1, param2: Param2 ) extends super.Params
 
-    override def getParamRanges: ParamsRange = {
-      val pr1 = new ParameterRange[ Double, Double ] { val start = 0.0; val stop = 1; val config = 0.1 }
+    def getParamRanges = {
+      val pr1 = new ParameterRange[ Double, Double ] { val start = 0.0; val stop = 1.0; val config = 0.1 }
       val pr2 = new ParameterRange[ Int, Int ] { val start = 0; val stop = 10; val config = 1 }
-      val pr3 = new ParameterRange[ List[ String ], Double ] { val start = List( "a", "b", "c" ); val stop = List(); val config = 1 }
-      new ParamsRange { val ranges = Vector( pr1, pr2, pr3 ) }
+      val pr3 = new ParameterRange[ List[ String ], Int ] { val start = List( "a", "b", "c" ); val stop = List[String](); val config = 1 }
+      new ParamsRange { 
+        type P = ParameterRange[ Double, Double ] :: ParameterRange[ Int, Int ]  :: ParameterRange[ List[ String ], Int ] :: HNil.type 
+        val tmp : P = pr1 :: pr2 :: pr3 :: HNil
+        override def get : P = pr1 :: pr2 :: pr3 :: HNil 
+      }
     }
     override def fit( p: super.Params ): Boolean = true
     override def predict: Boolean = true
@@ -80,7 +85,9 @@ object HypeParamSearchV1 {
     val p2b = m2.fit( p2 )
 
     val r1 = m1.getParamRanges
-    //val rng1 = r1.ranges
+    val ps1  = r1.get
+    val rng1 = ps1.head
+    
     /*
     val p1_1 = rng1( 0 ).toStream( 0 )
     val p1_2 = rng1( 1 ).toStream
