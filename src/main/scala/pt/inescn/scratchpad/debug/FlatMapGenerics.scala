@@ -11,6 +11,7 @@ object FlatMapGenerics {
     }*/
 
     /* BUG - recursion
+     * @see https://groups.google.com/forum/#!topic/scala-user/58p-VbFEcu8
     // Ok... but
     // Need to add X to Stream[_] output
     // If we add another function with the same signature, we get an error
