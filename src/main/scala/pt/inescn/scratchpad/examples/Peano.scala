@@ -15,6 +15,26 @@ package pt.inescn.scratchpad.examples
  * - Shapeless by Miles Sabin,
  *   @see https://github.com/milessabin/shapeless
  *
+ * NOTE: debugging - 
+ *  Using the compiler
+ *  ~/dev/scala/scala-2.12.1/bin/scalac -print ./src/main/scala/pt/inescn/scratchpad/examples/Peano.scala
+ *  Usig the REPL
+ *  ~/dev/scala/scala-2.12.1/bin/scala -Xprint:typer -e "for (i <- 0 to 100) yield i"
+ *   May also work, but you cannot define packages. Must be a valid script. 
+ *  ~/dev/scala/scala-2.12.1/bin/scala -print ./src/main/scala/pt/inescn/scratchpad/examples/Peano.scala
+ *  ~/dev/scala/scala-2.12.1/bin/scala -print
+ *     Then write ans test the code.
+ *   
+ *   -Xprint:<phase>
+ *     scalac -Xshow-phases
+ *   Parser phase not enough
+ *     ~/dev/scala/scala-2.12.1/bin/scalac -Xprint:parser ./src/main/scala/pt/inescn/scratchpad/examples/Peano.scala
+ *   Too much information
+ *     ~/dev/scala/scala-2.12.1/bin/scalac -Xprint:typer ./src/main/scala/pt/inescn/scratchpad/examples/Peano.scala
+ *   
+ * @see http://stackoverflow.com/questions/9891407/getting-the-desugared-part-of-a-scala-for-comprehension-expression
+ * @see http://www.lihaoyi.com/Ammonite/
+ * 
  * sbt "run-main pt.inescn.scratchpad.examples.Peano"
  */
 object Peano {

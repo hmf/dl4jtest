@@ -1,3 +1,6 @@
+Scala
+......
+http://docs.scala-lang.org/cheatsheets/
 
 SBT
 ....
