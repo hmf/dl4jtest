@@ -73,8 +73,10 @@ libraryDependencies += "org.deeplearning4j" % "deeplearning4j-core" % "0.6.0"
 
 
 // TODO: add scalastyle checks also
+//scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Xlint", "-explaintypes")
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Xlint")
 //scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Xlint:deprecation")
 //scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Xlint", "-Xfatal-warnings")
 //scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Xfatal-warnings")
+//scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Xlint", "-uniqid", "-explaintypes")
 

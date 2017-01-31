@@ -149,6 +149,11 @@ object FlatMapGenerics {
       crss
     }*/
 
+    /*
+     * @see https://github.com/azavea/numeric/blob/master/plugin/src/test/scala/Example.scala 
+     * @seehttp://rudairandamacha.blogspot.pt/2012/11/saddling-horse-with-type-classes-in.html
+     * @see https://github.com/afwlehmann/typeclasses-intro
+     */
     trait TA {
       type T
       def get: T
@@ -194,6 +199,7 @@ object FlatMapGenerics {
     }
 
 
+    // Not the solution
     class M extends Model {
       def getParamRanges : ParamsRange = {
         new ParamsRange {
@@ -203,17 +209,19 @@ object FlatMapGenerics {
       }
     }
     
+    // Second best solution
     class MA extends Model {
       // If you explicilty type the retun as ParamsRange
       // then the Model trait's version of  ParamsRange is used 
       def getParamRanges = {
         new ParamsRange {
           type P = String :: Int :: HNil.type
-          def get = "1" :: 2 :: HNil
+          def get : P = "1" :: 2 :: HNil
         }
       }
     }
 
+    // Best solution
     class MB extends Model {
       class PR extends ParamsRange {
         type P = String :: Int :: HNil.type
@@ -256,13 +264,13 @@ object FlatMapGenerics {
 
     val ma = new MA
     val mar = ma.getParamRanges
-    val marg = mar.get
-    val marg_v1 = marg.head
+    val marg = mar.get  // Type not explcitily visible
+    val marg_v1 = marg.head // Type not explcitily visible
 
     val mb = new MB
     val mbr = mb.getParamRanges
-    val mbrg = mbr.get
-    val mbrg_v1 = mbrg.head
+    val mbrg = mbr.get // Type not explcitily visible
+    val mbrg_v1 = mbrg.head // Type not explcitily visible
   }
 
 }

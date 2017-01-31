@@ -1,5 +1,6 @@
 package pt.inescn.scratchpad.debug
 
+// sbt "run-main pt.inescn.scratchpad.debug.HypeParamSearchV1"
 object HypeParamSearchV1 {
 
   import pt.inescn.utils.HList._
@@ -87,6 +88,8 @@ object HypeParamSearchV1 {
     val r1 = m1.getParamRanges
     val ps1  = r1.get
     val rng1 = ps1.head
+    val rng2 = ps1.tail.head
+    val rng3 = ps1.tail.tail.head
     
     /*
     val p1_1 = rng1( 0 ).toStream( 0 )
