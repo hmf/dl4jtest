@@ -19,25 +19,17 @@ object HypeParamSearchV2 {
   // http://stackoverflow.com/questions/4315678/how-to-use-scalas-singleton-object-types
   // -uniqid -explaintypes
   // https://blogs.oracle.com/sundararajan/entry/mis_understaning_scala_s_singleton
-  case class ParameterRange[ P[X] <: Parameter[X], T, U ](
-      val param: P[T],
+  case class ParameterRange[ P <: Parameter[ T ], T, U ](
+      val param: P,
       val start: T,
       val stop: T,
-      val config: U ) {
+      val config: U ){
 
-    def toStream( f: (T, T, U ) => Stream[T] ): Stream[ P[T]#Self ]  = {
-        val st = f( start, stop, config )
-        val r = st.map{ x : T => param( x ) }
-        r
-    }
-
-    /*
-    def toStream: Stream[ P[ T ]#Self ] = {
-      val st = generator( begin.value, end.value, config )
-      val o = begin
-      val r = st.map{ x => o( x ) }
+    def toStream( f: ( T, T, U ) => Stream[ T ] ): Stream[ P#Self ] = {
+      val st = f( start, stop, config )
+      val r = st.map{ x: T => param( x ) }
       r
-    }*/
+    }
   }
 
   trait Model {
@@ -52,24 +44,21 @@ object HypeParamSearchV2 {
     def fit: Boolean = ???
     def predict: Boolean = ???
   }
-/*
+
   class ModelA extends Model {
 
-    case class Param1( v: Int ) extends Parameter[ Int ] { type Self = Param1; def apply( v: Int ) = new Param1( v ) }
-    case class Param2( v: Double ) extends Parameter[ Double ] { type Self = Param2; def apply( v: Double ) = new Param2( v ) }
-    case class Param3( v: String ) extends Parameter[ String ] { type Self = Param3; def apply( v: String ) = new Param3( v ) }
+    case class Param1( v: Int = -1 ) extends Parameter[ Int ] { type Self = Param1; def apply( v: Int ) = new Param1( v ) }
+    case class Param2( v: Double = -1) extends Parameter[ Double ] { type Self = Param2; def apply( v: Double ) = new Param2( v ) }
+    case class Param3( v: String = "") extends Parameter[ String ] { type Self = Param3; def apply( v: String ) = new Param3( v ) }
 
     def getParamRanges = {
-      //val pr1 : ParameterRange[Param1, Int, Int] = ParameterRange(Param1(0), 0, 10, 1)
-      val pr1  = ParameterRange( Param1(-1), 0, 10, 1 )
-      val pr2 = ParameterRange( Param2(-1.0), 0.0, 1.0, 0.1 )
-      val pr3 = ParameterRange( Param3(""), List( "a", "b", "c" ), List[ String ](), 1 )
+      val pr1  = ParameterRange( Param1(), 0, 10, 1 )
+      val pr2 = ParameterRange( Param2(), 0.0, 1.0, 0.1 )
+      val pr3 = ParameterRange( Param3(), "a", "c", List( "a", "b", "c" ) )
       new ParamsRange {
-        //type P = ParameterRange[ Param1, Int, Int ] :: ParameterRange[ Param2, Double, Double ] :: ParameterRange[ Param3, List[ String ], Int ] :: HNil.type
-        // type P =  ParameterRange[Param1, Int, Int] ::
         type P = ParameterRange[ Param1, Int, Int ] :: 
                      ParameterRange[ Param2, Double, Double ] :: 
-                     ParameterRange[ Param3, List[ String ], Int ] :: 
+                     ParameterRange[ Param3, String, List[ String ] ] :: 
                      HNil.type
         override def get: P = pr1 :: pr2 :: pr3 :: HNil
       }
@@ -80,20 +69,22 @@ object HypeParamSearchV2 {
     override def predict: Boolean = true
   }
   
-  */
-/*
+  
   class ModelB extends Model {
 
-    case class Param1( v: Double ) extends Parameter[ Double ] { type Self = Param1; def apply( v: Double ) = new Param1( v ) }
-    case class Param2( v: Int ) extends Parameter[ Int ] { type Self = Param2; def apply( v: Int ) = new Param2( v ) }
-    case class Param3( v: String ) extends Parameter[ String ] { type Self = Param3; def apply( v: String ) = new Param3( v ) }
+    case class Param1( v: Double = -1) extends Parameter[ Double ] { type Self = Param1; def apply( v: Double ) = new Param1( v ) }
+    case class Param2( v: Int = -1) extends Parameter[ Int ] { type Self = Param2; def apply( v: Int ) = new Param2( v ) }
+    case class Param3( v: String = "") extends Parameter[ String ] { type Self = Param3; def apply( v: String ) = new Param3( v ) }
 
     def getParamRanges = {
-      val pr1 = new ParameterRange( Param1(-1), 0.0, 1.0, 0.1 )
-      val pr2 = new ParameterRange( Param2(0.0), 0, 10, 1 )
-      val pr3 = new ParameterRange( Param3(""), List( "a", "b", "c" ), List[ String ](), config = 1 )
+      val pr1 = new ParameterRange( Param1(), 0.0, 1.0, 0.1 )
+      val pr2 = new ParameterRange( Param2(), 0, 10, 1 )
+      val pr3 = new ParameterRange( Param3(""), "a", "b", config = List( "a", "b", "c" ) )
       new ParamsRange {
-        type P = ParameterRange[ Param1.type, Double, Double ] :: ParameterRange[ Param2.type, Int, Int ] :: ParameterRange[ Param3.type, List[ String ], Int ] :: HNil.type
+        type P = ParameterRange[ Param1, Double, Double ] :: 
+                     ParameterRange[ Param2, Int, Int ] :: 
+                     ParameterRange[ Param3, String, List[String] ] :: 
+                     HNil.type
         override def get: P = pr1 :: pr2 :: pr3 :: HNil
       }
     }
@@ -126,7 +117,15 @@ object HypeParamSearchV2 {
     val rng1 = ps1.head
     val rng2 = ps1.tail.head
     val rng3 = ps1.tail.tail.head
-
+    
+    val s1 = rng1.toStream { (from, to, by) =>  
+                                            val len = ( ( to - from ) / by ).ceil.toInt
+                                             Stream.iterate( from ) { acc => acc + by } take len } 
+    println(s1.mkString("<", ",", ">"))
+    val s3 = rng3.toStream { (from, to, by) =>  by.toStream } 
+    println(s3.mkString("<", ",", ">"))
+    
+/*
     def linSearch( p : Parameter, from: Double, to: Double, by: Double ): Stream[ Double ] = {
       import pt.inescn.scratchpad.StreamBuilder._
       val len = ( ( to - from ) / by ).ceil.toInt
@@ -140,7 +139,7 @@ object HypeParamSearchV2 {
     }
 
     val pr1_1 = rng1.toStream( linISearch )
-
+*/
     /*
     val p1_1 = rng1( 0 ).toStream( 0 )
     val p1_2 = rng1( 1 ).toStream
@@ -148,5 +147,4 @@ object HypeParamSearchV2 {
     val p1p = new m1.Params( p1_1, p1_2 )
 */
   }
-*/
 }

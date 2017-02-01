@@ -64,8 +64,9 @@ libraryDependencies += "org.nd4j" % "nd4j-cuda-8.0-platform" % "0.6.0"
 // set scalaVersion := "2.12.0"
 // test:console
 // (1 to 9).asNDArray(3,3)
-libraryDependencies += "org.nd4j" % "nd4s_2.12.0-M3" % "0.4-rc3.8" 
-//libraryDependencies += "org.nd4j" %% "nd4s" % "0.7.2" 
+//libraryDependencies += "org.nd4j" % "nd4s_2.12.0-M3" % "0.4-rc3.8" 
+// https://github.com/deeplearning4j/nd4s/issues/96
+// libraryDependencies += "org.nd4j" %% "nd4s" % "0.7.0" 
 //libraryDependencies += "org.nd4j" %% "nd4s" % "0.6.0"
 
 libraryDependencies += "org.datavec" % "datavec-api" % "0.6.0"
@@ -77,6 +78,7 @@ libraryDependencies += "org.datavec" % "datavec-data-audio" % "0.6.0"
 libraryDependencies += "org.deeplearning4j" % "deeplearning4j-core" % "0.6.0"
 
 libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.1"
+// Conflicting cross-version suffixes in: org.scalatest:scalatest, org.scala-lang.modules:scala-xml
 //libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test"
 
 // TODO: add scalastyle checks also

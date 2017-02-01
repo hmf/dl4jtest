@@ -5,12 +5,12 @@ import java.util
 import scala._
 
 import org.nd4j.linalg.factory.Nd4j
-import org.nd4s.Implicits._
+//import org.nd4s.Implicits._
 
 
 object scala {
   def main(args: Array[String]): Unit = {
-
+/* TODO
     /** Creating arrays in multiple ways, all using numpy syntax */
 
     var arr = Nd4j.create(4)
@@ -83,6 +83,6 @@ object scala {
     println(Nd4j.max(arr3).toString + "Find max value in array")
     println(Nd4j.min(arr3).toString +  "Find min value in array")
 
-
+*/
   }
 }
