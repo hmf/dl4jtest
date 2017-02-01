@@ -16,6 +16,10 @@ scalaVersion in ThisBuild := "2.12.1"
 //scalaVersion := "2.12.0"
 //scalaVersion := "2.11.8"
 
+// For For ScalaTestb: add in ~/.sbt/0.13/global.sbt
+// export http_proxy="http://proxy.inescn.pt:3128"
+//resolvers += "Artima Maven Repository" at "http://repo.artima.com/releases"
+
 //resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
 //resolvers += "Sonatype OSS Snapshots" at "http://oss.sonatype.org/content/repositories/snapshots/"
 //resolvers += "mvnrepository" at "http://mvnrepository.com/artifact/"
@@ -61,6 +65,7 @@ libraryDependencies += "org.nd4j" % "nd4j-cuda-8.0-platform" % "0.6.0"
 // test:console
 // (1 to 9).asNDArray(3,3)
 libraryDependencies += "org.nd4j" % "nd4s_2.12.0-M3" % "0.4-rc3.8" 
+//libraryDependencies += "org.nd4j" %% "nd4s" % "0.7.2" 
 //libraryDependencies += "org.nd4j" %% "nd4s" % "0.6.0"
 
 libraryDependencies += "org.datavec" % "datavec-api" % "0.6.0"
@@ -71,10 +76,12 @@ libraryDependencies += "org.datavec" % "datavec-data-audio" % "0.6.0"
 
 libraryDependencies += "org.deeplearning4j" % "deeplearning4j-core" % "0.6.0"
 
+libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.1"
+//libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test"
 
 // TODO: add scalastyle checks also
-//scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Xlint", "-explaintypes")
-scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Xlint")
+scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Xlint", "-explaintypes")
+//scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Xlint")
 //scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Xlint:deprecation")
 //scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Xlint", "-Xfatal-warnings")
 //scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Xfatal-warnings")
