@@ -221,6 +221,7 @@ object StreamBuilder {
   
   def main( args: Array[ String ] ): Unit = {
 
+    // TODO: make seed an implicit?
     //val r = new Random(1234)
     val r = new JDKRandomGenerator( 1234 );
 

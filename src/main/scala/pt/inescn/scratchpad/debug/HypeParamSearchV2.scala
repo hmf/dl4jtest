@@ -122,6 +122,10 @@ object HypeParamSearchV2 {
                                             val len = ( ( to - from ) / by ).ceil.toInt
                                              Stream.iterate( from ) { acc => acc + by } take len } 
     println(s1.mkString("<", ",", ">"))
+    val s2 = rng2.toStream { (from, to, by) =>  
+                                            val len = ( ( to - from ) / by ).ceil.toInt
+                                             Stream.iterate( from ) { acc => acc + by } take len } 
+    println(s2.mkString("<", ",", ">"))
     val s3 = rng3.toStream { (from, to, by) =>  by.toStream } 
     println(s3.mkString("<", ",", ">"))
     

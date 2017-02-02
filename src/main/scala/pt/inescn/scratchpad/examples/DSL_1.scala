@@ -10,7 +10,7 @@ package pt.inescn.scratchpad.examples
  *
  * Example in http://www.devx.com/enterprise/introduction-to-internal-dsls-in-scala.html
  *
- *
+ * sbt "run-main pt.inescn.scratchpad.examples.DSL_1"
  */
 object DSL_1 {
 
