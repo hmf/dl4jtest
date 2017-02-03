@@ -32,6 +32,17 @@ object HypeParamSearchV2 {
     }
   }
 
+  case class ParameterSeq[ P <: Parameter[ T ], T, U[_] ](
+      val param: P,
+      val seq: U[T]) {
+
+    def toStream( f:  U[T]  => Stream[ T ] ): Stream[ P#Self ] = {
+      val st = f( seq )
+      val r = st.map{ x: T => param( x ) }
+      r
+    }
+  }
+  
   trait Model {
     type Params
     trait ParamsRange {
@@ -54,11 +65,11 @@ object HypeParamSearchV2 {
     def getParamRanges = {
       val pr1  = ParameterRange( Param1(), 0, 10, 1 )
       val pr2 = ParameterRange( Param2(), 0.0, 1.0, 0.1 )
-      val pr3 = ParameterRange( Param3(), "a", "c", List( "a", "b", "c" ) )
+      val pr3  = ParameterSeq( Param3(), List( "a", "b", "c" ) )
       new ParamsRange {
         type P = ParameterRange[ Param1, Int, Int ] :: 
                      ParameterRange[ Param2, Double, Double ] :: 
-                     ParameterRange[ Param3, String, List[ String ] ] :: 
+                     ParameterSeq[ Param3, String, List ] :: 
                      HNil.type
         override def get: P = pr1 :: pr2 :: pr3 :: HNil
       }
@@ -79,11 +90,11 @@ object HypeParamSearchV2 {
     def getParamRanges = {
       val pr1 = new ParameterRange( Param1(), 0.0, 1.0, 0.1 )
       val pr2 = new ParameterRange( Param2(), 0, 10, 1 )
-      val pr3 = new ParameterRange( Param3(""), "a", "b", config = List( "a", "b", "c" ) )
+      val pr3  = ParameterSeq( Param3(), List( "d", "e", "f" ) )
       new ParamsRange {
         type P = ParameterRange[ Param1, Double, Double ] :: 
                      ParameterRange[ Param2, Int, Int ] :: 
-                     ParameterRange[ Param3, String, List[String] ] :: 
+                     ParameterSeq[ Param3, String, List ] :: 
                      HNil.type
         override def get: P = pr1 :: pr2 :: pr3 :: HNil
       }
@@ -126,7 +137,7 @@ object HypeParamSearchV2 {
                                             val len = ( ( to - from ) / by ).ceil.toInt
                                              Stream.iterate( from ) { acc => acc + by } take len } 
     println(s2.mkString("<", ",", ">"))
-    val s3 = rng3.toStream { (from, to, by) =>  by.toStream } 
+    val s3 = rng3.toStream { seq =>  seq.toStream } 
     println(s3.mkString("<", ",", ">"))
     
 /*
