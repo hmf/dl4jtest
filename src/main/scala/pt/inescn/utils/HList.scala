@@ -117,7 +117,9 @@ sealed trait Mapper[ P, HL <: HList ] {
 
 // (cse: pt.inescn.utils.Case[p.type,H]) cse.Result
 object Mapper {
-  implicit def cellMapper[ P <: Poly, H, T <: HList ]( implicit cse: pt.inescn.utils.Case[ P, H ], evTail: Mapper[ P, T ] ): Mapper[ P, HCons[ H, T ] ] =
+  implicit def cellMapper[ P <: Poly, H, T <: HList ]
+                            ( implicit cse: pt.inescn.utils.Case[ P, H ], 
+                                          evTail: Mapper[ P, T ] ): Mapper[ P, HCons[ H, T ] ] =
     new Mapper[ P, HCons[ H, T ] ] {
       type Out = HCons[ cse.Result, evTail.Out ]
       def apply( hc: HCons[ H, T ] ) = {
