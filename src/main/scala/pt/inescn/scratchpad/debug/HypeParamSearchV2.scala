@@ -16,10 +16,30 @@ object HypeParamSearchV2 {
   
   import scala.language.higherKinds
 
-  // http://stackoverflow.com/questions/4315678/how-to-use-scalas-singleton-object-types
-  // -uniqid -explaintypes
-  // https://blogs.oracle.com/sundararajan/entry/mis_understaning_scala_s_singleton
-  case class ParameterRange[ P <: Parameter[ T ], T, U ](
+  case class ParameterRange0[ P <: Parameter[ T ], T, U[_] ](
+      val param: P,
+      val seq: U[T]) {
+
+    def toStream( f:  U[T]  => Stream[ T ] ): Stream[ P#Self ] = {
+      val st = f( seq )
+      val r = st.map{ x: T => param( x ) }
+      r
+    }
+  }
+
+  case class ParameterRange2[ P <: Parameter[ T ], T, U ](
+      val param: P,
+      val start: T,
+      val config: U ){
+
+    def toStream( f: ( T, U ) => Stream[ T ] ): Stream[ P#Self ] = {
+      val st = f( start, config )
+      val r = st.map{ x: T => param( x ) }
+      r
+    }
+  }
+
+  case class ParameterRange3[ P <: Parameter[ T ], T, U ](
       val param: P,
       val start: T,
       val stop: T,
@@ -27,17 +47,6 @@ object HypeParamSearchV2 {
 
     def toStream( f: ( T, T, U ) => Stream[ T ] ): Stream[ P#Self ] = {
       val st = f( start, stop, config )
-      val r = st.map{ x: T => param( x ) }
-      r
-    }
-  }
-
-  case class ParameterSeq[ P <: Parameter[ T ], T, U[_] ](
-      val param: P,
-      val seq: U[T]) {
-
-    def toStream( f:  U[T]  => Stream[ T ] ): Stream[ P#Self ] = {
-      val st = f( seq )
       val r = st.map{ x: T => param( x ) }
       r
     }
@@ -63,13 +72,13 @@ object HypeParamSearchV2 {
     case class Param3( v: String = "") extends Parameter[ String ] { type Self = Param3; def apply( v: String ) = new Param3( v ) }
 
     def getParamRanges = {
-      val pr1  = ParameterRange( Param1(), 0, 10, 1 )
-      val pr2 = ParameterRange( Param2(), 0.0, 1.0, 0.1 )
-      val pr3  = ParameterSeq( Param3(), List( "a", "b", "c" ) )
+      val pr1  = ParameterRange3( Param1(), 0, 10, 1 )
+      val pr2 = ParameterRange3( Param2(), 0.0, 1.0, 0.1 )
+      val pr3  = ParameterRange0( Param3(), List( "a", "b", "c" ) )
       new ParamsRange {
-        type P = ParameterRange[ Param1, Int, Int ] :: 
-                     ParameterRange[ Param2, Double, Double ] :: 
-                     ParameterSeq[ Param3, String, List ] :: 
+        type P = ParameterRange3[ Param1, Int, Int ] :: 
+                     ParameterRange3[ Param2, Double, Double ] :: 
+                     ParameterRange0[ Param3, String, List ] :: 
                      HNil.type
         override def get: P = pr1 :: pr2 :: pr3 :: HNil
       }
@@ -88,13 +97,13 @@ object HypeParamSearchV2 {
     case class Param3( v: String = "") extends Parameter[ String ] { type Self = Param3; def apply( v: String ) = new Param3( v ) }
 
     def getParamRanges = {
-      val pr1 = new ParameterRange( Param1(), 0.0, 1.0, 0.1 )
-      val pr2 = new ParameterRange( Param2(), 0, 10, 1 )
-      val pr3  = ParameterSeq( Param3(), List( "d", "e", "f" ) )
+      val pr1 = new ParameterRange3( Param1(), 0.0, 1.0, 0.1 )
+      val pr2 = new ParameterRange3( Param2(), 0, 10, 1 )
+      val pr3  = ParameterRange0( Param3(), List( "d", "e", "f" ) )
       new ParamsRange {
-        type P = ParameterRange[ Param1, Double, Double ] :: 
-                     ParameterRange[ Param2, Int, Int ] :: 
-                     ParameterSeq[ Param3, String, List ] :: 
+        type P = ParameterRange3[ Param1, Double, Double ] :: 
+                     ParameterRange3[ Param2, Int, Int ] :: 
+                     ParameterRange0[ Param3, String, List ] :: 
                      HNil.type
         override def get: P = pr1 :: pr2 :: pr3 :: HNil
       }
@@ -139,27 +148,13 @@ object HypeParamSearchV2 {
     println(s2.mkString("<", ",", ">"))
     val s3 = rng3.toStream { seq =>  seq.toStream } 
     println(s3.mkString("<", ",", ">"))
+
+    val pr1_1_1 = s1(1)
+    val pr1_2_1 = s2(1)
+    val pr1_3_1 = s3(1)
+    val pr1b = pr1_1_1 :: pr1_2_1 :: pr1_3_1 :: HNil
+    val p1b = m1.params( pr1b )
+    //val p2c = m2.params( pr1b ) // compile time failure
     
-/*
-    def linSearch( p : Parameter, from: Double, to: Double, by: Double ): Stream[ Double ] = {
-      import pt.inescn.scratchpad.StreamBuilder._
-      val len = ( ( to - from ) / by ).ceil.toInt
-      linspace( from, by ).take( len + 1 )
-    }
-
-    def linISearch( p : Parameter, from: Int, to: Int, by: Int ): Stream[ Int ] = {
-      import pt.inescn.scratchpad.StreamBuilder._
-      val len = ( ( to - from ) / by ).ceil.toInt
-      linspace( from, by ).take( len + 1 )
-    }
-
-    val pr1_1 = rng1.toStream( linISearch )
-*/
-    /*
-    val p1_1 = rng1( 0 ).toStream( 0 )
-    val p1_2 = rng1( 1 ).toStream
-    val p1_3 = rng1( 2 ).toStream
-    val p1p = new m1.Params( p1_1, p1_2 )
-*/
   }
 }
