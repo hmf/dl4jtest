@@ -1,6 +1,16 @@
-package pt.inescn.utils
+package pt.inescn.scratchpad.examples
 
 import scala.language.higherKinds
+
+import scala.language.implicitConversions
+
+/*
+import pt.inescn.scratchpad.examples.Case
+import pt.inescn.scratchpad.examples.CaseC
+import pt.inescn.scratchpad.examples.HNil
+import pt.inescn.scratchpad.examples.Poly
+import pt.inescn.scratchpad.examples.PolyC
+*/
 
 // https://xuwei-k.github.io/shapeless-sxr/shapeless-2.10-2.0.0-M1/shapeless/ops/coproduct.scala.html
 //trait Mapper0[F <: Poly, C <: Coproduct] extends DepFn1[C] { type Out <: Coproduct }
@@ -107,8 +117,6 @@ object HList {
   def map[ P <: Poly, H <: HList ]( p: P, hc: H )( implicit ev: Mapper[ P, H ] ) = ev( hc )
 }
 
-import scala.language.implicitConversions
-
 // TODO: move this into HList Object?
 sealed trait Mapper[ P, HL <: HList ] {
   type Out <: HList
@@ -118,7 +126,7 @@ sealed trait Mapper[ P, HL <: HList ] {
 // (cse: pt.inescn.utils.Case[p.type,H]) cse.Result
 object Mapper {
   implicit def cellMapper[ P <: Poly, H, T <: HList ]
-                            ( implicit cse: pt.inescn.utils.Case[ P, H ], 
+                            ( implicit cse: pt.inescn.scratchpad.examples.Case[ P, H ], 
                                           evTail: Mapper[ P, T ] ): Mapper[ P, HCons[ H, T ] ] =
     new Mapper[ P, HCons[ H, T ] ] {
       type Out = HCons[ cse.Result, evTail.Out ]

@@ -35,6 +35,9 @@ libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.7.21"
 //libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.1.7"
 libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0"
 
+// Type-level
+libraryDependencies += "com.chuusai" %% "shapeless" % "2.3.2"
+
 // Apache Common
 libraryDependencies += "org.apache.commons" % "commons-math3" % "3.6.1"
 

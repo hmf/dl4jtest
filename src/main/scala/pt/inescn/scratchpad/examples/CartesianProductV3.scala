@@ -39,10 +39,10 @@ object CartesianProductV3 {
     def cross[ B, C ]( ys: Stream[ B ] )( implicit crosser: Crosser[ A, B, C ] ): Stream[ C ] = crosser.cross( xs, ys )
   }
 
-  import pt.inescn.utils.HList._
-  import pt.inescn.utils.HList
-  import pt.inescn.utils.HCons
-  import pt.inescn.utils.HNil
+  import pt.inescn.scratchpad.examples.HList._
+  import pt.inescn.scratchpad.examples.HList
+  import pt.inescn.scratchpad.examples.HCons
+  import pt.inescn.scratchpad.examples.HNil
 
   sealed trait EMapper[ HL <: HList ] {
     type Out <: HList

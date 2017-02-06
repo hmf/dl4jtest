@@ -9,11 +9,15 @@ import StreamBuilder._
 
 import scala.language.higherKinds
 
+/* TODO: remove
 //import pt.inescn.utils.HList._  // cannot use this because of clash between List's and hList's :: type
-import pt.inescn.utils.HList
-import pt.inescn.utils.HNil
+import pt.inescn.scratchpad.examples.HList
+import pt.inescn.scratchpad.examples.HNil
 import pt.inescn.utils.HList.{ :: => #: } // rename the type for compatibility
 //import pt.inescn.utils.HList.HNil
+*/
+
+import shapeless.{ :: => #:, HList, HNil }
 
 trait Model[ T, U[ T ], P ] {
   //type params = HList
@@ -46,7 +50,7 @@ case class ParamThree[T]( val value: T = 0 ) extends Parameter[ T ] with StrictS
 }
 
 object ModelAParams {
-  type w = ParamOne[ Double ] #: ParamTwo[ Double ] #: ParamThree[Int] #: HNil.type
+  type w = ParamOne[ Double ] #: ParamTwo[ Double ] #: ParamThree[Int] #: HNil
 }
 
 // Ok

@@ -1,9 +1,11 @@
-package pt.inescn.utils
+package pt.inescn.scratchpad.examples
 
 import scala.language.higherKinds
 
 /**
  * https://apocalisp.wordpress.com/2010/06/13/type-level-programming-in-scala-part-3-boolean/
+ * 
+ * sbt "run-main pt.inescn.utils.BoolExample"
  */
 sealed trait Bool {
   type If[ T <: Up, F <: Up, Up ] <: Up

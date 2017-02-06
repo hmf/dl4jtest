@@ -3,10 +3,10 @@ package pt.inescn.scratchpad.debug
 // sbt "run-main pt.inescn.scratchpad.debug.HypeParamSearchV1"
 object HypeParamSearchV1 {
 
-  import pt.inescn.utils.HList._
-  import pt.inescn.utils.HList
-  import pt.inescn.utils.HCons
-  import pt.inescn.utils.HNil
+  import pt.inescn.scratchpad.examples.HList._
+  import pt.inescn.scratchpad.examples.HList
+  import pt.inescn.scratchpad.examples.HCons
+  import pt.inescn.scratchpad.examples.HNil
 
   trait ParameterRange[ T, U ] {
     val start: T

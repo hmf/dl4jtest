@@ -159,10 +159,10 @@ object FlatMapGenerics {
       def get: T
     }
 
-    import pt.inescn.utils.HList._
-    import pt.inescn.utils.HList
-    import pt.inescn.utils.HCons
-    import pt.inescn.utils.HNil
+    import pt.inescn.scratchpad.examples.HList._
+    import pt.inescn.scratchpad.examples.HList
+    import pt.inescn.scratchpad.examples.HCons
+    import pt.inescn.scratchpad.examples.HNil
 
     class TB extends TA {
       type T = Int :: String :: HNil.type

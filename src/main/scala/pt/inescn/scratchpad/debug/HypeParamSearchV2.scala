@@ -3,11 +3,8 @@ package pt.inescn.scratchpad.debug
 // sbt "run-main pt.inescn.scratchpad.debug.HypeParamSearchV2"
 object HypeParamSearchV2 {
 
-  import pt.inescn.utils.HList._
-  import pt.inescn.utils.HList
-  import pt.inescn.utils.HCons
-  import pt.inescn.utils.HNil
-
+  import shapeless.{ ::, HList, HNil }
+  
   
   trait Parameter[ T ] {
     type Self <: Parameter[ T ]
@@ -79,11 +76,11 @@ object HypeParamSearchV2 {
         type P = ParameterRange3[ Param1, Int, Int ] :: 
                      ParameterRange3[ Param2, Double, Double ] :: 
                      ParameterRange0[ Param3, String, List ] :: 
-                     HNil.type
+                     HNil
         override def get: P = pr1 :: pr2 :: pr3 :: HNil
       }
     }
-    type Params = Param1 :: Param2 :: Param3 :: HNil.type
+    type Params = Param1 :: Param2 :: Param3 :: HNil
     override def params( p: Params ): Boolean = true
     override def fit: Boolean = true
     override def predict: Boolean = true
@@ -104,11 +101,11 @@ object HypeParamSearchV2 {
         type P = ParameterRange3[ Param1, Double, Double ] :: 
                      ParameterRange3[ Param2, Int, Int ] :: 
                      ParameterRange0[ Param3, String, List ] :: 
-                     HNil.type
+                     HNil
         override def get: P = pr1 :: pr2 :: pr3 :: HNil
       }
     }
-    type Params = Param1 :: Param2 :: Param3 :: HNil.type
+    type Params = Param1 :: Param2 :: Param3 :: HNil
     override def params( p: Params ): Boolean = true
     override def fit: Boolean = true
     override def predict: Boolean = true
@@ -131,12 +128,22 @@ object HypeParamSearchV2 {
     val p2b = m2.params( pr2a )
 
     // TODO: add indexing to the HList
+    import shapeless.nat._
+    import shapeless.ops.hlist._
+    
     // TODO: add DSL bopilerplate - cross or parallel all streams
     val r1 = m1.getParamRanges
     val ps1 = r1.get
-    val rng1 = ps1.head
-    val rng2 = ps1.tail.head
-    val rng3 = ps1.tail.tail.head
+    val rng1 = ps1(_0) // ps1.head
+    
+    //import shapeless. syntax.std.tuple._
+    val rng2 = ps1(_1) // ps1.tail.head
+    //val rng3 = ps1(shapeless.nat._2) // ps1.tail.tail.head
+    import shapeless._
+    val rng3 = ps1(2) // ps1.tail.tail.head
+    
+    //val l9 = 23 :: "foo" :: true :: HNil 
+    //val t = l9(0) 
     
     val s1 = rng1.toStream { (from, to, by) =>  
                                             val len = ( ( to - from ) / by ).ceil.toInt

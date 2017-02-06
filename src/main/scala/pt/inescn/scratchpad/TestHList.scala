@@ -10,8 +10,8 @@ package pt.inescn.scratchpad
 object TestHList {
 // https://groups.google.com/forum/#!topic/shapeless-dev/1EI204GKdm8
   //import pt.inescn.utils.HList._ // Don't import the :: type otherwise it will create a conflict with the Lists's 
-  import pt.inescn.utils.HNil
-  import pt.inescn.utils.HList.{ :: => #:: } // rename the type for compatibility
+  import pt.inescn.scratchpad.examples.HNil
+  import pt.inescn.scratchpad.examples.HList.{ :: => #:: } // rename t // rename the type for compatibility
   //import pt.inescn.utils.HList
   //import pt.inescn.utils.HList.HNil
 

@@ -1,4 +1,4 @@
-package pt.inescn.utils
+package pt.inescn.scratchpad.examples
 
 /**
  * This file implements the concept of a Poly(morphic) implicit.

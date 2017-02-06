@@ -2,8 +2,8 @@ package pt.inescn.scratchpad.debug
 
 import scala.language.higherKinds
 
-import pt.inescn.utils.Poly
-import pt.inescn.utils.Case
+import pt.inescn.scratchpad.examples.Poly
+import pt.inescn.scratchpad.examples.Case
 
 /* If we define this here, the map(l) will not find a standard HList
 trait Case[ P, A ] {
@@ -78,7 +78,7 @@ sealed trait Mapper[ P, HL <: HList ] {
  * pt.inescn.scratchpad.debug.HCons[String,pt.inescn.scratchpad.debug.HCons[Int,pt.inescn.scratchpad.debug.HNil.type]]])ev.Out
  */
 object Mapper {
-  implicit def cellMapper[ P <: Poly, H, T <: HList ]( implicit cse: pt.inescn.utils.Case[ P, H ], evTail: Mapper[ P, T ] ): Mapper[ P, HCons[ H, T ] ] =
+  implicit def cellMapper[ P <: Poly, H, T <: HList ]( implicit cse: pt.inescn.scratchpad.examples.Case[ P, H ], evTail: Mapper[ P, T ] ): Mapper[ P, HCons[ H, T ] ] =
     new Mapper[ P, HCons[ H, T ] ] {
       type Out = HCons[ cse.Result, evTail.Out ]
       def apply( hc: HCons[ H, T ] ) = {
