@@ -38,6 +38,11 @@ libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0"
 // Type-level
 libraryDependencies += "com.chuusai" %% "shapeless" % "2.3.2"
 
+// ML
+libraryDependencies += "com.github.haifengl" % "smile-core" % "1.2.2"
+// libraryDependencies += "com.github.haifengl" % "smile-scala_2.12" % "1.2.2"
+libraryDependencies += "com.github.haifengl" %% "smile-scala" % "1.2.2"
+
 // Apache Common
 libraryDependencies += "org.apache.commons" % "commons-math3" % "3.6.1"
 
