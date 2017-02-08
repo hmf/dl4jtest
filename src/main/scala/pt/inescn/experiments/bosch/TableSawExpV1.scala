@@ -36,6 +36,9 @@ object TableSawExpV1 {
     println(dts.structure.print )
     println(dts.first(3).print())
     
+    // TODO: check if any column has missing data
+    // dts.selectWhere(missing)
+    
     println("Get/set the nominals")
     import com.github.lwhite1.tablesaw.api.QueryHelper.column
     val nominals = dts.structure().selectWhere(column("Column Type").isEqualTo("SHORT_INT"))
@@ -50,20 +53,37 @@ object TableSawExpV1 {
         val miss = col.countMissing() 
         //val out = u.print
         val out = u.toDoubleArray().mkString("<",",",">")
-        println(s"$colName: missing($miss) ; countUnique($sz)")
-        println(s"Unique values : ${u.print}")
+        println(s"$colName (${col.size}): missing($miss) ; countUnique($sz)")
+        val numRows = 10
+        println(s"Unique values (first $numRows) : ${u.first(numRows).print}")
     }
     
-    /*
-    val colName1 = "Col11"
-    nominalInfo(colName1)
+    val noms = nominals.categoryColumn("Column Name")
+    println(s"Nominals : type(${noms.`type`})")
+    //time { noms.asScala.foreach { colName =>  nominalInfo(dts, colName) } }
     
-    val colName2 = "Col19"
-    nominalInfo(colName2)*/
-
+    val setNoms = noms.asScala.toSet
     def colName(x : Int) = "Col"+x
-    val nominalFeaturesIndxs = nominalFeaturesCols map colName
-    time { nominalFeaturesIndxs.foreach { colName =>  nominalInfo(dts, colName)} }
+    val nominalFeaturesIndxs = nominalFeaturesCols map colName 
+    val unexpectedNoms1 = setNoms.diff(nominalFeaturesIndxs.toSet)
+    val unexpectedNoms2 = nominalFeaturesIndxs.toSet.diff(setNoms)
+    println(unexpectedNoms1.mkString("{", ",", "}"))
+    println(unexpectedNoms2.mkString("{", ",", "}"))
+
+    // These do not seem to be nominal features. Error?
+    println("Missing nominals:")
+    def veryFewValues(dts : Table, colName : String, limit : Int) = {
+        val col = dts.column(colName)
+        val u = col.unique
+        val sz = u.size()
+        if (sz <= limit) true else false
+     }
+    unexpectedNoms2.foreach { colName =>  nominalInfo(dts, colName)}
+    
+    val limit = 30
+    println(s"Possibly missing nominals (max unique values, inclusive = $limit):")
+    unexpectedNoms1.filter { colName => veryFewValues(dts, colName, limit) }
+                              .foreach { colName =>  nominalInfo(dts, colName)}
     
   }
 }
