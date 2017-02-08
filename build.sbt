@@ -42,6 +42,8 @@ libraryDependencies += "com.chuusai" %% "shapeless" % "2.3.2"
 libraryDependencies += "com.github.haifengl" % "smile-core" % "1.2.2"
 // libraryDependencies += "com.github.haifengl" % "smile-scala_2.12" % "1.2.2"
 libraryDependencies += "com.github.haifengl" %% "smile-scala" % "1.2.2"
+//libraryDependencies += "joinery" % "joinery-dataframe" % "1.7"
+libraryDependencies += "com.github.lwhite1" % "tablesaw" % "0.7.6.4"
 
 // Apache Common
 libraryDependencies += "org.apache.commons" % "commons-math3" % "3.6.1"

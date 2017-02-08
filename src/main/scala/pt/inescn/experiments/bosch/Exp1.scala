@@ -5,6 +5,7 @@ import javax.xml.ws.Response
 /**
  * For full file
  * sbt "run-main pt.inescn.experiments.bosch.Exp1"
+ * 
  * env JAVA_OPTS="-Xmx512m" sbt "run-main pt.inescn.experiments.bosch.Exp1"
  * sbt -mem 2048 "run-main pt.inescn.experiments.bosch.Exp1"
  * sbt -mem 4096 "run-main pt.inescn.experiments.bosch.Exp1"        // fails
@@ -43,22 +44,25 @@ import javax.xml.ws.Response
  * @see https://github.com/josephmisiti/awesome-machine-learning
  * 
  * TODO: https://saddle.github.io/
+ * https://github.com/martincooper/scala-datatable
+ * https://github.com/tixxit/framian
  * https://darrenjw.wordpress.com/2015/08/21/data-frames-and-tables-in-scala/
+ * https://github.com/scalanlp/breeze
+ * https://github.com/scalanlp/breeze/issues/470
  * http://factorie.cs.umass.edu/
  * http://ddf.io/
+ * 
+ * Java 
+ * https://github.com/cardillo/joinery
+ * https://github.com/netzwerg/paleo
+ * https://github.com/lwhite1/tablesaw
+ * 
+ * http://machinelearningmastery.com/java-machine-learning/
  */
 object Exp1 {
 
-  def time[ R ]( block: => R ): R = {
-    val t0 = System.nanoTime()
-    val result = block // call-by-name
-    val t1 = System.nanoTime()
-    //println( "Elapsed time: " + ( t1 - t0 ) + "ns" )
-    println( "Elapsed time: " + ( t1 - t0 ) / 1e9+ "sec" )
-    result
-  }
-
-
+  import pt.inescn.utils.Utils.time
+  
   /**
    * @see https://github.com/haifengl/smile/wiki/Tutorial:-A-Gentle-Introduction-to-Smile
    * @see https://xyclade.github.io/MachineLearning/
@@ -87,7 +91,8 @@ object Exp1 {
     val colNames = (0 to 173) map { x => colName(x) }
     val colAttributes1 = colNames map { x => new NumericAttribute(x) }
     println(colNames.size)
-    val nominalFeaturesIndxs = Set(11, 19, 45, 71, 133, 134, 145, 146, 147, 153, 156, 159, 161, 166)  map colName
+    val nominalFeaturesCols = Set(11, 19, 45, 71, 133, 134, 145, 146, 147, 153, 156, 159, 161, 166) 
+    val nominalFeaturesIndxs = nominalFeaturesCols map colName
     val colAttributes2 = colAttributes1 map { x => 
                      if (nominalFeaturesIndxs.contains(x.getName) ) new NominalAttribute(x.getName) else x  } 
     val colAttributes = colAttributes2.toArray
@@ -105,7 +110,36 @@ object Exp1 {
     time { println(s"attributes = ${ds.attributes().mkString("<",",",">")}") }
     time { println(s"colnames = ${ds.colnames.mkString("<",",",">")}") }
     time { println(s"response = ${ds.response()}") }
-    // TODO time { println(s"summary = ${ds.summary}") }
+    time { println(s"summary = ${ds.summary}") }
+
+    // Irrespective of the column size, the ds.toArray will always place all columns in the matrix
+    //val x : double[][] = ds.toArray(new double[ds.size()][]);
+    val x = ds.toArray( Array.ofDim[Double](ds.size(), ds.colnames.size) );
+    //val x = ds.toArray( Array.ofDim[Double](ds.size, nominalFeaturesIndxs.size) );
+    
+    println("??????????????")
+    println(x(0).mkString(","))
+    
+    def dropColumn(mat: Array[Array[Double] ] , col: Int) = {
+      /*for (row <- x.indices)
+        x(row) = x(row).drop(1)*/
+       x.transform(_.drop(1))
+    }
+    
+    def dropColumns(mat: Array[Array[Double] ] , cols: List[Int]) = {
+      val row_len = mat(0).length
+      // second of tuple is index-offset
+      val offset = cols.zipWithIndex
+      offset.foreach { case (i,o) => dropColumn(mat, i-o) }
+    }
+    
+    println("!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    //dropColumn(x , 0)
+    //dropColumns(x, nominalFeaturesCols.toList)
+    val all = (0 to 173).toSet
+    val keep = all.diff(nominalFeaturesCols)
+    dropColumns(x, keep.toList)
+    println(x(0).mkString(","))
     
     // One-hot-encoding
     // https://haifengl.github.io/smile/api/java/smile/feature/Nominal2Binary.html
@@ -117,7 +151,8 @@ object Exp1 {
     val oneHotEncoding = new Nominal2Binary(nominalAttributes)
     val nominalEncodings = oneHotEncoding.attributes()
     println(s"Nominal encodings = ${nominalEncodings.mkString("<",",",">")}")
-
+    val c11_1 = oneHotEncoding.f( x(11), 0) // 1..10
+    
     // How do we replace the columns?
     
     // https://haifengl.github.io/smile/api/java/smile/feature/NumericAttributeFeature.html
