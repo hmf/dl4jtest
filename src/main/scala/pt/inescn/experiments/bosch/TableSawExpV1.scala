@@ -36,11 +36,25 @@ object TableSawExpV1 {
     println(dts.structure.print )
     println(dts.first(3).print())
     
-    // TODO: check if any column has missing data
-    // dts.selectWhere(missing)
+    // Check if any column has missing data
+    import com.github.lwhite1.tablesaw.api.QueryHelper.column
+    //def NA(colName : String) = column(colName).isMissing()
+    def NA(colName : String) = column(colName).isNotMissing()
+    // Create a filter for each column
+    val naSFilters = dts.columnNames().asScala map { x => NA(x) }
+    // Make sure its a valid Java collection
+    val naFilters = naSFilters.asJavaCollection
+    // Requires 8G
+    // For any column select rows that have missing values
+    import com.github.lwhite1.tablesaw.api.QueryHelper.anyOf
+    val nas = dts.selectWhere( anyOf(naFilters) )
+    // Testin - not missing
+    // Requires 8G
+    //import com.github.lwhite1.tablesaw.api.QueryHelper.allOf
+    //val nas = dts.selectWhere( allOf(naFilters) )
+    println(s"Found ${nas.rowCount()} rows with missing data")
     
     println("Get/set the nominals")
-    import com.github.lwhite1.tablesaw.api.QueryHelper.column
     val nominals = dts.structure().selectWhere(column("Column Type").isEqualTo("SHORT_INT"))
     println(nominals.print )
     
