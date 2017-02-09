@@ -13,6 +13,7 @@ package pt.inescn.experiments.bosch
  * @see https://github.com/cardillo/joinery
  * @see https://github.com/netzwerg/paleo
  * @see http://stackoverflow.com/questions/10462507/any-good-library-to-read-and-write-csv-files
+ * 
  */
 object TableSawExpV1 {
   def main( args: Array[ String ] ) {
