@@ -53,11 +53,16 @@ import javax.xml.ws.Response
  * http://ddf.io/
  * 
  * Java 
+ * @see http://stackoverflow.com/questions/20540831/java-object-analogue-to-r-data-frame
  * https://github.com/cardillo/joinery
  * https://github.com/netzwerg/paleo
  * https://github.com/lwhite1/tablesaw
  * 
  * http://machinelearningmastery.com/java-machine-learning/
+ * 
+ * Package smile.feature
+ * Feature generation, normalization and selection.
+ * 
  */
 object Exp1 {
 

@@ -7,6 +7,12 @@ package pt.inescn.experiments.bosch
  * sbt -mem 8192 "run-main pt.inescn.experiments.bosch.TableSawExpV1"        // ok (245 sec)
  * sbt -mem 12288 "run-main pt.inescn.experiments.bosch.TableSawExpV1"      // ok (254 sec)
  * 
+ * @see https://darrenjw.wordpress.com/2015/08/21/data-frames-and-tables-in-scala/
+ * @see http://stackoverflow.com/questions/20540831/java-object-analogue-to-r-data-frame
+ * @see https://github.com/lwhite1/tablesaw
+ * @see https://github.com/cardillo/joinery
+ * @see https://github.com/netzwerg/paleo
+ * @see http://stackoverflow.com/questions/10462507/any-good-library-to-read-and-write-csv-files
  */
 object TableSawExpV1 {
   def main( args: Array[ String ] ) {
