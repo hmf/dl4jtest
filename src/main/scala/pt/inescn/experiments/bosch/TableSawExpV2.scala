@@ -259,11 +259,10 @@ object TableSawExpV2 {
     /*
      * SawTable utility
      */
-    def addColumns[A](tbl : Table, cols : List[A]) = {
-    //def addColumns[A](tbl : Table, cols : A*) = {
+    def addColumns[A](tbl : Table, cols : A*) = {
       val ncols = cols.map{ _.asInstanceOf[ Column[ _ ] ] }
-      //tbl.addColumn(ncol :_*)
-      ncols.foreach { x => tbl.addColumn(x) }
+      tbl.addColumn(ncols :_*)
+      //ncols.foreach { x => tbl.addColumn(x) }
     }
     
     /*
@@ -295,7 +294,7 @@ object TableSawExpV2 {
     val col1 = c1.asInstanceOf[ Column[ _ ] ]
     val col2 = c2.asInstanceOf[ Column[ _ ] ]
     //dt.addColumn( col1, col2 )
-    addColumns( dt, List(c1, c2, c3))
+    addColumns( dt, c1, c2, c3)
 
     val nzc1 = nearZero( dt, "col1" )
     println( nzc1 )
