@@ -129,9 +129,13 @@ object TableSawExpV2 {
 
     def calcRatios[ V, C: Ordering ]( sz: Int, r: Map[ V, C ], uniqueCut: Double, freqCut: Double )( implicit num: Numeric[ C ] ) = {
       val s = r.toList.sortBy { x => num.negate( x._2 ) }
-      val top = s( 0 )._2
-      val top_1 = s( 1 )._2
-      val ratio = num.toDouble( top ) / num.toDouble( top_1 )
+      val ratio = if (s.size >= 2)  { 
+          val top = s( 0 )._2
+          val top_1 = s( 1 )._2
+          num.toDouble( top ) / num.toDouble( top_1 ) 
+        } else {
+          Double.NaN
+        }
       val bad_ratio = if ( ratio > freqCut ) true else false
       val unique_ratio = r.size / sz.toDouble
       val bad_unique_ratio = if ( unique_ratio < uniqueCut ) true else false
@@ -232,24 +236,36 @@ object TableSawExpV2 {
           col4.add(nzc.bad_unique_val_ratio)
           col5.add(nzc.isConstant)
       }
-      addCategoryColumn(dt, col0)
-      addFloatColumn(dt, col1)
+      addColumn(dt, col0)
+      addColumn(dt, col1)
+      addColumn(dt, col2)
+      addColumn(dt, col3)
+      addColumn(dt, col4)
+      addColumn(dt, col5)
       dt
     }
 
     /*
      * SawTable utility
      */
-    def addCategoryColumn(tbl : Table, col : CategoryColumn) = {
+    def addColumn[A](tbl : Table, col : A) = {
       val ncol = col.asInstanceOf[ Column[ _ ] ]
-      tbl.addColumn(ncol)
-    }
-    
-    def addFloatColumn(tbl : Table, col : FloatColumn) = {
-      val ncol = col.asInstanceOf[ Column[ _ ] ]
+      //val col1 = c1.asInstanceOf[Column[AnyRef]]
+      //val col1 = c1.asInstanceOf[Column[Any]]
+      //val col1 = c1.asInstanceOf[Column[IntColumn]]
       tbl.addColumn(ncol)
     }
 
+    /*
+     * SawTable utility
+     */
+    def addColumns[A](tbl : Table, cols : List[A]) = {
+    //def addColumns[A](tbl : Table, cols : A*) = {
+      val ncols = cols.map{ _.asInstanceOf[ Column[ _ ] ] }
+      //tbl.addColumn(ncol :_*)
+      ncols.foreach { x => tbl.addColumn(x) }
+    }
+    
     /*
      * SawTable utility
      */
@@ -274,13 +290,12 @@ object TableSawExpV2 {
     val dt = Table.create( "test1" )
     val c1 = createIntColumn( "col1", List( 1, 1, 2, 1, 3, 2, 4 ) )
     val c2 = createIntColumn( "col2", List( 1, 2, 3, 4, 5, 6, 7 ) )
-
+    val c3 = createIntColumn( "col3", List( 1, 1, 1, 1, 1, 1, 1 ) )
+    
     val col1 = c1.asInstanceOf[ Column[ _ ] ]
     val col2 = c2.asInstanceOf[ Column[ _ ] ]
-    //val col1 = c1.asInstanceOf[Column[AnyRef]]
-    //val col1 = c1.asInstanceOf[Column[Any]]
-    //val col1 = c1.asInstanceOf[Column[IntColumn]]
-    dt.addColumn( col1, col2 )
+    //dt.addColumn( col1, col2 )
+    addColumns( dt, List(c1, c2, c3))
 
     val nzc1 = nearZero( dt, "col1" )
     println( nzc1 )
@@ -289,6 +304,11 @@ object TableSawExpV2 {
     val nzc2 = nearZero( dt, "col2" )
     println( nzc2 )
     assertOnNearZeroCheck( nzc2, 1.0, false, 1.0, false, false )
+
+    val nzc3 = nearZero( dt, "col3" )
+    println( nzc3 )
+    //assertOnNearZeroCheck( nzc3, Double.NaN, false, 0.14285714285714285, false, true )
+    assertOnNearZeroCheck( nzc3, Double.NaN, false, 0.142857, false, true )
     
     val nzt1 = nearZeros(dt)
     println(nzt1.print)

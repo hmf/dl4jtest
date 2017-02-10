@@ -17,6 +17,12 @@ object Utils {
   /**
    * Compare two real values with a given precision. 
    */
-  def aproxEqual( a: Double, b: Double, eps: Double = 0.000001 ) = ( ( b + eps ) >= a ) && ( a >= ( b - eps ) )
+  def aproxEqual( a: Double, b: Double, eps: Double = 0.000001 ) = {
+    if (a.isNaN) b.isNaN
+    else if (a.isInfinity) b.isInfinity
+    else if (b.isNaN) a.isNaN
+    else if (b.isInfinity) a.isInfinity
+    else ( ( b + eps ) >= a ) && ( a >= ( b - eps ) )
+  }
   
 }

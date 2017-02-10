@@ -108,7 +108,8 @@ object Exp1 {
                                               .setDelimiter(",")
                                               //.setCommentStartWith("#")
                                               .parse(colAttributes, file);
-    
+    // If we have no header
+    // parser.setColumnNames(true) 
     
     // smile.PimpedDataset
     time { println(s"size = ${ds.size()}") }
@@ -149,6 +150,7 @@ object Exp1 {
     // One-hot-encoding
     // https://haifengl.github.io/smile/api/java/smile/feature/Nominal2Binary.html
     // http://programtalk.com/vs/smile/core/src/test/java/smile/feature/FeatureSetTest.java/
+    // http://programtalk.com/vs/?source=smile/core/src/test/java/smile/feature/FeatureSetTest.java
     import smile.feature.Nominal2Binary
     println(s"Nominal attribute indexes = ${nominalFeaturesIndxs.mkString("<",",",">")}")
     val nominalAttributes = ds.attributes().filter { x => nominalFeaturesIndxs.contains(x.getName)  }
