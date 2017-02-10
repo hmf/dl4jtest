@@ -127,17 +127,19 @@ object TableSawExpV2 {
                               unique_val_ratio: Double, bad_unique_val_ratio: Boolean,
                               isConstant : Boolean)
 
-    def calcRatios[ V, C: Ordering ]( sz: Int, r: Map[ V, C ], uniqueCut: Double, freqCut: Double )( implicit num: Numeric[ C ] ) = {
-      val s = r.toList.sortBy { x => num.negate( x._2 ) }
+                              
+    def calcRatios[ V ]( l : Iterable[V], uniqueCut: Double, freqCut: Double ) = {
+      val r = l.groupBy( identity ).mapValues( _.size )
+      val s = r.toList.sortBy { x => - x._2 }
       val ratio = if (s.size >= 2)  { 
           val top = s( 0 )._2
           val top_1 = s( 1 )._2
-          num.toDouble( top ) / num.toDouble( top_1 ) 
+          top.toDouble / top_1.toDouble
         } else {
           Double.NaN
         }
       val bad_ratio = if ( ratio > freqCut ) true else false
-      val unique_ratio = r.size / sz.toDouble
+      val unique_ratio = r.size / l.size.toDouble
       val bad_unique_ratio = if ( unique_ratio < uniqueCut ) true else false
       NearZeroCheck( ratio, bad_ratio, unique_ratio, bad_unique_ratio, r.size == 1 )
     }
@@ -168,49 +170,40 @@ object TableSawExpV2 {
         case ColumnType.BOOLEAN =>
           val c = t.booleanColumn( colName )
           val l = c.toIntArray
-          val r = l.groupBy( identity ).mapValues( _.size )
-          calcRatios( l.size, r, uniqueCut, freqCut )
+          calcRatios( l, uniqueCut, freqCut )
         case ColumnType.CATEGORY =>
           val c = t.categoryColumn( colName )
           val l = c.asScala
-          val r = l.groupBy( identity ).mapValues( _.size )
-          calcRatios( l.size, r, uniqueCut, freqCut )
+          calcRatios( l, uniqueCut, freqCut )
         case ColumnType.FLOAT =>
           val c = t.floatColumn( colName )
           // TODO: val stats = c.stats() ?????
           val l = c.asScala
-          val r = l.groupBy( identity ).mapValues( _.size )
-          calcRatios( l.size, r, uniqueCut, freqCut )
+          calcRatios( l, uniqueCut, freqCut )
         case ColumnType.SHORT_INT =>
           val c = t.shortColumn( colName )
           val l = c.asScala
-          val r = l.groupBy( identity ).mapValues( _.size )
-          calcRatios( l.size, r, uniqueCut, freqCut )
+          calcRatios( l, uniqueCut, freqCut )
         case ColumnType.INTEGER =>
           val c = t.intColumn( colName )
           val l = c.asScala
-          val r = l.groupBy( identity ).mapValues( _.size )
-          calcRatios( l.size, r, uniqueCut, freqCut )
+          calcRatios( l, uniqueCut, freqCut )
         case ColumnType.LONG_INT =>
           val c = t.longColumn( colName )
           val l = c.asScala
-          val r = l.groupBy( identity ).mapValues( _.size )
-          calcRatios( l.size, r, uniqueCut, freqCut )
+          calcRatios( l, uniqueCut, freqCut )
         case ColumnType.LOCAL_DATE =>
           val c = t.dateColumn( colName )
           val l = c.asScala
-          val r = l.groupBy( identity ).mapValues( _.size )
-          calcRatios( l.size, r, uniqueCut, freqCut )
+          calcRatios( l, uniqueCut, freqCut )
         case ColumnType.LOCAL_DATE_TIME =>
           val c = t.dateTimeColumn( colName )
           val l = c.asScala
-          val r = l.groupBy( identity ).mapValues( _.size )
-          calcRatios( l.size, r, uniqueCut, freqCut )
+          calcRatios( l, uniqueCut, freqCut )
         case ColumnType.LOCAL_TIME =>
           val c = t.timeColumn( colName )
           val l = c.asScala
-          val r = l.groupBy( identity ).mapValues( _.size )
-          calcRatios( l.size, r, uniqueCut, freqCut )
+          calcRatios( l, uniqueCut, freqCut )
         case ColumnType.SKIP =>
           NearZeroCheck( Double.NaN, true, Double.NaN, true, true )
       }
@@ -236,42 +229,9 @@ object TableSawExpV2 {
           col4.add(nzc.bad_unique_val_ratio)
           col5.add(nzc.isConstant)
       }
-      addColumn(dt, col0)
-      addColumn(dt, col1)
-      addColumn(dt, col2)
-      addColumn(dt, col3)
-      addColumn(dt, col4)
-      addColumn(dt, col5)
+      addColumn(dt, col0) // why cannot we not add tis too via the varargs?
+      addColumns(dt, col1, col2, col3, col4, col5)
       dt
-    }
-
-    /*
-     * SawTable utility
-     */
-    def addColumn[A](tbl : Table, col : A) = {
-      val ncol = col.asInstanceOf[ Column[ _ ] ]
-      //val col1 = c1.asInstanceOf[Column[AnyRef]]
-      //val col1 = c1.asInstanceOf[Column[Any]]
-      //val col1 = c1.asInstanceOf[Column[IntColumn]]
-      tbl.addColumn(ncol)
-    }
-
-    /*
-     * SawTable utility
-     */
-    def addColumns[A](tbl : Table, cols : A*) = {
-      val ncols = cols.map{ _.asInstanceOf[ Column[ _ ] ] }
-      tbl.addColumn(ncols :_*)
-      //ncols.foreach { x => tbl.addColumn(x) }
-    }
-    
-    /*
-     * SawTable utility
-     */
-    def createIntColumn( colName: String, vals: Seq[ Int ] ) = {
-      val col = IntColumn.create( colName )
-      vals.foreach { x => col.add( x ) }
-      col
     }
 
     
@@ -291,8 +251,8 @@ object TableSawExpV2 {
     val c2 = createIntColumn( "col2", List( 1, 2, 3, 4, 5, 6, 7 ) )
     val c3 = createIntColumn( "col3", List( 1, 1, 1, 1, 1, 1, 1 ) )
     
-    val col1 = c1.asInstanceOf[ Column[ _ ] ]
-    val col2 = c2.asInstanceOf[ Column[ _ ] ]
+    //val col1 = c1.asInstanceOf[ Column[ _ ] ]
+    //val col2 = c2.asInstanceOf[ Column[ _ ] ]
     //dt.addColumn( col1, col2 )
     addColumns( dt, c1, c2, c3)
 
@@ -312,6 +272,81 @@ object TableSawExpV2 {
     val nzt1 = nearZeros(dt)
     println(nzt1.print)
     
+    // write.table(mdrrDescr, file="/home/hmf/Desktop/bosch/mdrrdesc.csv", sep=",", fileEncoding="UTF-8", quote=TRUE)
+    // write.table(mdrrDescr, file="/home/hmf/Desktop/bosch/mdrrdesc.csv", sep=",", fileEncoding="UTF-8", quote=TRUE,eol="\r\n")
+    // write.table(mdrrDescr, file="/home/hmf/Desktop/bosch/mdrrdesc.csv", sep=",", fileEncoding="UTF-8", quote=TRUE,eol="\r\n", row.names = FALSE)
+    // names(mdrrDescr)[names(mdrrDescr) == "w"] <- "w_"
+    // Add line 1 , G.O..Br. <- 1.0 (line 118)
+    // Add line 1 , G.Cl..Br. <- 1.0 (line 119)
+    //  412 and column  412 and column D.Dr08
+    // com.github.lwhite1.tablesaw.io.csv.AddCellToColumnException: Error while addding cell from row 420 and column G.N..I.(position:327): G.N..I.: For input string: "8.21"
+    // Error while addding cell from row 420 and column G.O..I.(position:333): G.O..I.: For input string: "22.58"
+    // com.github.lwhite1.tablesaw.io.csv.AddCellToColumnException: Error while addding cell from row 420 and column G.I..I.(position:341): G.I..I.: For input string: "3.69"
+	/*at com.github.lwhite1.tablesaw.io.csv.CsvReader.read(CsvReader.java:141)
+	at com.github.lwhite1.tablesaw.io.csv.CsvReader.read(CsvReader.java:76)
+	at com.github.lwhite1.tablesaw.io.csv.CsvReader.read(CsvReader.java:91)
+	at com.github.lwhite1.tablesaw.api.Table.createFromCsv(Table.java:773)
+	
+	  static ColumnType[] detectColumnTypes(String file, boolean header, char delimiter)
+	  line 345 - com.github.lwhite1.tablesaw.io.csv.CvsReader
+	*/
+    
+    import com.github.lwhite1.tablesaw.io.csv.CsvReader
+    
+    
+    def toColumnType(s : String) : ColumnType = {
+      s match {
+        case "BOOLEAN" => ColumnType.BOOLEAN
+        case "CATEGORY" => ColumnType.CATEGORY
+        case "FLOAT" => ColumnType.FLOAT
+        case  "SHORT_INT" => ColumnType.SHORT_INT
+        case "INTEGER" => ColumnType.INTEGER
+        case "LONG_INT" => ColumnType.LONG_INT
+        case "LOCAL_DATE" => ColumnType.LOCAL_DATE
+        case "LOCAL_DATE_TIME" => ColumnType.LOCAL_DATE_TIME
+        case "LOCAL_TIME" => ColumnType.LOCAL_TIME
+        case "SKIP" => ColumnType.SKIP    
+      }
+    }
+    
+    // Breaks also
+    val dtt = CsvReader.detectedColumnTypes("/home/hmf/Desktop/bosch/mdrrdesc_b.csv",  true, ',')
+    println(dtt.print)
+    //val types = dtt.column("Column Type")
+    val types = dtt.column(2)
+    println(types.unique().print)
+    println("?????")
+    //println(types.print)
+    println(types.`type`)
+    val ttypes = dtt.categoryColumn(2)
+    println("?????")
+    //println(ttypes.print)
+    //ttypes.toList()
+    val typeCol  = dtt.column("Column Type")
+    val typeColIndex = dtt.columnIndex(typeCol)
+    val ttypesx = dtt.categoryColumn(2)
+    val ctypes = ttypesx.toList().asScala map (x => toColumnType(x) )
+    println(ctypes.mkString("<",";", ">"))
+//    var r = 0
+//    while (r < dtt.rowCount()) {
+//      val tmp = dtt.get(typeColIndex, r)
+//      println(tmp)
+//      r = r + 1
+//    }
+
+
+    
+    //import com.github.lwhite1.tablesaw.api.ColumnType
+
+    val tps = types
+    
+    val dt1: Table = time { Table.createFromCsv( "/home/hmf/Desktop/bosch/mdrrdesc_b.csv" ) }
+    /*println(dt1.first(3).print)
+    //println(dt1.structure.print)
+
+    val nzt2 = nearZeros(dt1)
+    //println(nzt2.print)
+    */
     /*
     // Example of using cross-tabs
     import com.github.lwhite1.tablesaw.reducing.CrossTab
