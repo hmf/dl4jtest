@@ -66,9 +66,10 @@ object TableSawExpV1 {
     println(nominals.print )
     
     val nominalFeaturesCols = List(11, 19, 45, 71, 133, 134, 145, 146, 147, 153, 156, 159, 161, 166) 
+    //val nominalFeaturesCols = List(12, 20, 46, 72, 134, 135, 146, 147, 148, 154, 157, 160, 162, 167) index 1??
     
-    def nominalInfo(dts : Table, colName : String) = {
-        val col = dts.column(colName)
+    def nominalInfo(tbl : Table, colName : String) = {
+        val col = tbl.column(colName)
         val u = col.unique
         val sz = u.size()
         val miss = col.countMissing() 
@@ -76,7 +77,8 @@ object TableSawExpV1 {
         val out = u.toDoubleArray().mkString("<",",",">")
         println(s"$colName (${col.size}): missing($miss) ; countUnique($sz)")
         val numRows = 10
-        println(s"Unique values (first $numRows) : ${u.first(numRows).print}")
+        //println(s"Unique values (first $numRows) : ${u.first(numRows).print}")
+        println(s"First values (first $numRows) : ${col.first(numRows).print}")
     }
     
     val noms = nominals.categoryColumn("Column Name")

@@ -113,28 +113,29 @@ object TableSawExpV2 {
     unexpectedNoms1.filter { colName => veryFewValues(dts, colName, limit) }
                               .foreach { colName =>  nominalInfo(dts, colName)}
 */
-    
-    
+
     import com.github.lwhite1.tablesaw.api.ColumnType
     import com.github.lwhite1.tablesaw.columns.Column
     import com.github.lwhite1.tablesaw.api.IntColumn
     import com.github.lwhite1.tablesaw.api.BooleanColumn
     import com.github.lwhite1.tablesaw.api.FloatColumn
+    import com.github.lwhite1.tablesaw.api.CategoryColumn
 
     import collection.JavaConverters._
 
-    case class NearZeroCheck(frequency_ratio : Double, bad_freq_ratio : Boolean, 
-                                             unique_val_ratio : Double, bad_unique_val_ratio : Boolean) 
-    
-    def calcRatios[ V, C : Ordering]( sz : Int, r: Map[ V, C ], uniqueCut: Double, freqCut: Double)(implicit num: Numeric[C]) = {
-      val s = r.toList.sortBy( _._2 )
+    case class NearZeroCheck( frequency_ratio: Double, bad_freq_ratio: Boolean,
+                              unique_val_ratio: Double, bad_unique_val_ratio: Boolean,
+                              isConstant : Boolean)
+
+    def calcRatios[ V, C: Ordering ]( sz: Int, r: Map[ V, C ], uniqueCut: Double, freqCut: Double )( implicit num: Numeric[ C ] ) = {
+      val s = r.toList.sortBy { x => num.negate( x._2 ) }
       val top = s( 0 )._2
       val top_1 = s( 1 )._2
-      val ratio = num.toDouble(top) / num.toDouble(top_1)
+      val ratio = num.toDouble( top ) / num.toDouble( top_1 )
       val bad_ratio = if ( ratio > freqCut ) true else false
-      val unique_ratio = sz.toDouble / r.size
+      val unique_ratio = r.size / sz.toDouble
       val bad_unique_ratio = if ( unique_ratio < uniqueCut ) true else false
-      NearZeroCheck( ratio, bad_ratio, unique_ratio, bad_unique_ratio )
+      NearZeroCheck( ratio, bad_ratio, unique_ratio, bad_unique_ratio, r.size == 1 )
     }
 
     /*
@@ -155,7 +156,7 @@ object TableSawExpV2 {
       * in the samples is less than {10\%} and when the frequency ratio mentioned above is greater 
       * than 19 (95/5). 
       */
-    def nearZero[ K, V ]( t: Table, colName: String, uniqueCut: Double = 0.1, freqCut: Double = 19) = {
+    def nearZero[ K, V ]( t: Table, colName: String, uniqueCut: Double = 0.1, freqCut: Double = 19 ) = {
       val col = t.column( colName )
       val meta = col.columnMetadata()
       val tp = meta.getType
@@ -172,6 +173,7 @@ object TableSawExpV2 {
           calcRatios( l.size, r, uniqueCut, freqCut )
         case ColumnType.FLOAT =>
           val c = t.floatColumn( colName )
+          // TODO: val stats = c.stats() ?????
           val l = c.asScala
           val r = l.groupBy( identity ).mapValues( _.size )
           calcRatios( l.size, r, uniqueCut, freqCut )
@@ -181,7 +183,6 @@ object TableSawExpV2 {
           val r = l.groupBy( identity ).mapValues( _.size )
           calcRatios( l.size, r, uniqueCut, freqCut )
         case ColumnType.INTEGER =>
-          println("1111111111111111")
           val c = t.intColumn( colName )
           val l = c.asScala
           val r = l.groupBy( identity ).mapValues( _.size )
@@ -206,36 +207,74 @@ object TableSawExpV2 {
           val l = c.asScala
           val r = l.groupBy( identity ).mapValues( _.size )
           calcRatios( l.size, r, uniqueCut, freqCut )
-        case ColumnType.SKIP  => 
-          NearZeroCheck(Double.NaN, true, Double.NaN, true)    
+        case ColumnType.SKIP =>
+          NearZeroCheck( Double.NaN, true, Double.NaN, true, true )
       }
     }
 
-    def nearZeros( t: Table, colName: String, uniqueCut: Double = 0.1, freqCut: Double = 19 ) = {
+    def nearZeros( t: Table, uniqueCut: Double = 0.1, freqCut: Double = 19 ) = {
       val cols = t.columnNames.asScala
-      val nzc = cols.map { x => nearZero( t, colName, uniqueCut, freqCut ) }
+      val nzc = cols.map { colName => nearZero( t, colName, uniqueCut, freqCut ) }
       val dt = Table.create( s"Near Zero check for ${t.name}" )
+      val col0 = CategoryColumn.create( "Column" )
       val col1 = FloatColumn.create( "freqRatio" )
       val col2 = BooleanColumn.create( "badFreqRatio" )
       val col3 = FloatColumn.create( "uniqueValRatio" )
       val col4 = BooleanColumn.create( "badUniqueValRatio" )
-      val nt = cols.foldLeft(dt){ 
-          case (acc,colName) =>  
-            val nzc = nearZero( t, colName, uniqueCut, freqCut )
-            acc 
-        }
+      val col5 = BooleanColumn.create( "isConstant" )
+      val nt = cols.foreach { 
+        colName =>
+          val nzc = nearZero( t, colName, uniqueCut, freqCut )
+          col0.add( colName)
+          col1.add( nzc.frequency_ratio)
+          col2.add(nzc.bad_freq_ratio)
+          col3.add(nzc.unique_val_ratio)
+          col4.add(nzc.bad_unique_val_ratio)
+          col5.add(nzc.isConstant)
+      }
+      addCategoryColumn(dt, col0)
+      addFloatColumn(dt, col1)
+      dt
     }
 
+    /*
+     * SawTable utility
+     */
+    def addCategoryColumn(tbl : Table, col : CategoryColumn) = {
+      val ncol = col.asInstanceOf[ Column[ _ ] ]
+      tbl.addColumn(ncol)
+    }
+    
+    def addFloatColumn(tbl : Table, col : FloatColumn) = {
+      val ncol = col.asInstanceOf[ Column[ _ ] ]
+      tbl.addColumn(ncol)
+    }
+
+    /*
+     * SawTable utility
+     */
     def createIntColumn( colName: String, vals: Seq[ Int ] ) = {
       val col = IntColumn.create( colName )
       vals.foreach { x => col.add( x ) }
       col
     }
 
+    
+    def assertOnNearZeroCheck( nzc: NearZeroCheck, 
+        freqRatio : Double, badFreqRatio : Boolean, 
+        uniqueRatio : Double, badUniqueRatio : Boolean,
+        isConstant : Boolean ) = {
+      assert( aproxEqual( nzc.frequency_ratio, freqRatio ) )
+      assert( nzc.bad_freq_ratio == badFreqRatio )
+      assert( aproxEqual( nzc.unique_val_ratio, uniqueRatio ) )
+      assert( nzc.bad_unique_val_ratio == badUniqueRatio )
+      assert( nzc.isConstant == isConstant )
+    }
+
     val dt = Table.create( "test1" )
     val c1 = createIntColumn( "col1", List( 1, 1, 2, 1, 3, 2, 4 ) )
     val c2 = createIntColumn( "col2", List( 1, 2, 3, 4, 5, 6, 7 ) )
-    
+
     val col1 = c1.asInstanceOf[ Column[ _ ] ]
     val col2 = c2.asInstanceOf[ Column[ _ ] ]
     //val col1 = c1.asInstanceOf[Column[AnyRef]]
@@ -243,8 +282,16 @@ object TableSawExpV2 {
     //val col1 = c1.asInstanceOf[Column[IntColumn]]
     dt.addColumn( col1, col2 )
 
-    val nzc1 = nearZero(dt, "col1")
-    println(nzc1)
+    val nzc1 = nearZero( dt, "col1" )
+    println( nzc1 )
+    assertOnNearZeroCheck( nzc1, 1.5, false, 0.571429, false, false )
+
+    val nzc2 = nearZero( dt, "col2" )
+    println( nzc2 )
+    assertOnNearZeroCheck( nzc2, 1.0, false, 1.0, false, false )
+    
+    val nzt1 = nearZeros(dt)
+    println(nzt1.print)
     
     /*
     // Example of using cross-tabs
