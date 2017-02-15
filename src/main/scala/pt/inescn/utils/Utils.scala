@@ -25,6 +25,11 @@ object Utils {
     else ( ( b + eps ) >= a ) && ( a >= ( b - eps ) )
   }
 
+  def aproxEqualShow( a: Double, b: Double, eps: Double = 0.000001 ) = {
+    val r = aproxEqual( a, b, eps )
+    if (! r) println(s"Expected $a but got $b")
+    r
+  }  
   import com.github.lwhite1.tablesaw.api.Table
   import com.github.lwhite1.tablesaw.api.ColumnType
   import com.github.lwhite1.tablesaw.columns.Column

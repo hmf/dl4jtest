@@ -276,20 +276,6 @@ object TableSawExpV2 {
     // write.table(mdrrDescr, file="/home/hmf/Desktop/bosch/mdrrdesc.csv", sep=",", fileEncoding="UTF-8", quote=TRUE,eol="\r\n")
     // write.table(mdrrDescr, file="/home/hmf/Desktop/bosch/mdrrdesc.csv", sep=",", fileEncoding="UTF-8", quote=TRUE,eol="\r\n", row.names = FALSE)
     // names(mdrrDescr)[names(mdrrDescr) == "w"] <- "w_"
-    // Add line 1 , G.O..Br. <- 1.0 (line 118)
-    // Add line 1 , G.Cl..Br. <- 1.0 (line 119)
-    //  412 and column  412 and column D.Dr08
-    // com.github.lwhite1.tablesaw.io.csv.AddCellToColumnException: Error while addding cell from row 420 and column G.N..I.(position:327): G.N..I.: For input string: "8.21"
-    // Error while addding cell from row 420 and column G.O..I.(position:333): G.O..I.: For input string: "22.58"
-    // com.github.lwhite1.tablesaw.io.csv.AddCellToColumnException: Error while addding cell from row 420 and column G.I..I.(position:341): G.I..I.: For input string: "3.69"
-	/*at com.github.lwhite1.tablesaw.io.csv.CsvReader.read(CsvReader.java:141)
-	at com.github.lwhite1.tablesaw.io.csv.CsvReader.read(CsvReader.java:76)
-	at com.github.lwhite1.tablesaw.io.csv.CsvReader.read(CsvReader.java:91)
-	at com.github.lwhite1.tablesaw.api.Table.createFromCsv(Table.java:773)
-	
-	  static ColumnType[] detectColumnTypes(String file, boolean header, char delimiter)
-	  line 345 - com.github.lwhite1.tablesaw.io.csv.CvsReader
-	*/
     
     import com.github.lwhite1.tablesaw.io.csv.CsvReader
     
@@ -316,44 +302,80 @@ object TableSawExpV2 {
       types
     }
     
-    // Breaks also
+   // Lest use https://topepo.github.io/caret/pre-processing.html t check the near zero calculations
+   // It uses the mdrrdesc data as an example - we will use that to check the results
+   
+   // When reading the file, type inference fails. Sampling fails. Sampling of 1st row allways occurs 
+   // We used a smaller file to fill in the value of the first row of the column generating the error.
+   // We keep doing this until inference succeeds. 
     val dtt = CsvReader.detectedColumnTypes("/home/hmf/Desktop/bosch/mdrrdesc_b.csv",  true, ',')
-    println(dtt.print)
-    println("!!!!!!!!!!!!!!")
-    //val types = dtt.column("Column Type")
-    val types = dtt.column(2)
-    println(types.unique().print)
-    println("?????")
-    //println(types.print)
-    println(types.`type`)
-    val ttypes = dtt.categoryColumn(2)
-    println("?????")
-    //println(ttypes.print)
-    //ttypes.toList()
-    val typeCol  = dtt.column("Column Type")
-    val typeColIndex = dtt.columnIndex(typeCol)
-    val ttypesx = dtt.categoryColumn(2)
-    val ctypes = ttypesx.toList().asScala map (x => toColumnType(x) )
-    println(ctypes.mkString("<",";", ">"))
-//    var r = 0
-//    while (r < dtt.rowCount()) {
-//      val tmp = dtt.get(typeColIndex, r)
-//      println(tmp)
-//      r = r + 1
-//    }
     val tps = toColumnTypes(dtt) 
-    println(tps.mkString("{",",","}"))
-    
-    //import com.github.lwhite1.tablesaw.api.ColumnType
+    //println(tps.mkString("{",",","}"))
+ 
+    // We can now attempt to read the full file - using the types identified above
+    val dt1: Table = time { Table.createFromCsv( tps.toArray, "/home/hmf/Desktop/bosch/mdrrdesc.csv" ) }
+    println(dt1.first(3).print)
+    println(dt1.structure.first(5).print)
 
-    
-    val dt1: Table = time { Table.createFromCsv( "/home/hmf/Desktop/bosch/mdrrdesc_b.csv" ) }
-    /*println(dt1.first(3).print)
-    //println(dt1.structure.print)
+    // Now calculate and check for near zero columns
+    import com.github.lwhite1.tablesaw.api.QueryHelper.anyOf
+    import com.github.lwhite1.tablesaw.api.QueryHelper.column
 
+    /*
+## nTB     23.00000     0.3787879   FALSE TRUE
+## nBR    131.00000     0.3787879   FALSE TRUE
+## nI     527.00000     0.3787879   FALSE TRUE
+## nR03   527.00000     0.3787879   FALSE TRUE
+## nR08   527.00000     0.3787879   FALSE TRUE
+## nR11    21.78261     0.5681818   FALSE TRUE
+## nR12    57.66667     0.3787879   FALSE TRUE
+## D.Dr03 527.00000     0.3787879   FALSE TRUE
+## D.Dr07 123.50000     5.8712121   FALSE TRUE
+## D.Dr08 527.00000     0.3787879   FALSE TRUE
+     */
+
+    /*
+##    nTB     23.00000     0.3787879   FALSE TRUE
+## nBR    131.00000     0.3787879   FALSE TRUE
+## nI     527.00000     0.3787879   FALSE TRUE
+## nR03   527.00000     0.3787879   FALSE TRUE
+## nR08   527.00000     0.3787879   FALSE TRUE
+## nR11    21.78261     0.5681818   FALSE TRUE
+## nR12    57.66667     0.3787879   FALSE TRUE
+## D.Dr03 527.00000     0.3787879   FALSE TRUE
+## D.Dr07 123.50000     5.8712121   FALSE TRUE
+## D.Dr08
+*/
+    
+    def checkColumnValues() = {
+      // TODO 
+    }
+    
     val nzt2 = nearZeros(dt1)
-    //println(nzt2.print)
-    */
+    println(nzt2.first(5).print)
+    val filtered = nzt2.selectWhere(
+        anyOf(
+            column("Column").isEqualTo("nTB"),
+            column("Column").isEqualTo("nBR"),
+            column("Column").isEqualTo("nI"),
+            column("Column").isEqualTo("nR03"),
+            column("Column").isEqualTo("nR08"),
+            column("Column").isEqualTo("nR11"),
+            column("Column").isEqualTo("nR12"),
+            column("Column").isEqualTo("D.Dr03"),
+            column("Column").isEqualTo("D.Dr07"),
+            column("Column").isEqualTo("D.Dr08")
+            )
+        );    
+    println(filtered.print())
+    val r = filtered.floatColumn("freqRatio")
+    val z = r.asScala.zip(List(23.0, 131.0, 527.0, 527.0, 527.0, 21.782608, 57.666668, 527.0, 123.5, 527.0))
+    //println(z.mkString(","))
+    //println(z.forall( p => p._1 == p._2))
+    assert(z.forall( p => aproxEqualShow(p._1.toDouble, p._2)))
+    
+    
+    
     /*
     // Example of using cross-tabs
     import com.github.lwhite1.tablesaw.reducing.CrossTab
