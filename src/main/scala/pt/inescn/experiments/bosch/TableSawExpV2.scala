@@ -293,7 +293,6 @@ object TableSawExpV2 {
     
     import com.github.lwhite1.tablesaw.io.csv.CsvReader
     
-    
     def toColumnType(s : String) : ColumnType = {
       s match {
         case "BOOLEAN" => ColumnType.BOOLEAN
@@ -309,9 +308,18 @@ object TableSawExpV2 {
       }
     }
     
+   def toColumnTypes(t : Table) : Iterable[ColumnType] = {
+      val typeCol  = t.column("Column Type")
+      val typeColIndex = t.columnIndex(typeCol)
+      val tps = t.categoryColumn(typeColIndex)
+      val types = tps.asScala.map { x => toColumnType(x) }
+      types
+    }
+    
     // Breaks also
     val dtt = CsvReader.detectedColumnTypes("/home/hmf/Desktop/bosch/mdrrdesc_b.csv",  true, ',')
     println(dtt.print)
+    println("!!!!!!!!!!!!!!")
     //val types = dtt.column("Column Type")
     val types = dtt.column(2)
     println(types.unique().print)
@@ -333,12 +341,11 @@ object TableSawExpV2 {
 //      println(tmp)
 //      r = r + 1
 //    }
-
-
+    val tps = toColumnTypes(dtt) 
+    println(tps.mkString("{",",","}"))
     
     //import com.github.lwhite1.tablesaw.api.ColumnType
 
-    val tps = types
     
     val dt1: Table = time { Table.createFromCsv( "/home/hmf/Desktop/bosch/mdrrdesc_b.csv" ) }
     /*println(dt1.first(3).print)
