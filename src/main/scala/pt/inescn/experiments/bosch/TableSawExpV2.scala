@@ -346,11 +346,26 @@ object TableSawExpV2 {
 ## D.Dr07 123.50000     5.8712121   FALSE TRUE
 ## D.Dr08
 */
-    
-    def checkColumnValues() = {
-      // TODO 
+
+  def checkColumnValues[T,U,V](m : Map[String, Iterable[(T,U)]], chkShow: (T,U,V) => Boolean, eps: V) = {
+      m.forall{ p =>  
+        println(s"Checking ${p._1}")
+        p._2.forall{ q => chkShow(q._1, q._2, eps) }
+      }
     }
     
+    def checkFloatColumnValues(m : Map[String, Iterable[(Double, Double)]]) = {
+      assert(checkColumnValues[Double, Double, Double](m, aproxEqualShow, eps=0.000001))
+    }
+
+   def checkBooleanColumnValues(m : Map[String, Iterable[(Boolean, Boolean)]]) = {
+      assert(checkColumnValues[Boolean, Boolean, Boolean](
+          m, 
+          { (x:Boolean,y:Boolean,_) => val r = (x == y) ; if (!r) println(s"$x != $y") ; r }, 
+          eps=true)
+          )
+    }
+
     val nzt2 = nearZeros(dt1)
     println(nzt2.first(5).print)
     val filtered = nzt2.selectWhere(
@@ -374,7 +389,39 @@ object TableSawExpV2 {
     //println(z.forall( p => p._1 == p._2))
     assert(z.forall( p => aproxEqualShow(p._1.toDouble, p._2)))
     
+    val freqRatiosC1 = filtered.floatColumn("freqRatio")
+    val freqRatios1 = freqRatiosC1.asScala.map(_.toDouble).zip(List(23.0, 131.0, 527.0, 527.0, 527.0, 21.782608, 57.666668, 527.0, 123.5, 527.0))
+
+    val uniqueValRatioC1 = filtered.floatColumn("uniqueValRatio")
+    val l2 = List(0.3787879, 0.3787879, 0.3787879, 0.3787879, 0.3787879, 0.5681818, 0.3787879, 0.3787879, 5.8712121, 0.3787879 ).map(_ / 100.0)
+    val uniqueValRatio1 = uniqueValRatioC1.asScala.map(_.toDouble).zip(l2)
     
+    val nzv1 = filtered.booleanColumn("badFreqRatio").toIntArray
+                               .zip(filtered.booleanColumn("badUniqueValRatio").toIntArray)
+                               .map( x =>  (x._1 > 0) || (x._2 > 0))
+                               .toIterable
+    val nzvc1 = nzv1.zip(List(true, true, true, true, true, true, true, true, true, true))
+
+    
+    val const1 = filtered.booleanColumn("isConstant").toIntArray.map( _ > 0).toIterable
+    val constc1 = const1.zip(List(true, true, true, true, true, true, true, true, true, true))
+    
+    val chks1 = Map("freqRatio" -> freqRatios1, "uniqueValRatio" -> uniqueValRatio1)
+    checkFloatColumnValues(chks1)
+    val chks2 = Map("nzv" -> nzvc1, "zeroVar" -> constc1)
+    checkBooleanColumnValues(chks2)
+    
+    // correlations/covariances and significance levels for pearson and spearman correlations.
+    //  Spearman correlations are the Pearson linear correlations computed on the ranks of non-missing elements, using midranks for ties. 
+    // polychoric correlation
+    // heterogeneous correlations in one matrix
+    // pearson (numeric-numeric),
+    // polyserial (numeric-ordinal),
+    // and polychoric (ordinal-ordinal) 
+    // partial correlations
+    import smile.math.Math
+    
+    //val c1 = Math.cor(x$1, x$2)
     
     /*
     // Example of using cross-tabs
