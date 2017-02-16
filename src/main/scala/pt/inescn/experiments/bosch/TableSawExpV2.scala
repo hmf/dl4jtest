@@ -347,10 +347,11 @@ object TableSawExpV2 {
 ## D.Dr08
 */
 
-  def checkColumnValues[T,U,V](m : Map[String, Iterable[(T,U)]], chkShow: (T,U,V) => Boolean, eps: V) = {
+  def checkColumnValues[T,U,V](m : Map[String, Iterable[(T,U)]], chkShow: (Int,T,U,V) => Boolean, eps: V) = {
       m.forall{ p =>  
         println(s"Checking ${p._1}")
-        p._2.forall{ q => chkShow(q._1, q._2, eps) }
+        val t = p._2.zipWithIndex
+        t.forall{ case ((a,b),i) => chkShow(i, a, b, eps) }
       }
     }
     
@@ -361,7 +362,7 @@ object TableSawExpV2 {
    def checkBooleanColumnValues(m : Map[String, Iterable[(Boolean, Boolean)]]) = {
       assert(checkColumnValues[Boolean, Boolean, Boolean](
           m, 
-          { (x:Boolean,y:Boolean,_) => val r = (x == y) ; if (!r) println(s"$x != $y") ; r }, 
+          { (i: Int, x:Boolean,y:Boolean,_) => val r = (x == y) ; if (!r) println(s"At $i expected $x but got $y") ; r }, 
           eps=true)
           )
     }
@@ -384,10 +385,10 @@ object TableSawExpV2 {
         );    
     println(filtered.print())
     val r = filtered.floatColumn("freqRatio")
-    val z = r.asScala.zip(List(23.0, 131.0, 527.0, 527.0, 527.0, 21.782608, 57.666668, 527.0, 123.5, 527.0))
+    val z = r.asScala.map(_.toDouble).zip(List(23.0, 131.0, 527.0, 527.0, 527.0, 21.782608, 57.666668, 527.0, 123.5, 527.0))
     //println(z.mkString(","))
     //println(z.forall( p => p._1 == p._2))
-    assert(z.forall( p => aproxEqualShow(p._1.toDouble, p._2)))
+    assert(z.zipWithIndex.forall{ case ((a,b),i) => aproxEqualShow(i, a, b) } )
     
     val freqRatiosC1 = filtered.floatColumn("freqRatio")
     val freqRatios1 = freqRatiosC1.asScala.map(_.toDouble).zip(List(23.0, 131.0, 527.0, 527.0, 527.0, 21.782608, 57.666668, 527.0, 123.5, 527.0))
@@ -404,7 +405,7 @@ object TableSawExpV2 {
 
     
     val const1 = filtered.booleanColumn("isConstant").toIntArray.map( _ > 0).toIterable
-    val constc1 = const1.zip(List(true, true, true, true, true, true, true, true, true, true))
+    val constc1 = const1.zip(List(false, false, false, false, false, false, false, false, false, false))
     
     val chks1 = Map("freqRatio" -> freqRatios1, "uniqueValRatio" -> uniqueValRatio1)
     checkFloatColumnValues(chks1)
