@@ -125,19 +125,18 @@ object TableSawExpV2 {
 
     case class NearZeroCheck( frequency_ratio: Double, bad_freq_ratio: Boolean,
                               unique_val_ratio: Double, bad_unique_val_ratio: Boolean,
-                              isConstant : Boolean)
+                              isConstant: Boolean )
 
-                              
-    def calcRatios[ V ]( l : Iterable[V], uniqueCut: Double, freqCut: Double ) = {
+    def calcRatios[ V ]( l: Iterable[ V ], uniqueCut: Double, freqCut: Double ) = {
       val r = l.groupBy( identity ).mapValues( _.size )
-      val s = r.toList.sortBy { x => - x._2 }
-      val ratio = if (s.size >= 2)  { 
-          val top = s( 0 )._2
-          val top_1 = s( 1 )._2
-          top.toDouble / top_1.toDouble
-        } else {
-          Double.NaN
-        }
+      val s = r.toList.sortBy { x => -x._2 }
+      val ratio = if ( s.size >= 2 ) {
+        val top = s( 0 )._2
+        val top_1 = s( 1 )._2
+        top.toDouble / top_1.toDouble
+      } else {
+        Double.NaN
+      }
       val bad_ratio = if ( ratio > freqCut ) true else false
       val unique_ratio = r.size / l.size.toDouble
       val bad_unique_ratio = if ( unique_ratio < uniqueCut ) true else false
@@ -219,29 +218,28 @@ object TableSawExpV2 {
       val col3 = FloatColumn.create( "uniqueValRatio" )
       val col4 = BooleanColumn.create( "badUniqueValRatio" )
       val col5 = BooleanColumn.create( "isConstant" )
-      val nt = cols.foreach { 
+      val nt = cols.foreach {
         colName =>
           val nzc = nearZero( t, colName, uniqueCut, freqCut )
-          col0.add( colName)
-          col1.add( nzc.frequency_ratio)
-          col2.add(nzc.bad_freq_ratio)
-          col3.add(nzc.unique_val_ratio)
-          col4.add(nzc.bad_unique_val_ratio)
-          col5.add(nzc.isConstant)
+          col0.add( colName )
+          col1.add( nzc.frequency_ratio )
+          col2.add( nzc.bad_freq_ratio )
+          col3.add( nzc.unique_val_ratio )
+          col4.add( nzc.bad_unique_val_ratio )
+          col5.add( nzc.isConstant )
       }
-      addColumn(dt, col0) // why cannot we not add tis too via the varargs?
-      addColumns(dt, col1, col2, col3, col4, col5)
+      addColumn( dt, col0 ) // why cannot we not add tis too via the varargs?
+      addColumns( dt, col1, col2, col3, col4, col5 )
       dt
     }
 
-    
-    def assertOnNearZeroCheck( nzc: NearZeroCheck, 
-        freqRatio : Double, badFreqRatio : Boolean, 
-        uniqueRatio : Double, badUniqueRatio : Boolean,
-        isConstant : Boolean ) = {
-      assert( aproxEqual( nzc.frequency_ratio, freqRatio ) )
+    def assertOnNearZeroCheck( nzc: NearZeroCheck,
+                               freqRatio: Double, badFreqRatio: Boolean,
+                               uniqueRatio: Double, badUniqueRatio: Boolean,
+                               isConstant: Boolean ) = {
+      assert( approxEqual( nzc.frequency_ratio, freqRatio ) )
       assert( nzc.bad_freq_ratio == badFreqRatio )
-      assert( aproxEqual( nzc.unique_val_ratio, uniqueRatio ) )
+      assert( approxEqual( nzc.unique_val_ratio, uniqueRatio ) )
       assert( nzc.bad_unique_val_ratio == badUniqueRatio )
       assert( nzc.isConstant == isConstant )
     }
@@ -250,11 +248,11 @@ object TableSawExpV2 {
     val c1 = createIntColumn( "col1", List( 1, 1, 2, 1, 3, 2, 4 ) )
     val c2 = createIntColumn( "col2", List( 1, 2, 3, 4, 5, 6, 7 ) )
     val c3 = createIntColumn( "col3", List( 1, 1, 1, 1, 1, 1, 1 ) )
-    
+
     //val col1 = c1.asInstanceOf[ Column[ _ ] ]
     //val col2 = c2.asInstanceOf[ Column[ _ ] ]
     //dt.addColumn( col1, col2 )
-    addColumns( dt, c1, c2, c3)
+    addColumns( dt, c1, c2, c3 )
 
     val nzc1 = nearZero( dt, "col1" )
     println( nzc1 )
@@ -268,150 +266,103 @@ object TableSawExpV2 {
     println( nzc3 )
     //assertOnNearZeroCheck( nzc3, Double.NaN, false, 0.14285714285714285, false, true )
     assertOnNearZeroCheck( nzc3, Double.NaN, false, 0.142857, false, true )
-    
-    val nzt1 = nearZeros(dt)
-    println(nzt1.print)
-    
+
+    val nzt1 = nearZeros( dt )
+    println( nzt1.print )
+
     // write.table(mdrrDescr, file="/home/hmf/Desktop/bosch/mdrrdesc.csv", sep=",", fileEncoding="UTF-8", quote=TRUE)
     // write.table(mdrrDescr, file="/home/hmf/Desktop/bosch/mdrrdesc.csv", sep=",", fileEncoding="UTF-8", quote=TRUE,eol="\r\n")
     // write.table(mdrrDescr, file="/home/hmf/Desktop/bosch/mdrrdesc.csv", sep=",", fileEncoding="UTF-8", quote=TRUE,eol="\r\n", row.names = FALSE)
     // names(mdrrDescr)[names(mdrrDescr) == "w"] <- "w_"
-    
+
     import com.github.lwhite1.tablesaw.io.csv.CsvReader
-    
-    def toColumnType(s : String) : ColumnType = {
+
+    def toColumnType( s: String ): ColumnType = {
       s match {
-        case "BOOLEAN" => ColumnType.BOOLEAN
-        case "CATEGORY" => ColumnType.CATEGORY
-        case "FLOAT" => ColumnType.FLOAT
-        case  "SHORT_INT" => ColumnType.SHORT_INT
-        case "INTEGER" => ColumnType.INTEGER
-        case "LONG_INT" => ColumnType.LONG_INT
-        case "LOCAL_DATE" => ColumnType.LOCAL_DATE
+        case "BOOLEAN"         => ColumnType.BOOLEAN
+        case "CATEGORY"        => ColumnType.CATEGORY
+        case "FLOAT"           => ColumnType.FLOAT
+        case "SHORT_INT"       => ColumnType.SHORT_INT
+        case "INTEGER"         => ColumnType.INTEGER
+        case "LONG_INT"        => ColumnType.LONG_INT
+        case "LOCAL_DATE"      => ColumnType.LOCAL_DATE
         case "LOCAL_DATE_TIME" => ColumnType.LOCAL_DATE_TIME
-        case "LOCAL_TIME" => ColumnType.LOCAL_TIME
-        case "SKIP" => ColumnType.SKIP    
+        case "LOCAL_TIME"      => ColumnType.LOCAL_TIME
+        case "SKIP"            => ColumnType.SKIP
       }
     }
-    
-   def toColumnTypes(t : Table) : Iterable[ColumnType] = {
-      val typeCol  = t.column("Column Type")
-      val typeColIndex = t.columnIndex(typeCol)
-      val tps = t.categoryColumn(typeColIndex)
-      val types = tps.asScala.map { x => toColumnType(x) }
+
+    def toColumnTypes( t: Table ): Iterable[ ColumnType ] = {
+      val typeCol = t.column( "Column Type" )
+      val typeColIndex = t.columnIndex( typeCol )
+      val tps = t.categoryColumn( typeColIndex )
+      val types = tps.asScala.map { x => toColumnType( x ) }
       types
     }
-    
-   // Lest use https://topepo.github.io/caret/pre-processing.html t check the near zero calculations
-   // It uses the mdrrdesc data as an example - we will use that to check the results
-   
-   // When reading the file, type inference fails. Sampling fails. Sampling of 1st row allways occurs 
-   // We used a smaller file to fill in the value of the first row of the column generating the error.
-   // We keep doing this until inference succeeds. 
-    val dtt = CsvReader.detectedColumnTypes("/home/hmf/Desktop/bosch/mdrrdesc_b.csv",  true, ',')
-    val tps = toColumnTypes(dtt) 
+
+    // Lest use https://topepo.github.io/caret/pre-processing.html t check the near zero calculations
+    // It uses the mdrrdesc data as an example - we will use that to check the results
+
+    // When reading the file, type inference fails. Sampling fails. Sampling of 1st row allways occurs 
+    // We used a smaller file to fill in the value of the first row of the column generating the error.
+    // We keep doing this until inference succeeds. 
+    val dtt = CsvReader.detectedColumnTypes( "/home/hmf/Desktop/bosch/mdrrdesc_b.csv", true, ',' )
+    val tps = toColumnTypes( dtt )
     //println(tps.mkString("{",",","}"))
- 
+
     // We can now attempt to read the full file - using the types identified above
     val dt1: Table = time { Table.createFromCsv( tps.toArray, "/home/hmf/Desktop/bosch/mdrrdesc.csv" ) }
-    println(dt1.first(3).print)
-    println(dt1.structure.first(5).print)
+    println( dt1.first( 3 ).print )
+    println( dt1.structure.first( 5 ).print )
 
     // Now calculate and check for near zero columns
     import com.github.lwhite1.tablesaw.api.QueryHelper.anyOf
     import com.github.lwhite1.tablesaw.api.QueryHelper.column
 
-    /*
-## nTB     23.00000     0.3787879   FALSE TRUE
-## nBR    131.00000     0.3787879   FALSE TRUE
-## nI     527.00000     0.3787879   FALSE TRUE
-## nR03   527.00000     0.3787879   FALSE TRUE
-## nR08   527.00000     0.3787879   FALSE TRUE
-## nR11    21.78261     0.5681818   FALSE TRUE
-## nR12    57.66667     0.3787879   FALSE TRUE
-## D.Dr03 527.00000     0.3787879   FALSE TRUE
-## D.Dr07 123.50000     5.8712121   FALSE TRUE
-## D.Dr08 527.00000     0.3787879   FALSE TRUE
-     */
-
-    /*
-##    nTB     23.00000     0.3787879   FALSE TRUE
-## nBR    131.00000     0.3787879   FALSE TRUE
-## nI     527.00000     0.3787879   FALSE TRUE
-## nR03   527.00000     0.3787879   FALSE TRUE
-## nR08   527.00000     0.3787879   FALSE TRUE
-## nR11    21.78261     0.5681818   FALSE TRUE
-## nR12    57.66667     0.3787879   FALSE TRUE
-## D.Dr03 527.00000     0.3787879   FALSE TRUE
-## D.Dr07 123.50000     5.8712121   FALSE TRUE
-## D.Dr08
-*/
-
-  def checkColumnValues[T,U,V](m : Map[String, Iterable[(T,U)]], chkShow: (Int,T,U,V) => Boolean, eps: V) = {
-      m.forall{ p =>  
-        println(s"Checking ${p._1}")
-        val t = p._2.zipWithIndex
-        t.forall{ case ((a,b),i) => chkShow(i, a, b, eps) }
-      }
-    }
-    
-    def checkFloatColumnValues(m : Map[String, Iterable[(Double, Double)]]) = {
-      assert(checkColumnValues[Double, Double, Double](m, aproxEqualShow, eps=0.000001))
-    }
-
-   def checkBooleanColumnValues(m : Map[String, Iterable[(Boolean, Boolean)]]) = {
-      assert(checkColumnValues[Boolean, Boolean, Boolean](
-          m, 
-          { (i: Int, x:Boolean,y:Boolean,_) => val r = (x == y) ; if (!r) println(s"At $i expected $x but got $y") ; r }, 
-          eps=true)
-          )
-    }
-
-    val nzt2 = nearZeros(dt1)
-    println(nzt2.first(5).print)
+    val nzt2 = nearZeros( dt1 )
+    println( nzt2.first( 5 ).print )
     val filtered = nzt2.selectWhere(
-        anyOf(
-            column("Column").isEqualTo("nTB"),
-            column("Column").isEqualTo("nBR"),
-            column("Column").isEqualTo("nI"),
-            column("Column").isEqualTo("nR03"),
-            column("Column").isEqualTo("nR08"),
-            column("Column").isEqualTo("nR11"),
-            column("Column").isEqualTo("nR12"),
-            column("Column").isEqualTo("D.Dr03"),
-            column("Column").isEqualTo("D.Dr07"),
-            column("Column").isEqualTo("D.Dr08")
-            )
-        );    
-    println(filtered.print())
-    val r = filtered.floatColumn("freqRatio")
-    val z = r.asScala.map(_.toDouble).zip(List(23.0, 131.0, 527.0, 527.0, 527.0, 21.782608, 57.666668, 527.0, 123.5, 527.0))
+      anyOf(
+        column( "Column" ).isEqualTo( "nTB" ),
+        column( "Column" ).isEqualTo( "nBR" ),
+        column( "Column" ).isEqualTo( "nI" ),
+        column( "Column" ).isEqualTo( "nR03" ),
+        column( "Column" ).isEqualTo( "nR08" ),
+        column( "Column" ).isEqualTo( "nR11" ),
+        column( "Column" ).isEqualTo( "nR12" ),
+        column( "Column" ).isEqualTo( "D.Dr03" ),
+        column( "Column" ).isEqualTo( "D.Dr07" ),
+        column( "Column" ).isEqualTo( "D.Dr08" ) ) );
+    println( filtered.print() )
+    val r = filtered.floatColumn( "freqRatio" )
+    val z = r.asScala.map( _.toDouble ).zip( List( 23.0, 131.0, 527.0, 527.0, 527.0, 21.782608, 57.666668, 527.0, 123.5, 527.0 ) )
     //println(z.mkString(","))
     //println(z.forall( p => p._1 == p._2))
-    assert(z.zipWithIndex.forall{ case ((a,b),i) => aproxEqualShow(i, a, b) } )
-    
-    val freqRatiosC1 = filtered.floatColumn("freqRatio")
-    val freqRatios1 = freqRatiosC1.asScala.map(_.toDouble).zip(List(23.0, 131.0, 527.0, 527.0, 527.0, 21.782608, 57.666668, 527.0, 123.5, 527.0))
+    assert( z.zipWithIndex.forall{ case ( ( a, b ), i ) => aproxEqualShow( i, a, b ) } )
 
-    val uniqueValRatioC1 = filtered.floatColumn("uniqueValRatio")
-    val l2 = List(0.3787879, 0.3787879, 0.3787879, 0.3787879, 0.3787879, 0.5681818, 0.3787879, 0.3787879, 5.8712121, 0.3787879 ).map(_ / 100.0)
-    val uniqueValRatio1 = uniqueValRatioC1.asScala.map(_.toDouble).zip(l2)
-    
-    val nzv1 = filtered.booleanColumn("badFreqRatio").toIntArray
-                               .zip(filtered.booleanColumn("badUniqueValRatio").toIntArray)
-                               .map( x =>  (x._1 > 0) || (x._2 > 0))
-                               .toIterable
-    val nzvc1 = nzv1.zip(List(true, true, true, true, true, true, true, true, true, true))
+    val freqRatiosC1 = filtered.floatColumn( "freqRatio" )
+    val freqRatios1 = freqRatiosC1.asScala.map( _.toDouble ).zip( List( 23.0, 131.0, 527.0, 527.0, 527.0, 21.782608, 57.666668, 527.0, 123.5, 527.0 ) )
 
-    
-    val const1 = filtered.booleanColumn("isConstant").toIntArray.map( _ > 0).toIterable
-    val constc1 = const1.zip(List(false, false, false, false, false, false, false, false, false, false))
-    
-    val chks1 = Map("freqRatio" -> freqRatios1, "uniqueValRatio" -> uniqueValRatio1)
-    checkFloatColumnValues(chks1)
-    val chks2 = Map("nzv" -> nzvc1, "zeroVar" -> constc1)
-    checkBooleanColumnValues(chks2)
-    
+    val uniqueValRatioC1 = filtered.floatColumn( "uniqueValRatio" )
+    val l2 = List( 0.3787879, 0.3787879, 0.3787879, 0.3787879, 0.3787879, 0.5681818, 0.3787879, 0.3787879, 5.8712121, 0.3787879 ).map( _ / 100.0 )
+    val uniqueValRatio1 = uniqueValRatioC1.asScala.map( _.toDouble ).zip( l2 )
+
+    val nzv1 = filtered.booleanColumn( "badFreqRatio" ).toIntArray
+      .zip( filtered.booleanColumn( "badUniqueValRatio" ).toIntArray )
+      .map( x => ( x._1 > 0 ) || ( x._2 > 0 ) )
+      .toIterable
+    val nzvc1 = nzv1.zip( List( true, true, true, true, true, true, true, true, true, true ) )
+
+    val const1 = filtered.booleanColumn( "isConstant" ).toIntArray.map( _ > 0 ).toIterable
+    val constc1 = const1.zip( List( false, false, false, false, false, false, false, false, false, false ) )
+
+    val chks1 = Map( "freqRatio" -> freqRatios1, "uniqueValRatio" -> uniqueValRatio1 )
+    checkFloatColumnValues( chks1 )
+    val chks2 = Map( "nzv" -> nzvc1, "zeroVar" -> constc1 )
+    checkBooleanColumnValues( chks2 )
+
+    // Now calculate and check for near zero columns
+
     // correlations/covariances and significance levels for pearson and spearman correlations.
     //  Spearman correlations are the Pearson linear correlations computed on the ranks of non-missing elements, using midranks for ties. 
     // polychoric correlation
@@ -421,8 +372,82 @@ object TableSawExpV2 {
     // and polychoric (ordinal-ordinal) 
     // partial correlations
     import smile.math.Math
-    
+
+    // https://github.com/haifengl/smile/blob/355198c504f1c45652542da6580a3041799cb0f8/math/src/test/java/smile/stat/hypothesis/TTestTest.java
+    val x = Array( 44.4, 45.9, 41.9, 53.3, 44.7, 44.1, 50.7, 45.2, 60.1 )
+    val y = Array( 2.6, 3.1, 2.5, 5.0, 3.6, 4.0, 5.2, 2.8, 3.8 )
+
+    val cor1 = Math.cor( x, y )
     //val c1 = Math.cor(x$1, x$2)
+
+    def isNonNumeric( tp: ColumnType ) = {
+      val nonNumeric = List( ColumnType.CATEGORY, ColumnType.LOCAL_DATE, ColumnType.LOCAL_DATE_TIME, ColumnType.LOCAL_TIME, ColumnType.SKIP )
+      nonNumeric.contains( tp )
+    }
+
+    def applyColumns( corr: ( Array[ Double ], Array[ Double ] ) => Double )( t: Table, colIdx1: Int, colType1: ColumnType, colIdx2: Int, colType2: ColumnType ) = {
+      if ( isNonNumeric( colType1 ) ) 0.0
+      else if ( isNonNumeric( colType2 ) ) 0.0
+      else {
+        val c1 = dt1.column( colIdx1 ).toDoubleArray()
+        val c2 = dt1.column( colIdx2 ).toDoubleArray()
+        corr( c1, c2 )
+      }
+    }
+
+    // Calculate Pearson's correlation
+    val ct1 = dt1.column( "IAC" )
+    val cti1 = dt1.columnIndex( "IAC" )
+    val ct2 = dt1.column( "TIC0" )
+    val cti2 = dt1.columnIndex( "TIC0" )
+    val ctp1 = ct1.`type`
+    val ctp2 = ct2.`type`
+    assert( isNonNumeric( ctp1 ) == false )
+    assert( isNonNumeric( ctp2 ) == false )
+    val corr1 = applyColumns( Math.cor )( dt1, cti1, ctp1, cti2, ctp2 )
+    println( s"corr = ${corr1}" )
+    assert( approxEqual( corr1, 1.0 ) )
+
+    // check all pairs of columns for correlation
+
+    def combColumns( df: Table ) = {
+      val ctypes = df.columnTypes()
+      //println( ctypes.mkString( "," ) )
+      val l = ctypes.zipWithIndex.toList
+
+      val tails = l.tails
+      val starts = tails.toStream
+      val both = l.zip( starts )
+      var r = both.par.flatMap{
+        case ( a, b ) =>
+          val colIdx1 = a._2
+          val ctp1 = a._1
+          val colIdxs = b.drop( 1 )
+          //val t = colIdxs.par.map{ x => ( colIdx1, x._2 ) }
+          val t = colIdxs.par.map{ x =>
+            ( colIdx1, x._2, applyColumns( Math.cor )( df, colIdx1, ctp1, x._2, x._1 ) )
+          }
+          t
+      }
+      r
+    }
+
+   def findCorrelation(t: Table, cutoff : Double = .75) = {
+    val corrs = combColumns( t )
+    corrs.filter( x => x._3 >= cutoff )
+   }
+
+    val t1 = time { combColumns( dt1 ) }
+    //println( t1.mkString( "<<", ",", ">>" ) )
+    println( s"Calculated ${t1.size} pairs o correlations" )
+    val t1cc = dt1.columnCount()
+    //println(t1cc * (t1cc -1) / 2)
+    assert(t1cc * (t1cc -1) / 2 == t1.size)
+
+    val t2 = time { findCorrelation( dt1 ) }
+   // println( t2.mkString( "<<", ",", ">>" ) )
+    println( s"Found ${t2.size} pairs o significant correlations" )
+    assert(t1.size >= t2.size)
     
     /*
     // Example of using cross-tabs
