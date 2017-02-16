@@ -448,7 +448,15 @@ object TableSawExpV2 {
    // println( t2.mkString( "<<", ",", ">>" ) )
     println( s"Found ${t2.size} pairs o significant correlations" )
     assert(t1.size >= t2.size)
-    
+        
+    val dbName = "/home/hmf/Desktop/bosch/Anonymized_Fuel_System.csv.saw"
+    val dts : Table  = time { Table.readTable(dbName) }
+    val t3 = time { findCorrelation( dts ) }
+    println( t3.mkString( "<<", ",", ">>" ) )
+    val dtscc = dts.columnCount()
+    val dts_pairs =  dtscc * (dtscc -1) / 2
+    println( s"Found ${t3.size} pairs o significant correlations from a total of $dts_pairs" )
+
     /*
     // Example of using cross-tabs
     import com.github.lwhite1.tablesaw.reducing.CrossTab
