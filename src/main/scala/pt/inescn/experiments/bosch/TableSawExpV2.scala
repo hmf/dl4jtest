@@ -176,7 +176,6 @@ object TableSawExpV2 {
           calcRatios( l, uniqueCut, freqCut )
         case ColumnType.FLOAT =>
           val c = t.floatColumn( colName )
-          // TODO: val stats = c.stats() ?????
           val l = c.asScala
           calcRatios( l, uniqueCut, freqCut )
         case ColumnType.SHORT_INT =>
@@ -207,6 +206,10 @@ object TableSawExpV2 {
           NearZeroCheck( Double.NaN, true, Double.NaN, true, true )
       }
     }
+
+   import pt.inescn.utils.TableSawUtils.addColumn
+   import pt.inescn.utils.TableSawUtils.addColumns
+   import pt.inescn.utils.TableSawUtils.createIntColumn
 
     def nearZeros( t: Table, uniqueCut: Double = 0.1, freqCut: Double = 19 ) = {
       val cols = t.columnNames.asScala
