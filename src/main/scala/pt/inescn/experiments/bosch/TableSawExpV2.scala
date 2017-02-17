@@ -432,30 +432,52 @@ object TableSawExpV2 {
       r
     }
 
-   def findCorrelation(t: Table, cutoff : Double = .75) = {
-    val corrs = combColumns( t )
-    corrs.filter( x => x._3 >= cutoff )
-   }
+    def findCorrelation( t: Table, cutoff: Double = .75 ) = {
+      val corrs = combColumns( t )
+      corrs.filter( x => x._3 >= cutoff )
+    }
 
     val t1 = time { combColumns( dt1 ) }
     //println( t1.mkString( "<<", ",", ">>" ) )
     println( s"Calculated ${t1.size} pairs o correlations" )
     val t1cc = dt1.columnCount()
     //println(t1cc * (t1cc -1) / 2)
-    assert(t1cc * (t1cc -1) / 2 == t1.size)
+    assert( t1cc * ( t1cc - 1 ) / 2 == t1.size )
 
     val t2 = time { findCorrelation( dt1 ) }
-   // println( t2.mkString( "<<", ",", ">>" ) )
+    // println( t2.mkString( "<<", ",", ">>" ) )
     println( s"Found ${t2.size} pairs o significant correlations" )
-    assert(t1.size >= t2.size)
-        
+    assert( t1.size >= t2.size )
+
     val dbName = "/home/hmf/Desktop/bosch/Anonymized_Fuel_System.csv.saw"
-    val dts : Table  = time { Table.readTable(dbName) }
+    val dts: Table = time { Table.readTable( dbName ) }
     val t3 = time { findCorrelation( dts ) }
-    println( t3.mkString( "<<", ",", ">>" ) )
+    //println( t3.mkString( "<<", ",", ">>" ) )
     val dtscc = dts.columnCount()
-    val dts_pairs =  dtscc * (dtscc -1) / 2
+    val dts_pairs = dtscc * ( dtscc - 1 ) / 2
     println( s"Found ${t3.size} pairs o significant correlations from a total of $dts_pairs" )
+
+    import pt.inescn.scratchpad.utils.UF
+
+    val uf = new UF( t3.size )
+    time { t3.toList.foreach( f => uf.union( f._1, f._2 ) ) }
+    println( s"Found ${uf.count} components of significantly correlated features from a total of ${t3.size} pairs of correlated features" )
+    val compont3 = t3.foldLeft( Map[ Int, Set[ Int ] ]() ){
+      case ( acc, v ) =>
+        if ((v._1) == 174 || (v._2 == 174)) println(s"Found correlation with dpendent variable: (${v._1}, ${v._2})")
+        val cp1 = uf.find( v._1 )
+        val cp2 = uf.find( v._2 )
+        assert( cp1 == cp2 )
+        val s = acc.getOrElse( cp1, Set[ Int ]() )
+        val ns = s + ( v._1, v._2 )
+        acc + ( cp1 -> ns )
+    }
+    println( s"Found the following ${compont3.size} components of significantly correlated features" )
+    println(compont3.mkString("{", ",", "}"))
+    val totlCompont3 = compont3.foldLeft(0){ 
+      case (acc,v) => acc + v._2.size
+      }
+    println( s"Found a total of ${totlCompont3} correlated features" )
 
     /*
     // Example of using cross-tabs
