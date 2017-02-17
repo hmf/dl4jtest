@@ -410,7 +410,10 @@ object TableSawExpV2 {
 
     // check all pairs of columns for correlation
 
-    def combColumns( df: Table ) = {
+    /*
+     * Pearsons correlation: cor = Math.cor
+     */
+    def combColumns( cor: ( Array[ Double ], Array[ Double ] ) => Double )( df: Table ) = {
       val ctypes = df.columnTypes()
       //println( ctypes.mkString( "," ) )
       val l = ctypes.zipWithIndex.toList
@@ -425,35 +428,38 @@ object TableSawExpV2 {
           val colIdxs = b.drop( 1 )
           //val t = colIdxs.par.map{ x => ( colIdx1, x._2 ) }
           val t = colIdxs.par.map{ x =>
-            ( colIdx1, x._2, applyColumns( Math.cor )( df, colIdx1, ctp1, x._2, x._1 ) )
+            ( colIdx1, x._2, applyColumns( cor )( df, colIdx1, ctp1, x._2, x._1 ) )
           }
           t
       }
       r
     }
 
-    def findCorrelation( t: Table, cutoff: Double = .75 ) = {
-      val corrs = combColumns( t )
+    /*
+     * Pearsons correlation: cor = Math.cor
+     */
+    def findCorrelation( cor: ( Array[ Double ], Array[ Double ] ) => Double )( t: Table, cutoff: Double = .75 ) = {
+      val corrs = combColumns( cor )( t )
       corrs.filter( x => x._3 >= cutoff )
     }
 
-    val t1 = time { combColumns( dt1 ) }
+    val t1 = time { combColumns( Math.cor )( dt1 ) }
     //println( t1.mkString( "<<", ",", ">>" ) )
     println( s"Calculated ${t1.size} pairs o correlations" )
     val t1cc = dt1.columnCount()
     //println(t1cc * (t1cc -1) / 2)
     assert( t1cc * ( t1cc - 1 ) / 2 == t1.size )
 
-    val t2 = time { findCorrelation( dt1 ) }
+    val t2 = time { findCorrelation( Math.cor )( dt1 ) }
     // println( t2.mkString( "<<", ",", ">>" ) )
     println( s"Found ${t2.size} pairs o significant correlations" )
     assert( t1.size >= t2.size )
 
-   println( "BOSCH 2" )
+    println( "BOSCH 2" )
 
     val dbName = "/home/hmf/Desktop/bosch/Anonymized_Fuel_System.csv.saw"
     val dts: Table = time { Table.readTable( dbName ) }
-    val t3 = time { findCorrelation( dts ) }
+    val t3 = time { findCorrelation( Math.cor )( dts ) }
     //println( t3.mkString( "<<", ",", ">>" ) )
     val dtscc = dts.columnCount()
     val dts_pairs = dtscc * ( dtscc - 1 ) / 2
@@ -466,7 +472,7 @@ object TableSawExpV2 {
     println( s"Found ${uf.count} components of significantly correlated features from a total of ${t3.size} pairs of correlated features" )
     val compont3 = t3.foldLeft( Map[ Int, Set[ Int ] ]() ){
       case ( acc, v ) =>
-        if ((v._1) == 174 || (v._2 == 174)) println(s"Found correlation with dpendent variable: (${v._1}, ${v._2})")
+        if ( ( v._1 ) == 174 || ( v._2 == 174 ) ) println( s"Found correlation with dpendent variable: (${v._1}, ${v._2})" )
         val cp1 = uf.find( v._1 )
         val cp2 = uf.find( v._2 )
         assert( cp1 == cp2 )
@@ -475,11 +481,21 @@ object TableSawExpV2 {
         acc + ( cp1 -> ns )
     }
     println( s"Found the following ${compont3.size} components of significantly correlated features" )
-    println(compont3.mkString("{", ",", "}"))
-    val totlCompont3 = compont3.foldLeft(0){ 
-      case (acc,v) => acc + v._2.size
-      }
+    println( compont3.mkString( "{", ",", "}" ) )
+    val totlCompont3 = compont3.foldLeft( 0 ){
+      case ( acc, v ) => acc + v._2.size
+    }
     println( s"Found a total of ${totlCompont3} correlated features" )
+
+    // TODO: for each group check if the distribution is a multivariate normal distribution
+
+    // TODO: create a TableSaw utilities object (implicit?)
+    // TODO: create a Smile utilities object (implicit?)
+    
+    // TODO: ran correlation - Spearman and Kendall
+    
+    // TODO: check co-linearity
+    println( "BOSCH 3" )
 
     /*
     // Example of using cross-tabs
