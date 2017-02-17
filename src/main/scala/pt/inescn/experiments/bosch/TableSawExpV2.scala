@@ -449,6 +449,8 @@ object TableSawExpV2 {
     println( s"Found ${t2.size} pairs o significant correlations" )
     assert( t1.size >= t2.size )
 
+   println( "BOSCH 2" )
+
     val dbName = "/home/hmf/Desktop/bosch/Anonymized_Fuel_System.csv.saw"
     val dts: Table = time { Table.readTable( dbName ) }
     val t3 = time { findCorrelation( dts ) }
