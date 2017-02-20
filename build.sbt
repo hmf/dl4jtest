@@ -92,7 +92,7 @@ libraryDependencies += "org.datavec" % "datavec-data-audio" % "0.7.2"
 
 libraryDependencies += "org.deeplearning4j" % "deeplearning4j-core" % "0.7.2"
 
-libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.1"
+libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.1" % "test"
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test"
 
 // TODO: add scalastyle checks also
