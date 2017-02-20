@@ -102,24 +102,24 @@ object TableSawUtils {
     else {
       //import pt.inescn.utils.Utils.time
       //time {
-        val c1 = t.column( colIdx1 ).toDoubleArray()
-        val c2 = t.column( colIdx2 ).toDoubleArray()
-        corr( c1, c2 )
-        //import smile.math.Math
-        //Math.cor( c1, c2 )
-        //}
+      val c1 = t.column( colIdx1 ).toDoubleArray()
+      val c2 = t.column( colIdx2 ).toDoubleArray()
+      corr( c1, c2 )
+      //import smile.math.Math
+      //Math.cor( c1, c2 )
+      //}
     }
   }
 
   /**
-   * Applies the function `cor` to all pairs of combinations of the 
-   * the columns in table `df`.  This function can used to calculate 
+   * Applies the function `cor` to all pairs of combinations of the
+   * the columns in table `df`.  This function can used to calculate
    * the correlation between features in a data-set. For example
    * to calculate Pearson's correlation set `cor = Math.cor` where
-   * `Math.cor` is SMILE's linear correlation function. Note that 
+   * `Math.cor` is SMILE's linear correlation function. Note that
    * the function is only applied to numeric columns. . Also note that
    * we only generate all n(n-1)/2 pairs (order does not matter) and
-   * do not use the pair (x,x). 
+   * do not use the pair (x,x).
    */
   def combColumns( cor: ( Array[ Double ], Array[ Double ] ) => Double )( df: Table ) = {
     val ctypes = df.columnTypes()
@@ -140,7 +140,7 @@ object TableSawUtils {
         val ctp1 = a._1
         // Note that we need not pair the same column with itself
         val colIdxs = b.drop( 1 )
-       // Now map each head with all elements in each tail        
+        // Now map each head with all elements in each tail        
         val t = colIdxs.par.map{ x =>
           ( colIdx1, x._2, applyColumns( cor )( df, colIdx1, ctp1, x._2, x._1 ) )
         }
@@ -150,17 +150,46 @@ object TableSawUtils {
   }
 
   /**
-   * Applies the function `cor` to all pairs of numeric columns in 
+   * Applies the function `cor` to all pairs of numeric columns in
    * the table `t`. Only the values equal to or above the cut-off
-   * are returned. This can be use for example to calculate the 
-   * Pearson's correlation that are above a give value. in this case 
+   * are returned. This can be use for example to calculate the
+   * Pearson's correlation that are above a give value. in this case
    * we can use SMILE's `cor = Math.cor`
-   * 
+   *
    * @see [[combColumns]]
    */
   def findCorrelation( cor: ( Array[ Double ], Array[ Double ] ) => Double )( t: Table, cutoff: Double = .75 ) = {
     val corrs = combColumns( cor )( t )
+    println(corrs.mkString("<",",",">"))
     corrs.filter( x => x._3 >= cutoff )
+  }
+
+  import pt.inescn.scratchpad.utils.UF
+
+  def findCorrelationComponents( chk_dep: ( ( Int, Int, Double ) ) => Unit )( pairs: Seq[ ( Int, Int, Double ) ] ) = {
+    // Determine what sets of correlated variables exist
+    val uf = new UF( pairs.size )
+    pairs.foreach( f => uf.union( f._1, f._2 ) )
+    // Create a map from the set's root to its elements
+    // Record all roots and theire members
+    val components = pairs.foldLeft( Map[ Int, Set[ Int ] ]() ){
+      case ( acc, v ) =>
+        val cp1 = uf.find( v._1 )
+        val cp2 = uf.find( v._2 )
+        chk_dep( v )
+        assert( cp1 == cp2 )
+        // get root's set
+        val s = acc.getOrElse( cp1, Set[ Int ]() )
+        // add elements to root's set
+        val ns = s + ( v._1, v._2 )
+        // update root's set
+        acc + ( cp1 -> ns )
+    }
+    // Calculate the total number of correlated variables (irrespective of the set/root)
+    val totlComponents = components.foldLeft( 0 ){
+      case ( acc, v ) => acc + v._2.size
+    }
+    ( uf, components, totlComponents )
   }
 
   /*

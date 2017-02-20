@@ -278,10 +278,16 @@ object TableSawExpV2 {
     println( s"Found ${t2.size} pairs o significant correlations" )
     assert( t1.size >= t2.size )
 
-    println( "BOSCH 2" )
+    
+    def chk_if_dep(v: (Int, Int,_)) = {
+          if ( ( v._1 ) == 174 || ( v._2 == 174 ) ) println( s"Found correlation with dependent variable: (${v._1}, ${v._2})" )
+    }
 
     val dbName = "/home/hmf/Desktop/bosch/Anonymized_Fuel_System.csv.saw"
     val dts: Table = time { Table.readTable( dbName ) }
+    /*
+    println( "BOSCH 2" )
+
     val t3 = time { findCorrelation( Math.cor )( dts ) }
     //println( t3.mkString( "<<", ",", ">>" ) )
     val dtscc = dts.columnCount()
@@ -289,91 +295,55 @@ object TableSawExpV2 {
     println( s"Found ${t3.size} pairs o significant correlations from a total of $dts_pairs" )
 
     import pt.inescn.scratchpad.utils.UF
-
-    def chk_if_dep(v: (Int, Int,_)) = {
-          if ( ( v._1 ) == 174 || ( v._2 == 174 ) ) println( s"Found correlation with dependent variable: (${v._1}, ${v._2})" )
-    }
-    
-    def findCorrelationComponents(chk_dep : ((Int, Int, Double)) => Unit)( pairs: Seq[ ( Int, Int, Double ) ] ) = {
-      // Determine what sets of correlated variables exist
-      val uf = new UF( pairs.size )
-      time { pairs.foreach( f => uf.union( f._1, f._2 ) ) }
-      // Create a map from the set's root to its elements
-      // Record all roots and theire members
-      val components = pairs.foldLeft( Map[ Int, Set[ Int ] ]() ){
-        case ( acc, v ) =>          
-          val cp1 = uf.find( v._1 )
-          val cp2 = uf.find( v._2 )
-          chk_dep( v )
-          assert( cp1 == cp2 )
-          // get root's set
-          val s = acc.getOrElse( cp1, Set[ Int ]() )
-          // add elements to root's set
-          val ns = s + ( v._1, v._2 )
-          // update root's set
-          acc + ( cp1 -> ns )
-      }
-      // Calculate the total number of correlated variables (irrespective of the set/root)
-      val totlComponents = components.foldLeft( 0 ){
-        case ( acc, v ) => acc + v._2.size
-      }
-      ( uf, components, totlComponents )
-    }
-
-    /*
-    val uf = new UF( t3.size )
-    time { t3.toList.foreach( f => uf.union( f._1, f._2 ) ) }
-    println( s"Found ${uf.count} components of significantly correlated features from a total of ${t3.size} pairs of correlated features" )
-    val compont3 = t3.foldLeft( Map[ Int, Set[ Int ] ]() ){
-      case ( acc, v ) =>
-        if ( ( v._1 ) == 174 || ( v._2 == 174 ) ) println( s"Found correlation with dpendent variable: (${v._1}, ${v._2})" )
-        val cp1 = uf.find( v._1 )
-        val cp2 = uf.find( v._2 )
-        assert( cp1 == cp2 )
-        val s = acc.getOrElse( cp1, Set[ Int ]() )
-        val ns = s + ( v._1, v._2 )
-        acc + ( cp1 -> ns )
-    }
-    println( s"Found the following ${compont3.size} components of significantly correlated features" )
-    println( compont3.mkString( "{", ",", "}" ) )
-    val totlCompont3 = compont3.foldLeft( 0 ){
-      case ( acc, v ) => acc + v._2.size
-    }
-    println( s"Found a total of ${totlCompont3} correlated features" )
-    */
     
     val (uf, compont3, totlCompont3) = time{ findCorrelationComponents(chk_if_dep)( t3.toList ) }
-    /*val uf = new UF( t3.size )
-    time { t3.toList.foreach( f => uf.union( f._1, f._2 ) ) }*/
     println( s"Found ${uf.count} components of significantly correlated features from a total of ${t3.size} pairs of correlated features" )
-    /*val compont3 = t3.foldLeft( Map[ Int, Set[ Int ] ]() ){
-      case ( acc, v ) =>
-        if ( ( v._1 ) == 174 || ( v._2 == 174 ) ) println( s"Found correlation with dpendent variable: (${v._1}, ${v._2})" )
-        val cp1 = uf.find( v._1 )
-        val cp2 = uf.find( v._2 )
-        assert( cp1 == cp2 )
-        val s = acc.getOrElse( cp1, Set[ Int ]() )
-        val ns = s + ( v._1, v._2 )
-        acc + ( cp1 -> ns )
-    }*/
     println( s"Found the following ${compont3.size} components of significantly correlated features" )
     println( compont3.mkString( "{", ",", "}" ) )
-    /*val totlCompont3 = compont3.foldLeft( 0 ){
-      case ( acc, v ) => acc + v._2.size
-    }*/
     println( s"Found a total of ${totlCompont3} correlated features" )
-
+    */
+   /*
+      BOSCH 2
+      Elapsed time: 6.145489914sec
+      Elapsed time: 421.643414092sec
+      Found 354 pairs o significant correlations from a total of 15225
+      Elapsed time: 5.2514E-4sec
+      Found 252 components of significantly correlated features from a total of 354 pairs of correlated features
+      Found the following 26 components of significantly correlated features
+      {0 -> Set(69, 0, 5, 10, 52, 14, 157, 57, 6, 173, 13, 2, 166, 148, 149, 22, 59, 144, 49, 7, 3, 150, 50, 143, 26, 158, 8, 58, 51),88 -> Set(88, 115, 120, 110, 125, 106, 132, 89, 116, 117, 97, 109, 124, 96, 129, 128, 105, 118, 81, 98, 103, 80, 112, 123, 127, 104, 119, 82, 126, 131, 90, 111),170 -> Set(170, 171),20 -> Set(20, 55, 56),78 -> Set(78, 85, 93),164 -> Set(164, 165),121 -> Set(121, 122),61 -> Set(61, 65),21 -> Set(21, 151, 156),53 -> Set(53, 54),32 -> Set(32, 36, 40, 44),27 -> Set(27, 28),71 -> Set(71, 145, 146, 147),12 -> Set(12, 47, 141),91 -> Set(91, 114),135 -> Set(135, 137),167 -> Set(167, 168),18 -> Set(18, 46),31 -> Set(37, 33, 41, 39, 35, 31, 43),72 -> Set(72, 73),87 -> Set(87, 95),139 -> Set(139, 140, 172),23 -> Set(23, 24, 154),30 -> Set(30, 34, 38, 42),15 -> Set(15, 48, 142, 16),62 -> Set(62, 66)}
+      Found a total of 128 correlated features
+    */
     
+    // Math.spearman
+    def report_correlation(cor: ( Array[ Double ], Array[ Double ] ) => Double)( chk_dep: ( ( Int, Int, Double ) ) => Unit )(dts: Table, cutoff: Double = .75) = {
+      val t = time { findCorrelation( cor )( dts, cutoff ) }
+      val dtscc = dts.columnCount()
+      val dts_pairs = dtscc * ( dtscc - 1 ) / 2
+      println( s"Found ${t.size} pairs o significant correlations from a total of $dts_pairs" )
+  
+      import pt.inescn.scratchpad.utils.UF
+  
+      val (uf, compont, totlCompont) = time{ findCorrelationComponents(chk_dep)( t.toList ) }
+      println( s"Found ${uf.count} components of significantly correlated features from a total of ${t.size} pairs of correlated features" )
+      println( s"Found the following ${compont.size} components of significantly correlated features" )
+      println( compont.mkString( "{", ",", "}" ) )
+      println( s"Found a total of ${totlCompont} correlated features" )
+    }
+    
+    println( "BOSCH 2: Pearson" )
+    //report_correlation(Math.cor)( chk_if_dep )(dts)
+    println( "BOSCH 3: Spearman" )
+    report_correlation(Math.spearman)( chk_if_dep )(dts)
+    println( "BOSCH 3: Kendall" )
+    //report_correlation(Math.spearman)( chk_if_dep )(dts)
     
     // TODO: for each group check if the distribution is a multivariate normal distribution
 
-    // TODO: create a TableSaw utilities object (implicit?)
     // TODO: create a Smile utilities object (implicit?)
 
     // TODO: ran correlation - Spearman and Kendall
 
     // TODO: check co-linearity
-    println( "BOSCH 3" )
 
     /*
     // Example of using cross-tabs
