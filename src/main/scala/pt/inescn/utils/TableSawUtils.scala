@@ -158,10 +158,10 @@ object TableSawUtils {
    *
    * @see [[combColumns]]
    */
-  def findCorrelation( cor: ( Array[ Double ], Array[ Double ] ) => Double )( t: Table, cutoff: Double = .75 ) = {
+  def findCorrelation( cor: ( Array[ Double ], Array[ Double ] ) => Double, cutoff: ( Double ) => Boolean )( t: Table ) = {
     val corrs = combColumns( cor )( t )
-    println(corrs.mkString("<",",",">"))
-    corrs.filter( x => x._3 >= cutoff )
+    //println( corrs.mkString( "<", ",", ">" ) )
+    corrs.filter( x => cutoff( x._3 ) )
   }
 
   import pt.inescn.scratchpad.utils.UF
@@ -195,6 +195,27 @@ object TableSawUtils {
   /*
    * Statistical and other ML related calculations
    */
+
+  import pt.inescn.utils.Utils._
+  
+  /**
+   * Calculates a correlate between all numeric pairs of columns. It then selects
+   * those columns according to a given cutoff. 
+   */
+  def report_correlation( cor: ( Array[ Double ], Array[ Double ] ) => Double, cutoff: ( Double ) => Boolean )( chk_dep: ( ( Int, Int, Double ) ) => Unit )( dts: Table ) = {
+    val t = time { findCorrelation( cor, cutoff )( dts ) }
+    val dtscc = dts.columnCount()
+    val dts_pairs = dtscc * ( dtscc - 1 ) / 2
+    println( s"Found ${t.size} pairs o significant correlations from a total of $dts_pairs" )
+
+    import pt.inescn.scratchpad.utils.UF
+
+    val ( uf, compont, totlCompont ) = time{ findCorrelationComponents( chk_dep )( t.toList ) }
+    println( s"Found ${uf.count} components of significantly correlated features from a total of ${t.size} pairs of correlated features" )
+    println( s"Found the following ${compont.size} components of significantly correlated features" )
+    println( compont.mkString( "{", ",", "}" ) )
+    println( s"Found a total of ${totlCompont} correlated features" )
+  }
 
   /**
    * Container class that holds the checks for near zero variance features.

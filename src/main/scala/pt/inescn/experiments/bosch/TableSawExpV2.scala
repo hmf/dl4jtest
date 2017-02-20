@@ -273,7 +273,7 @@ object TableSawExpV2 {
     //println(t1cc * (t1cc -1) / 2)
     assert( t1cc * ( t1cc - 1 ) / 2 == t1.size )
 
-    val t2 = time { findCorrelation( Math.cor )( dt1 ) }
+    val t2 = time { findCorrelation( Math.cor, _ >= 0.75 )( dt1 ) }
     // println( t2.mkString( "<<", ",", ">>" ) )
     println( s"Found ${t2.size} pairs o significant correlations" )
     assert( t1.size >= t2.size )
@@ -285,64 +285,37 @@ object TableSawExpV2 {
 
     val dbName = "/home/hmf/Desktop/bosch/Anonymized_Fuel_System.csv.saw"
     val dts: Table = time { Table.readTable( dbName ) }
-    /*
-    println( "BOSCH 2" )
-
-    val t3 = time { findCorrelation( Math.cor )( dts ) }
-    //println( t3.mkString( "<<", ",", ">>" ) )
-    val dtscc = dts.columnCount()
-    val dts_pairs = dtscc * ( dtscc - 1 ) / 2
-    println( s"Found ${t3.size} pairs o significant correlations from a total of $dts_pairs" )
-
-    import pt.inescn.scratchpad.utils.UF
     
-    val (uf, compont3, totlCompont3) = time{ findCorrelationComponents(chk_if_dep)( t3.toList ) }
-    println( s"Found ${uf.count} components of significantly correlated features from a total of ${t3.size} pairs of correlated features" )
-    println( s"Found the following ${compont3.size} components of significantly correlated features" )
-    println( compont3.mkString( "{", ",", "}" ) )
-    println( s"Found a total of ${totlCompont3} correlated features" )
-    */
+    
+    // 7 minutes
    /*
       BOSCH 2
       Elapsed time: 6.145489914sec
-      Elapsed time: 421.643414092sec
-      Found 354 pairs o significant correlations from a total of 15225
-      Elapsed time: 5.2514E-4sec
-      Found 252 components of significantly correlated features from a total of 354 pairs of correlated features
-      Found the following 26 components of significantly correlated features
-      {0 -> Set(69, 0, 5, 10, 52, 14, 157, 57, 6, 173, 13, 2, 166, 148, 149, 22, 59, 144, 49, 7, 3, 150, 50, 143, 26, 158, 8, 58, 51),88 -> Set(88, 115, 120, 110, 125, 106, 132, 89, 116, 117, 97, 109, 124, 96, 129, 128, 105, 118, 81, 98, 103, 80, 112, 123, 127, 104, 119, 82, 126, 131, 90, 111),170 -> Set(170, 171),20 -> Set(20, 55, 56),78 -> Set(78, 85, 93),164 -> Set(164, 165),121 -> Set(121, 122),61 -> Set(61, 65),21 -> Set(21, 151, 156),53 -> Set(53, 54),32 -> Set(32, 36, 40, 44),27 -> Set(27, 28),71 -> Set(71, 145, 146, 147),12 -> Set(12, 47, 141),91 -> Set(91, 114),135 -> Set(135, 137),167 -> Set(167, 168),18 -> Set(18, 46),31 -> Set(37, 33, 41, 39, 35, 31, 43),72 -> Set(72, 73),87 -> Set(87, 95),139 -> Set(139, 140, 172),23 -> Set(23, 24, 154),30 -> Set(30, 34, 38, 42),15 -> Set(15, 48, 142, 16),62 -> Set(62, 66)}
-      Found a total of 128 correlated features
+      Elapsed time: 417.587555629sec
+      Found 377 pairs o significant correlations from a total of 15225
+      Elapsed time: 0.004895337sec
+      Found 271 components of significantly correlated features from a total of 377 pairs of correlated features
+      Found the following 25 components of significantly correlated features
+      {0 -> Set(69, 0, 5, 10, 52, 14, 157, 57, 6, 173, 13, 2, 166, 148, 149, 22, 59, 144, 49, 7, 3, 150, 50, 143, 26, 158, 8, 58, 51),170 -> Set(170, 171),20 -> Set(20, 55, 56),78 -> Set(78, 85, 93),164 -> Set(164, 165),61 -> Set(61, 65),21 -> Set(21, 151, 156),53 -> Set(53, 54),32 -> Set(32, 36, 40, 44),17 -> Set(17, 169),27 -> Set(27, 28),71 -> Set(71, 145, 146, 147),12 -> Set(12, 47, 141),91 -> Set(91, 114),135 -> Set(135, 137),80 -> Set(88, 115, 120, 37, 110, 125, 106, 121, 132, 89, 116, 117, 33, 97, 109, 124, 96, 129, 41, 128, 105, 118, 81, 39, 98, 103, 80, 35, 112, 123, 127, 31, 43, 104, 119, 82, 126, 131, 90, 111, 122),18 -> Set(18, 46),72 -> Set(72, 73),87 -> Set(87, 95),139 -> Set(139, 140, 172),23 -> Set(23, 24, 154),30 -> Set(30, 34, 38, 42),19 -> Set(19, 167, 168),15 -> Set(15, 48, 142, 16),62 -> Set(62, 66)}
+      Found a total of 131 correlated features
     */
-    
-    // Math.spearman
-    def report_correlation(cor: ( Array[ Double ], Array[ Double ] ) => Double)( chk_dep: ( ( Int, Int, Double ) ) => Unit )(dts: Table, cutoff: Double = .75) = {
-      val t = time { findCorrelation( cor )( dts, cutoff ) }
-      val dtscc = dts.columnCount()
-      val dts_pairs = dtscc * ( dtscc - 1 ) / 2
-      println( s"Found ${t.size} pairs o significant correlations from a total of $dts_pairs" )
-  
-      import pt.inescn.scratchpad.utils.UF
-  
-      val (uf, compont, totlCompont) = time{ findCorrelationComponents(chk_dep)( t.toList ) }
-      println( s"Found ${uf.count} components of significantly correlated features from a total of ${t.size} pairs of correlated features" )
-      println( s"Found the following ${compont.size} components of significantly correlated features" )
-      println( compont.mkString( "{", ",", "}" ) )
-      println( s"Found a total of ${totlCompont} correlated features" )
-    }
-    
     println( "BOSCH 2: Pearson" )
-    //report_correlation(Math.cor)( chk_if_dep )(dts)
+    report_correlation(Math.cor, Math.abs(_) >= 0.75)( chk_if_dep )(dts)
+    // 43 minutes
     println( "BOSCH 3: Spearman" )
-    report_correlation(Math.spearman)( chk_if_dep )(dts)
+    report_correlation(Math.spearman, Math.abs(_) >= 0.75)( chk_if_dep )(dts)
     println( "BOSCH 3: Kendall" )
-    //report_correlation(Math.spearman)( chk_if_dep )(dts)
+    //report_correlation(Math.kendall,Math.abs(_) >= 0.75)( chk_if_dep )(dts)
     
     // TODO: for each group check if the distribution is a multivariate normal distribution
 
     // TODO: create a Smile utilities object (implicit?)
 
     // TODO: ran correlation - Spearman and Kendall
-
+    // TODO: other correlates in https://en.wikipedia.org/wiki/Correlation_and_dependence
+    // TODO:  	JensenShannonDivergence
+    // TODO: KullbackLeiblerDivergence
+    
     // TODO: check co-linearity
 
     /*
