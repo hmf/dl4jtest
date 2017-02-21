@@ -242,18 +242,18 @@ object TableSawExpV2 {
     println( s"Found ${t2.size} pairs o significant correlations" )
     assert( t1.size >= t2.size )
 */
-    
-    def chk_if_dep(v: (Int, Int,_)) = {
-          if ( ( v._1 ) == 174 || ( v._2 == 174 ) ) println( s"Found correlation with dependent variable: (${v._1}, ${v._2})" )
+
+    def chk_if_dep( v: ( Int, Int, _ ) ) = {
+      if ( ( v._1 ) == 174 || ( v._2 == 174 ) ) println( s"Found correlation with dependent variable: (${v._1}, ${v._2})" )
     }
 
     val dbName = "/home/hmf/Desktop/bosch/Anonymized_Fuel_System.csv.saw"
     val dts: Table = time { Table.readTable( dbName ) }
-    
+
     import smile.math.Math
-    
+
     // 7 minutes
-   /*
+    /*
       BOSCH 2
       Elapsed time: 6.145489914sec
       Elapsed time: 417.587555629sec
@@ -453,8 +453,8 @@ object TableSawExpV2 {
     println( "BOSCH 3: Spearman" )
     //report_correlation(Math.spearman, Math.abs(_) >= 0.75)( chk_if_dep )(dts)
     println( "BOSCH 4: Kendall" )
-    report_correlation(Math.kendall,Math.abs(_) >= 0.75)( chk_if_dep )(dts)
-    
+    //report_correlation( Math.kendall, Math.abs( _ ) >= 0.75 )( chk_if_dep )( dts )
+
     // TODO: for each group check if the distribution is a multivariate normal distribution
 
     // TODO: create a Smile utilities object (implicit?)
@@ -463,13 +463,94 @@ object TableSawExpV2 {
     // TODO: other correlates in https://en.wikipedia.org/wiki/Correlation_and_dependence
     // TODO:  	JensenShannonDivergence
     // TODO: KullbackLeiblerDivergence
-    
+
     // TODO: check co-linearity
     // See https://github.com/haifengl/smile/issues/86
     // ND4j, ND4s
-    
-    
-    
+    /*
+  ltfrDesign <- matrix(0, nrow=6, ncol=6)
+ltfrDesign[,1] <- c(1, 1, 1, 1, 1, 1)
+ltfrDesign[,2] <- c(1, 1, 1, 0, 0, 0)
+ltfrDesign[,3] <- c(0, 0, 0, 1, 1, 1)
+ltfrDesign[,4] <- c(1, 0, 0, 1, 0, 0)
+ltfrDesign[,5] <- c(0, 1, 0, 0, 1, 0)
+ltfrDesign[,6] <- c(0, 0, 1, 0, 0, 1)
+ */
+    val dt = Table.create( "test2" )
+    val c1 = createFloatColumn( "col1", List( 1, 1, 1, 1, 1, 1 ) )
+    val c2 = createFloatColumn( "col2", List( 1, 1, 1, 0, 0, 0 ) )
+    val c3 = createFloatColumn( "col3", List( 0, 0, 0, 1, 1, 1 ) )
+    val c4 = createFloatColumn( "col4", List( 1, 0, 0, 1, 0, 0 ) )
+    val c5 = createFloatColumn( "col5", List( 0, 1, 0, 0, 1, 0 ) )
+    val c6 = createFloatColumn( "col6", List( 0, 0, 1, 0, 0, 1 ) )
+
+    addColumns( dt, c1, c2, c3 )
+
+    import smile.math.matrix.QRDecomposition
+    /*
+## $linearCombos
+## $linearCombos[[1]]
+## [1] 3 1 2
+## 
+## $linearCombos[[2]]
+## [1] 6 1 4 5
+## 
+## 
+## $remove
+## [1] 3 6
+     */
+
+    import com.github.lwhite1.tablesaw.util.DoubleArrays;
+
+    def findLinearCombo( cols: List[ FloatColumn ], c: FloatColumn ) = {
+      // Create a matrix
+      val am = DoubleArrays.to2dArray( cols: _* )
+      // Prepare QR decomposition
+      val qr = new QRDecomposition( am )
+      // Create result vector
+      //val r = Array.emptyFloatArray(cols.size-1)
+      val r = new Array[ Double ]( cols.size )
+      // See if c is a linear combination of cols
+      qr.solve( c.toDoubleArray(), r )
+      r
+    }
+
+    def mm( cols: List[ FloatColumn ], c: Array[ Double ] ) = {
+      import smile.math.Math._
+
+      val a = DoubleArrays.to2dArray( cols: _* )
+      val b = Array.ofDim[ Double ]( 1, c.size )
+      b( 0 ) = c
+      val r = abtmm( a, b )
+      r
+    }
+
+    // We have a solution = result vector not zero 
+    val cols1 = List( c2, c3 )
+    val r1 = findLinearCombo( cols1, c1 )
+    println( r1.mkString( "<", ",", ">" ) )
+    val cs2_1 = c2.asScala.map { x => x * r1( 0 ) }
+    val cs3_1 = c3.asScala.map { x => x * r1( 1 ) }
+    val mcs1_1 = cs2_1.zip( cs3_1 ).map { case ( a, b ) => a + b }
+    println( mcs1_1.mkString( "<", ",", ">" ) )
+
+    import smile.math.Math._
+
+    /*
+    val a = DoubleArrays.to2dArray( cols1: _* )
+    val b = Array.ofDim[ Double ]( 1, r1.size )
+    b( 0 ) = r1
+    val r = abtmm( a, b )
+    println( r.map( _.mkString( "|", ",", "|" ) ).mkString( "\n" ) )
+*/
+    val rr = mm( cols1, r1 )
+    println( rr.map( _.mkString( "|", ",", "|" ) ).mkString( "\n" ) )
+
+    // We have no solution = result is trivial with vector zero
+    val cols2 = List( c1, c4 )
+    val r2 = findLinearCombo( cols2, c3 )
+    println( r2.mkString( "<", ",", ">" ) )
+
     /*
     // Example of using cross-tabs
     import com.github.lwhite1.tablesaw.reducing.CrossTab

@@ -51,6 +51,18 @@ object TableSawUtils {
   }
 
   /**
+   * SawTable utility that allows one to create
+   * a specific type of column.
+   *
+   * @see [[pt.inescn.utils.addColumn[ A ]( tbl: Table, col: A )]]
+   */
+  def createFloatColumn( colName: String, vals: Seq[ Int ] ) = {
+    val col = FloatColumn.create( colName )
+    vals.foreach { x => col.add( x ) }
+    col
+  }
+
+  /**
    * Used to read the string description of the inferred column type
    * and convert that to TableSaw's `ColumnType`
    */
@@ -348,8 +360,12 @@ object TableSawUtils {
   
   /*
    * Check for linear combinations
+   * 
+   * see: https://topepo.github.io/caret/pre-processing.html#lindep
+   * See: https://github.com/haifengl/smile/issues/86
+   * See: https://rdrr.io/cran/caret/man/findLinearCombos.html
+   * See: https://see.stanford.edu/materials/lsoeldsee263/04-qr.pdf
    */
-  
-  
+   // TODO  
 
 }

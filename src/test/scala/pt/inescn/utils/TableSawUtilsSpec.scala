@@ -65,7 +65,7 @@ class TableSawUtilsSpec extends FlatSpec with Matchers {
 
   }
 
-  "check for near zero in mdrrdesc data" should "generate same results as the Caret R package" in {
+  it should "generate same results as the Caret R package" in {
 
     import collection.JavaConverters._
 
