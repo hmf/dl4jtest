@@ -14,17 +14,17 @@ object Utils {
     result
   }
 
-  /**
+  /** TODO: remove ?
    * Compare two real values with a given precision. The `eps` parameter
    * determines the precision with which the comparison is done. 
-   */
+   *
   def approxEqual( a: Double, b: Double, eps: Double = 0.000001 ) = {
     if ( a.isNaN ) b.isNaN
     else if ( a.isInfinity ) b.isInfinity
     else if ( b.isNaN ) a.isNaN
     else if ( b.isInfinity ) a.isInfinity
     else ( ( b + eps ) >= a ) && ( a >= ( b - eps ) )
-  }
+  }*/
 
   /**
    * Compare two real values with a given precision. The `eps` parameter
@@ -32,12 +32,12 @@ object Utils {
    * fails the difference is written to standard output.
    * 
    * @see [[approxEqual]]
-   */
+   *
   def aproxEqualShow( i : Int, a: Double, b: Double, eps: Double = 0.000001 ) = {
     val r = approxEqual( a, b, eps )
     if (! r) println(s"At $i expected $a but got $b")
     r
-  }  
+  }
   
   def checkColumnValues[T,U,V](m : Map[String, Iterable[(T,U)]], chkShow: (Int,T,U,V) => Boolean, eps: V) = {
       m.forall{ p =>  
@@ -58,5 +58,5 @@ object Utils {
           eps=true)
           )
     }
-  
+  */
 }

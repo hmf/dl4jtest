@@ -127,43 +127,6 @@ object TableSawExpV2 {
 
     // TODO: place in test harness
 
-    def assertOnNearZeroCheck( nzc: NearZeroCheck,
-                               freqRatio: Double, badFreqRatio: Boolean,
-                               uniqueRatio: Double, badUniqueRatio: Boolean,
-                               isConstant: Boolean ) = {
-      assert( approxEqual( nzc.frequency_ratio, freqRatio ) )
-      assert( nzc.bad_freq_ratio == badFreqRatio )
-      assert( approxEqual( nzc.unique_val_ratio, uniqueRatio ) )
-      assert( nzc.bad_unique_val_ratio == badUniqueRatio )
-      assert( nzc.isConstant == isConstant )
-    }
-
-    val dt = Table.create( "test1" )
-    val c1 = createIntColumn( "col1", List( 1, 1, 2, 1, 3, 2, 4 ) )
-    val c2 = createIntColumn( "col2", List( 1, 2, 3, 4, 5, 6, 7 ) )
-    val c3 = createIntColumn( "col3", List( 1, 1, 1, 1, 1, 1, 1 ) )
-
-    //val col1 = c1.asInstanceOf[ Column[ _ ] ]
-    //val col2 = c2.asInstanceOf[ Column[ _ ] ]
-    //dt.addColumn( col1, col2 )
-    addColumns( dt, c1, c2, c3 )
-
-    val nzc1 = nearZero( dt, "col1" )
-    println( nzc1 )
-    assertOnNearZeroCheck( nzc1, 1.5, false, 0.571429, false, false )
-
-    val nzc2 = nearZero( dt, "col2" )
-    println( nzc2 )
-    assertOnNearZeroCheck( nzc2, 1.0, false, 1.0, false, false )
-
-    val nzc3 = nearZero( dt, "col3" )
-    println( nzc3 )
-    //assertOnNearZeroCheck( nzc3, Double.NaN, false, 0.14285714285714285, false, true )
-    assertOnNearZeroCheck( nzc3, Double.NaN, false, 0.142857, false, true )
-
-    val nzt1 = nearZeros( dt )
-    println( nzt1.print )
-
     // write.table(mdrrDescr, file="/home/hmf/Desktop/bosch/mdrrdesc.csv", sep=",", fileEncoding="UTF-8", quote=TRUE)
     // write.table(mdrrDescr, file="/home/hmf/Desktop/bosch/mdrrdesc.csv", sep=",", fileEncoding="UTF-8", quote=TRUE,eol="\r\n")
     // write.table(mdrrDescr, file="/home/hmf/Desktop/bosch/mdrrdesc.csv", sep=",", fileEncoding="UTF-8", quote=TRUE,eol="\r\n", row.names = FALSE)
@@ -171,6 +134,7 @@ object TableSawExpV2 {
 
     import com.github.lwhite1.tablesaw.io.csv.CsvReader
 
+    /* TODO 
     // Lest use https://topepo.github.io/caret/pre-processing.html t check the near zero calculations
     // It uses the mdrrdesc data as an example - we will use that to check the results
 
@@ -277,7 +241,7 @@ object TableSawExpV2 {
     // println( t2.mkString( "<<", ",", ">>" ) )
     println( s"Found ${t2.size} pairs o significant correlations" )
     assert( t1.size >= t2.size )
-
+*/
     
     def chk_if_dep(v: (Int, Int,_)) = {
           if ( ( v._1 ) == 174 || ( v._2 == 174 ) ) println( s"Found correlation with dependent variable: (${v._1}, ${v._2})" )
@@ -286,6 +250,7 @@ object TableSawExpV2 {
     val dbName = "/home/hmf/Desktop/bosch/Anonymized_Fuel_System.csv.saw"
     val dts: Table = time { Table.readTable( dbName ) }
     
+    import smile.math.Math
     
     // 7 minutes
    /*
@@ -300,7 +265,7 @@ object TableSawExpV2 {
       Found a total of 131 correlated features
     */
     println( "BOSCH 2: Pearson" )
-    report_correlation(Math.cor, Math.abs(_) >= 0.75)( chk_if_dep )(dts)
+    //report_correlation(Math.cor, Math.abs(_) >= 0.75)( chk_if_dep )(dts)
     // 43 minutes
     /*
     Elapsed time: 2291.405744404sec
@@ -486,9 +451,9 @@ object TableSawExpV2 {
     Found a total of 175 correlated features
      */
     println( "BOSCH 3: Spearman" )
-    report_correlation(Math.spearman, Math.abs(_) >= 0.75)( chk_if_dep )(dts)
-    println( "BOSCH 3: Kendall" )
-    //report_correlation(Math.kendall,Math.abs(_) >= 0.75)( chk_if_dep )(dts)
+    //report_correlation(Math.spearman, Math.abs(_) >= 0.75)( chk_if_dep )(dts)
+    println( "BOSCH 4: Kendall" )
+    report_correlation(Math.kendall,Math.abs(_) >= 0.75)( chk_if_dep )(dts)
     
     // TODO: for each group check if the distribution is a multivariate normal distribution
 
