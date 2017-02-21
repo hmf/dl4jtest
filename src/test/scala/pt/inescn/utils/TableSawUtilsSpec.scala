@@ -5,6 +5,8 @@ import org.scalatest._
 import collection.mutable.Stack
 import org.scalatest._
 
+import pt.inescn.utils.TestUtils._
+
 /**
  *
  *  test:compile
@@ -17,20 +19,6 @@ import org.scalatest._
  * sbt testOnly "pt.inescn.utils.TableSawUtilsSpec"
  */
 class TableSawUtilsSpec extends FlatSpec with Matchers {
-
-  val precision = 1e-5
-
-  /**
-   * Compare two real values with a given precision. The `eps` parameter
-   * determines the precision with which the comparison is done.
-   */
-  def chk( a: Double, b: Double, eps: Double = precision ) = {
-    if ( a.isNaN ) b.isNaN
-    else if ( a.isInfinity ) b.isInfinity
-    else if ( b.isNaN ) a.isNaN
-    else if ( b.isInfinity ) a.isInfinity
-    else a should be ( ( b ) +- eps )
-  }
 
   "check for simple near zero" should "generate near zero check table" in {
     import pt.inescn.utils.TableSawUtils._
@@ -89,7 +77,7 @@ class TableSawUtilsSpec extends FlatSpec with Matchers {
     // Lest use https://topepo.github.io/caret/pre-processing.html t check the near zero calculations
     // It uses the mdrrdesc data as an example - we will use that to check the results
 
-    // When reading the file, type inference fails. Sampling fails. Sampling of 1st row allways occurs 
+    // When reading the file, type inference fails. Sampling fails. Sampling of 1st row always occurs 
     // We used a smaller file to fill in the value of the first row of the column generating the error.
     // We keep doing this until inference succeeds. 
     val dtt = CsvReader.detectedColumnTypes( "/home/hmf/Desktop/bosch/mdrrdesc_b.csv", true, ',' )
@@ -124,38 +112,25 @@ class TableSawUtilsSpec extends FlatSpec with Matchers {
     val z = r.asScala.map( _.toDouble ).zip( List( 23.0, 131.0, 527.0, 527.0, 527.0, 21.782608, 57.666668, 527.0, 123.5, 527.0 ) )
     //println(z.mkString(","))
     //println(z.forall( p => p._1 == p._2))
-    // TODO: remove
-    //assert( z.zipWithIndex.forall{ case ( ( a, b ), i ) => aproxEqualShow( i, a, b ) } )
-    //z.zipWithIndex.foreach{ case ( ( a, b ), i ) => a should be ((b) +- precision ) }
     z.foreach{ case ( a, b ) => a should be ((b) +- precision)  }
 
 
     val freqRatiosC1 = filtered.floatColumn( "freqRatio" )
     val freqRatios1 = freqRatiosC1.asScala.map( _.toDouble ).zip( List( 23.0, 131.0, 527.0, 527.0, 527.0, 21.782608, 57.666668, 527.0, 123.5, 527.0 ) )
+    freqRatios1.foreach{ case ( a, b ) => a should be ((b) +- precision)  }
 
     val uniqueValRatioC1 = filtered.floatColumn( "uniqueValRatio" )
     val l2 = List( 0.3787879, 0.3787879, 0.3787879, 0.3787879, 0.3787879, 0.5681818, 0.3787879, 0.3787879, 5.8712121, 0.3787879 ).map( _ / 100.0 )
     val uniqueValRatio1 = uniqueValRatioC1.asScala.map( _.toDouble ).zip( l2 )
+    uniqueValRatio1.foreach{ case ( a, b ) => a should be ((b) +- precision)  }
 
     val nzv1 = filtered.booleanColumn( "badFreqRatio" ).toIntArray
       .zip( filtered.booleanColumn( "badUniqueValRatio" ).toIntArray )
       .map( x => ( x._1 > 0 ) || ( x._2 > 0 ) )
       .toIterable
-    // TODO val nzvc1 = nzv1.zip( List( true, true, true, true, true, true, true, true, true, true ) )
+    nzv1.toSeq  should contain theSameElementsInOrderAs List( true, true, true, true, true, true, true, true, true, true )
 
     val const1 = filtered.booleanColumn( "isConstant" ).toIntArray.map( _ > 0 ).toIterable
-    // TODO val constc1 = const1.zip( List( false, false, false, false, false, false, false, false, false, false ) )
-
-    // TODO val chks1 = Map( "freqRatio" -> freqRatios1, "uniqueValRatio" -> uniqueValRatio1 )
-    // TODO checkFloatColumnValues( chks1 )
-    //freqRatiosC1.asScala.toSeq  should contain theSameElementsInOrderAs List( 23.0, 131.0, 527.0, 527.0, 527.0, 21.782608, 57.666668, 527.0, 123.5, 527.0 )
-    freqRatios1.foreach{ case ( a, b ) => a should be ((b) +- precision)  }
-    //uniqueValRatioC1.asScala.toSeq  should contain theSameElementsInOrderAs List( 0.3787879, 0.3787879, 0.3787879, 0.3787879, 0.3787879, 0.5681818, 0.3787879, 0.3787879, 5.8712121, 0.3787879 ).map( _ / 100.0 )
-    uniqueValRatio1.foreach{ case ( a, b ) => a should be ((b) +- precision)  }
-    // TODO val chks2 = Map( "nzv" -> nzvc1, "zeroVar" -> constc1 )
-    //checkBooleanColumnValues( chks2 )
-    //Set(1, 2).toSeq should contain theSameElementsInOrderAs List(1, 2)
-    nzv1.toSeq  should contain theSameElementsInOrderAs List( true, true, true, true, true, true, true, true, true, true )
     const1.toSeq  should contain theSameElementsInOrderAs List( false, false, false, false, false, false, false, false, false, false )
     
     // Now calculate and check for near zero columns
@@ -184,13 +159,10 @@ class TableSawUtilsSpec extends FlatSpec with Matchers {
     val cti2 = dt1.columnIndex( "TIC0" )
     val ctp1 = ct1.`type`
     val ctp2 = ct2.`type`
-    // TODO assert( isNonNumeric( ctp1 ) == false )
-    // TODO assert( isNonNumeric( ctp2 ) == false )
     isNonNumeric( ctp1 ) should be ( false )
     isNonNumeric( ctp2 ) should be ( false )
     val corr1 = applyColumns( Math.cor )( dt1, cti1, ctp1, cti2, ctp2 )
     println( s"corr = ${corr1}" )
-    // TODO assert( approxEqual( corr1, 1.0 ) )
     corr1 should be ((1.0) +- precision)
 
     // check all pairs of columns for correlation
@@ -200,13 +172,11 @@ class TableSawUtilsSpec extends FlatSpec with Matchers {
     println( s"Calculated ${t1.size} pairs o correlations" )
     val t1cc = dt1.columnCount()
     //println(t1cc * (t1cc -1) / 2)
-    //assert( t1cc * ( t1cc - 1 ) / 2 == t1.size )
     t1cc * ( t1cc - 1 ) / 2 should be (t1.size)
 
     val t2 = time { findCorrelation( Math.cor, _ >= 0.75 )( dt1 ) }
     // println( t2.mkString( "<<", ",", ">>" ) )
     println( s"Found ${t2.size} pairs o significant correlations" )
-    // TODO assert( t1.size >= t2.size )
     t1.size should be >= (t2.size)
 
   }

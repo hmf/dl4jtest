@@ -345,5 +345,11 @@ object TableSawUtils {
     addColumns( dt, col1, col2, col3, col4, col5 )
     dt
   }
+  
+  /*
+   * Check for linear combinations
+   */
+  
+  
 
 }
