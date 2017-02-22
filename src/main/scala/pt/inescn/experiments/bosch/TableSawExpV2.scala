@@ -509,12 +509,120 @@ ltfrDesign[,6] <- c(0, 0, 1, 0, 0, 1)
       val qr = new QRDecomposition( am )
       // Create result vector
       //val r = Array.emptyFloatArray(cols.size-1)
-      val r = new Array[ Double ]( cols.size )
+      val rx = new Array[ Double ]( cols.size )
       // See if c is a linear combination of cols
-      qr.solve( c.toDoubleArray(), r )
-      r
+      qr.solve( c.toDoubleArray(), rx )
+      println( s"is singular : ${qr.isSingular}" )
+      rx
     }
 
+    import org.apache.commons.math3.linear.RRQRDecomposition
+
+    // https://stat.ethz.ch/R-manual/R-devel/library/base/html/qr.html
+    // functionBody(qr.coef)
+    def coef( qr: RRQRDecomposition ) = {
+      // x <- qr.solve(h9, y, tol = 1e-10) # or equivalently :
+      // x <- qr.coef(qrh9, y) #-- is == but much better than
+      //                #-- solve(h9) %*% y
+      // h9 %*% x              # = y
+    }
+
+    def which( l: Array[ Double ], f: ( Double ) => Boolean ) = {
+      val t = l.zipWithIndex
+      t.filter ( x => f( x._1 ) ).map( _._2 )
+    }
+    
+    def zap() = {
+      
+    }
+
+    def exp1( cols: List[ FloatColumn ], dropThreshold: Double = 1e-6 ) = {
+      import scala.language.postfixOps
+      import org.apache.commons.math3.linear.Array2DRowRealMatrix
+      import org.apache.commons.math3.linear.DefaultRealMatrixChangingVisitor
+
+      // Create a matrix
+      val am = DoubleArrays.to2dArray( cols: _* )
+      println( am.map( _.mkString( "|", ",", "|" ) ).mkString( "\n" ) )
+      // Prepare QR decomposition
+      val m = new Array2DRowRealMatrix( am, false ) // use array, don't copy 
+      val qr = new RRQRDecomposition( m )
+
+      // R <- qr.R(qrObj)                     # extract R matrix
+      val r = qr.getR
+      // numColumns <- dim(R)[2]              # number of columns in R
+      val numColumns = r.getColumnDimension
+      // rank <- qrObj$rank                   # number of independent columns
+      val rank = qr.getRank( dropThreshold )
+      // pivot <- qrObj$pivot                 # get the pivot vector
+      val pivotm = qr.getP
+
+      // if (is.null(numColumns) || rank == numColumns)
+      if ( ( numColumns == 0 ) || ( rank == numColumns ) ) {
+        //list()                            # there are no linear combinations
+        // there are no linear combinations
+        println( "Empty" )
+        List()
+      } else {
+        // p1 <- 1:rank
+        val p1 = 0 to ( rank - 1 ) toArray
+        // X <- R[p1, p1]                    # extract the independent columns
+        // extract the independent columns
+        val x = r.getSubMatrix( p1, p1 )
+        println( s"x : ${( x.getRowDimension, x.getColumnDimension )}" )
+        // Y <- R[p1, -p1, drop = FALSE]     # extract the dependent columns
+        val p2 = rank to ( numColumns - 1 ) toArray
+        val s1 = p1.mkString( "," )
+        val s2 = p2.mkString( "," )
+        println( s1 )
+        println( s2 )
+        val y = r.getSubMatrix( p1, p2 )
+        println( s"y : ${( y.getRowDimension, y.getColumnDimension )}" )
+        // b <- qr(X)                        # factor the independent columns
+        val b = new RRQRDecomposition( x )
+        // b <- qr.coef(b, Y)                # get regression coefficients of the dependent columns
+        val s = b.getSolver
+        val bc = s.solve( y )
+        // b[abs(b) < 1e-6] <- 0             # zap small values
+        println( s"coef' = ${bc.toString()}" )
+        bc.walkInColumnOrder( new DefaultRealMatrixChangingVisitor {
+          //override def visit(row : Int, column : Int, value: Double) = { if (Math.abs(value) < dropThreshold) 0.0 else value } 
+          override def visit( row: Int, column: Int, value: Double ) = { if ( Math.abs( value ) < dropThreshold ) 0.0 else value }
+        } )
+
+        println( s"pivotM = ${pivotm.toString()}" )
+        println( s"coef = ${bc.toString()}" )
+
+        // Get the pivoted column inedexes
+        val pivot = ( 0 to pivotm.getColumnDimension - 1 ) map { x => pivotm.getColumn( x ).indexWhere { x => x == 1.0 } }
+        println( s"pivot = ${pivot.mkString( "," )}" )
+
+        // # generate a list with one element for each dependent column
+        //lapply(1:dim(Y)[2], function(i) c(pivot[rank + i], pivot[which(b[,i] != 0)]))
+        val nColsy = y.getColumnDimension
+        val depCols = 0 to nColsy - 1
+
+        val l = depCols.map { x =>
+          val v1 = bc.getColumn( x )
+          val v2 = which( v1, { x => x != 0.0 } )
+          val v3 = v2.map { x => pivot( x ) }
+          val dep = pivot( rank + x )
+          println( s"dependent col = ${dep}" )
+          println( s"dependent cols = ${v2.mkString( "," )}" )
+          ( dep, v2 )
+        }
+        l
+      }
+
+    }
+
+    // Ok
+    //exp1( List(c1, c2, c3) )
+    //Ok
+    //exp1( List( c1, c4, c5, c6 ) )
+    exp1( List(c1, c2, c3, c4, c5, c6) )
+
+    /*
     def mm( cols: List[ FloatColumn ], c: Array[ Double ] ) = {
       import smile.math.Math._
 
@@ -529,27 +637,20 @@ ltfrDesign[,6] <- c(0, 0, 1, 0, 0, 1)
     val cols1 = List( c2, c3 )
     val r1 = findLinearCombo( cols1, c1 )
     println( r1.mkString( "<", ",", ">" ) )
-    val cs2_1 = c2.asScala.map { x => x * r1( 0 ) }
-    val cs3_1 = c3.asScala.map { x => x * r1( 1 ) }
-    val mcs1_1 = cs2_1.zip( cs3_1 ).map { case ( a, b ) => a + b }
-    println( mcs1_1.mkString( "<", ",", ">" ) )
-
-    import smile.math.Math._
-
-    /*
-    val a = DoubleArrays.to2dArray( cols1: _* )
-    val b = Array.ofDim[ Double ]( 1, r1.size )
-    b( 0 ) = r1
-    val r = abtmm( a, b )
-    println( r.map( _.mkString( "|", ",", "|" ) ).mkString( "\n" ) )
-*/
     val rr = mm( cols1, r1 )
     println( rr.map( _.mkString( "|", ",", "|" ) ).mkString( "\n" ) )
-
+    
     // We have no solution = result is trivial with vector zero
     val cols2 = List( c1, c4 )
     val r2 = findLinearCombo( cols2, c3 )
     println( r2.mkString( "<", ",", ">" ) )
+    val rr2 = mm( cols2, r2 )
+    println( rr2.map( _.mkString( "|", ",", "|" ) ).mkString( "\n" ) )
+
+    val cols3 = List( c4, c2 )
+    val r3 = findLinearCombo( cols2, c3 )
+    println( r3.mkString( "<", ",", ">" ) )
+*/
 
     /*
     // Example of using cross-tabs

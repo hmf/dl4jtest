@@ -365,6 +365,68 @@ object TableSawUtils {
    * See: https://github.com/haifengl/smile/issues/86
    * See: https://rdrr.io/cran/caret/man/findLinearCombos.html
    * See: https://see.stanford.edu/materials/lsoeldsee263/04-qr.pdf
+   * http://stackoverflow.com/questions/12304963/using-eigenvalues-to-test-for-singularity-identifying-collinear-columns
+   * http://stats.stackexchange.com/questions/16327/testing-for-linear-dependence-among-the-columns-of-a-matrix
+   * http://numpy-discussion.10968.n7.nabble.com/Identifying-Colinear-Columns-of-a-Matrix-td5669.html
+   *  identify collinear columns in matrix qr decomposition 
+   * http://math.stackexchange.com/questions/759208/multicollinearity-and-svd
+   * https://github.com/topepo/caret/blob/36f8216a1f18e17021adfd17ebdffa8e9f058949/pkg/caret/R/findLinearCombos.R
+   * https://en.wikipedia.org/wiki/QR_decomposition
+   * http://stackoverflow.com/questions/35410769/remove-perfectly-multicollinear-variables-from-data-frame
+   * http://stackoverflow.com/questions/13312498/how-to-find-degenerate-rows-columns-in-a-covariance-matrix
+   * 
+   *  Algorithm AS 268: All Possible Subset Regressions Using the QR Decomposition
+      D. M. Smith
+      Journal of the Royal Statistical Society. Series C (Applied Statistics)
+      Vol. 40, No. 3 (1991), pp. 502-513 
+   *
+functionBody(findLinearCombos)
+{
+    if (!is.matrix(x)) 
+        x <- as.matrix(x)
+    lcList <- enumLC(x)
+    initialList <- lcList
+    badList <- NULL
+    if (length(lcList) > 0) {
+        continue <- TRUE
+        while (continue) {
+            tmp <- unlist(lapply(lcList, function(x) x[1]))
+            tmp <- unique(tmp[!is.na(tmp)])
+            badList <- unique(c(tmp, badList))
+            lcList <- enumLC(x[, -badList])
+            continue <- (length(lcList) > 0)
+        }
+    }
+    else badList <- NULL
+    list(linearCombos = initialList, remove = badList)
+}
+   * 
+   *  
+# this function does the actual work for all of the enumLC methods
+internalEnumLC <- function(qrObj, ...)
+{
+   R <- qr.R(qrObj)                     # extract R matrix
+   numColumns <- dim(R)[2]              # number of columns in R
+   rank <- qrObj$rank                   # number of independent columns
+   pivot <- qrObj$pivot                 # get the pivot vector
+
+   if (is.null(numColumns) || rank == numColumns)
+   {
+      list()                            # there are no linear combinations
+   } else {
+      p1 <- 1:rank
+      X <- R[p1, p1]                    # extract the independent columns
+      Y <- R[p1, -p1, drop = FALSE]     # extract the dependent columns
+      b <- qr(X)                        # factor the independent columns
+      b <- qr.coef(b, Y)                # get regression coefficients of
+                                        # the dependent columns
+      b[abs(b) < 1e-6] <- 0             # zap small values
+
+      # generate a list with one element for each dependent column
+      lapply(1:dim(Y)[2],
+         function(i) c(pivot[rank + i], pivot[which(b[,i] != 0)]))
+   }
+}   * 
    */
    // TODO  
 
