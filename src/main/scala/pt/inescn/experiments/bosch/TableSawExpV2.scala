@@ -553,7 +553,7 @@ ltfrDesign[,6] <- c(0, 0, 1, 0, 0, 1)
       // numColumns <- dim(R)[2]              # number of columns in R
       val numColumns = r.getColumnDimension
       // rank <- qrObj$rank                   # number of independent columns
-      val rank = qr.getRank( dropThreshold )
+      val rank = qr.getRank( dropThreshold / 1000 )
       // pivot <- qrObj$pivot                 # get the pivot vector
       val pivotm = qr.getP
 
@@ -561,7 +561,7 @@ ltfrDesign[,6] <- c(0, 0, 1, 0, 0, 1)
       if ( ( numColumns == 0 ) || ( rank == numColumns ) ) {
         //list()                            # there are no linear combinations
         // there are no linear combinations
-        println( "Empty" )
+        println( s"Empty: rank = $rank" )
         List()
       } else {
         // p1 <- 1:rank
@@ -608,7 +608,15 @@ ltfrDesign[,6] <- c(0, 0, 1, 0, 0, 1)
           val v3 = v2.map { x => pivot( x ) }
           val dep = pivot( rank + x )
           println( s"dependent col = ${dep}" )
-          println( s"dependent cols = ${v2.mkString( "," )}" )
+          println( s"dependent cols = ${v3.mkString( "," )}" )
+          
+          // Checking
+          val ny = m.getColumnMatrix( dep )
+          val rs = 0 to (m.getRowDimension -1 ) toArray
+          val nm = m.getSubMatrix(rs, v3.toArray)
+          val rslt = nm.multiply(bc)
+          println(s"Check: ${rslt.toString()}")
+          
           ( dep, v2 )
         }
         l
@@ -616,12 +624,60 @@ ltfrDesign[,6] <- c(0, 0, 1, 0, 0, 1)
 
     }
 
-    // Ok
+    // Ok 2 = c3 - 0, 1
     //exp1( List(c1, c2, c3) )
-    //Ok
+    //Ok 3 = c6 - 0,1,2
     //exp1( List( c1, c4, c5, c6 ) )
-    exp1( List(c1, c2, c3, c4, c5, c6) )
+    // Ok - selects 4 = c5 - 0,1,2,3,5
+    //exp1( List(c1, c2, c3, c4, c5, c6) )
+    // Empty ?
+    exp1( List(c1, c2, c3, c4, c6) )
 
+    // http://finmath.net/
+    // https://issues.apache.org/jira/browse/MATH-1101
+    // https://issues.apache.org/jira/browse/MATH-1100
+    def bug() = {
+      import org.apache.commons.math3.linear.Array2DRowRealMatrix
+      import org.apache.commons.math3.linear.DefaultRealMatrixChangingVisitor
+      
+      val am = new Array[Array[Double]](5)
+      val c1 = Array(1.0, 1, 1, 1, 1, 1) 
+      val c2 = Array(1.0, 1, 1, 0, 0, 0)
+      val c3 = Array(0.0, 0, 0, 1, 1, 1)
+      val c4 = Array(1.0, 0, 0, 1, 0, 0)
+      //val c5 = Array(0.0, 1, 0, 0, 1, 0)
+      val c6 = Array(0.0, 0, 1, 0, 0, 1)      
+      
+      am(0) = c1
+      am(1) = c2
+      am(2) = c3
+      am(3) = c4
+      am(4) = c6
+      //am(5) = c6
+      
+      val m = new Array2DRowRealMatrix( am, false ) // use array, don't copy 
+      val qr = new RRQRDecomposition( m, 1e-1 )
+      //import org.apache.commons.math3.linear.QRDecomposition
+      //val qr = new QRDecomposition( m )
+      val r = qr.getR
+      val numColumns = r.getColumnDimension
+      val rank = qr.getRank( 1e-1 )
+      println(s"QR rank: $rank")
+      println(s"QR is singular: ${!qr.getSolver.isNonSingular}")
+      
+      import org.apache.commons.math3.linear.SingularValueDecomposition
+      val sv2 = new org.apache.commons.math3.linear.SingularValueDecomposition(m);
+		  //assertEquals(379, sv2.getRank());//this is OK      
+      println(s"SVD rank: ${sv2.getRank()}")
+      
+      println(r.toString)
+      //println(qr.getQ.toString)
+      //println(qr.getQT.toString)
+      
+    }
+    
+    bug
+    
     /*
     def mm( cols: List[ FloatColumn ], c: Array[ Double ] ) = {
       import smile.math.Math._
