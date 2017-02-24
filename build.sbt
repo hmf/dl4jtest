@@ -18,7 +18,7 @@ scalaVersion in ThisBuild := "2.12.1"
 
 // For For ScalaTestb: add in ~/.sbt/0.13/global.sbt
 // export http_proxy="http://proxy.inescn.pt:3128"
-//resolvers += "Artima Maven Repository" at "http://repo.artima.com/releases"
+resolvers += "Artima Maven Repository" at "http://repo.artima.com/releases"
 
 //resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
 //resolvers += "Sonatype OSS Snapshots" at "http://oss.sonatype.org/content/repositories/snapshots/"
@@ -44,7 +44,7 @@ libraryDependencies += "com.github.haifengl" %% "smile-scala" % "1.2.2"
 libraryDependencies += "com.github.lwhite1" % "tablesaw" % "0.7.6.4"
 
 // Apache Common
-libraryDependencies += "org.apache.commons" % "commons-math3" % "3.6.1"
+libraryDependencies += "org.apache.commons" % "commons-math3" % "3.6.1" withSources() withJavadoc()
 
 libraryDependencies += "org.knowm.xchart" % "xchart" % "3.2.2"
 
@@ -103,3 +103,7 @@ scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Xlint", "-expl
 //scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Xfatal-warnings")
 //scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Xlint", "-uniqid", "-explaintypes")
 
+
+fork in run := true
+
+javaOptions in run += "-ea"

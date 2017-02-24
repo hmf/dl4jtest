@@ -1,11 +1,38 @@
 Scala
 ......
 http://docs.scala-lang.org/cheatsheets/
+. Download from scala site
+. Extract to ~/dev/scala
+. Leave new directory as is
+. Add PATH="$HOME/dev/scala/scala-2.12.1/bin" to .profile
 
 SBT
 ....
 https://gist.github.com/djspiewak/cb72c41ac335a3a9b28b3307be04aa43
+. Download from sbt site
+. Extract to ~/dev/scala
+. Rename directory to sbt
+. Add PATH="$HOME/dev/scala/scala-2.12.1/bin"
+    PATH="$HOME/dev/scala/scala-2.12.1/bin:$HOME/dev/scala/sbt/bin:$PATH"
+  to .profile
+. Add to ~/.sbt/0.13/global.sbt (touch global.sbt)
+    resolvers += "Artima Maven Repository" at "http://repo.artima.com/releases"
+. Add to ~/.sbt/0.13/plugins (mkdir plugins; touch plugins/plugins.sbt) 
+     addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "5.0.1")
+. sbt update
 
+
+Note on Artima Supersafe
+-------------------------
+- When we add the plug-in in projects/build.sbt:
+     addSbtPlugin("com.artima.supersafe" % "sbtplugin" % "1.1.2")
+- We must *not* add the above plug-in anywhere else
+- Add to ~/.sbt/0.13/global.sbt
+      resolvers += "Artima Maven Repository" at "http://repo.artima.com/releases"
+- Do not add this resolver anywhere else
+- Make sure you have an empty line before and after each of the sbt lines
+     
+     
 http://stackoverflow.com/questions/17552457/how-do-i-upload-eclipse-projects-to-github
 git init
 git remote add origin https://github.com/[username]/[reponame].git
@@ -127,6 +154,12 @@ Anomaly Detection
 
 2. https://github.com/deeplearning4j/dl4j-examples/blob/master/dl4j-examples/src/main/java/org/deeplearning4j/examples/unsupervised/deepbelief/DeepAutoEncoderExample.java
    . sbt "run-main org.dl4j.examples.DeepAutoEncoderExample"
+   
+   
+Running Experimets in server
+----------------------------
+
+ssh hmf@192.168.40.69 "nohup ~/git/dl4jtest/run0.sh >> out.txt 2>&1"
    
    
 TODO
