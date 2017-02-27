@@ -96,6 +96,39 @@ public class QRMatrixToolkit {
     assertEquals(Math.min(rand.numRows(), rand.numColumns()), qrp.getRank());
   }
 
+  static public int getRank(double[][] am) {
+    Matrix A = new DenseMatrix(am);
+    QRP qrp = QRP.factorize(A);
+    return qrp.getRank();
+  }
+
+  static public void test3(double threshold, double[][] am) {
+    Array2DRowRealMatrix m = new Array2DRowRealMatrix(am, false); // use array,
+    // don't copy
+    RRQRDecomposition qr = new RRQRDecomposition(m, threshold);
+    RealMatrix r = qr.getR();
+    int numColumns = r.getColumnDimension();
+    int rank = qr.getRank(threshold);
+    System.out.println("QR rank: " + rank);
+    System.out.println("QR is singular: " + !qr.getSolver().isNonSingular());
+    System.out.println("QR is singular: " + (numColumns == rank));
+    System.out.println("R: \n" + r.toString());
+    int nrank = getRank(am);
+    System.out.println("QR rank 1: " + nrank);
+    // System.out.println("R: \n" + r.toString());
+
+    SingularValueDecomposition sv2 = new org.apache.commons.math3.linear.SingularValueDecomposition(
+        m);
+    int svdRank = sv2.getRank();
+    System.out.println("SVD rank: " + svdRank);
+
+    // System.out.println( "" + rank + " == " + svdRank);
+    // assert(rank == svdRank);
+
+    // System.out.println( "" + nrank + " == " + svdRank);
+    assert (nrank == svdRank);
+  }
+
   static public double[][] genColumns() {
     NormalDistribution d1 = new NormalDistribution(5.0, 2.0);
     NormalDistribution d2 = new NormalDistribution(15.0, 5.0);
@@ -149,7 +182,6 @@ public class QRMatrixToolkit {
    */
   public static void main(String[] args) {
 
-    double[][] am = new double[5][];
     double[] c1 = new double[] { 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 };
     double[] c2 = new double[] { 1.0, 1.0, 1.0, 0.0, 0.0, 0.0 };
     double[] c3 = new double[] { 0.0, 0.0, 0.0, 1.0, 1.0, 1.0 };
@@ -159,28 +191,43 @@ public class QRMatrixToolkit {
 
     Double threshold = 1e-7;
 
-    testRank1() ;
-    testRank2() ;
-    
-    /*
-     * am[0] = c1; am[1] = c2; am[2] = c3; am[3] = c4; am[4] = c6;
-     * test1(threshold, am);
-     * 
-     * 
-     * double[][] am1 = new double[3][]; am1[0] = c1; am1[1] = c2; am1[2] = c3;
-     * test1(threshold, am1);
-     * 
-     * 
-     * double[][] am2 = new double[4][]; am2[0] = c1; am2[1] = c4; am2[2] = c5;
-     * am2[3] = c6; test1(threshold, am2);
-     * 
-     * 
-     * double[][] am3 = new double[6][]; am3[0] = c1; am3[1] = c2; am3[2] = c3;
-     * am3[3] = c4; am3[4] = c5; am3[5] = c6; test1(threshold, am3);
-     */
-    /*
-     * double[][] am4 = genColumns() ; for (int i = 0 ; i < 100 ; i++){
-     * test1(threshold, am4); }
-     */
+    testRank1();
+    testRank2();
+
+    double[][] am = new double[5][];
+    am[0] = c1;
+    am[1] = c2;
+    am[2] = c3;
+    am[3] = c4;
+    am[4] = c6;
+    test3(threshold, am);
+
+    double[][] am1 = new double[3][];
+    am1[0] = c1;
+    am1[1] = c2;
+    am1[2] = c3;
+    test3(threshold, am1);
+
+    double[][] am2 = new double[4][];
+    am2[0] = c1;
+    am2[1] = c4;
+    am2[2] = c5;
+    am2[3] = c6;
+    test3(threshold, am2);
+
+    double[][] am3 = new double[6][];
+    am3[0] = c1;
+    am3[1] = c2;
+    am3[2] = c3;
+    am3[3] = c4;
+    am3[4] = c5;
+    am3[5] = c6;
+    test3(threshold, am3);
+
+    double[][] am4 = genColumns();
+    for (int i = 0; i < 100; i++) {
+      test3(threshold, am4);
+    }
+
   }
 }
