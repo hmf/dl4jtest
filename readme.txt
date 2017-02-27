@@ -159,8 +159,9 @@ Anomaly Detection
 Running Experimets in server
 ----------------------------
 
-ssh hmf@192.168.40.69 "nohup ~/git/dl4jtest/run0.sh >> out.txt 2>&1"
-   
+http://askubuntu.com/questions/349262/run-a-nohup-command-over-ssh-then-disconnect
+ssh hmf@192.168.40.69 "nohup ~/git/dl4jtest/run0.sh >> out.txt 2>&1"  
+ssh hmf@192.168.40.69 "ulimit -c unlimited ; nohup ~/git/dl4jtest/run0.sh >> out.txt 2>&1"
    
 TODO
 -----

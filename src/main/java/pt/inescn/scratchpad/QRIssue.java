@@ -52,10 +52,13 @@ public class QRIssue {
     int rank = 1;
     double lastNorm = r.getFrobeniusNorm();
     double rNorm = lastNorm;
+    System.out.println("rank = 0  ratio = "+rNorm);
     while (rank < FastMath.min(rows, columns)) {
       double thisNorm = r.getSubMatrix(rank, rows - 1, rank, columns - 1)
           .getFrobeniusNorm();
-      if (thisNorm == 0 || (thisNorm / lastNorm) * rNorm < dropThreshold) {
+      double ratio = (thisNorm / lastNorm) * rNorm ;
+      System.out.println("rank = " + rank + "  ratio = "+ratio);
+      if (thisNorm == 0 ||  ratio < dropThreshold) {
         break;
       }
       lastNorm = thisNorm;
@@ -88,10 +91,22 @@ public class QRIssue {
    * https://launchpad.net/ubuntu/+source/lapack
    * https://launchpad.net/ubuntu/+source/openblas
    * 
+   * https://github.com/fommil/matrix-toolkits-java
+   * https://github.com/fommil/matrix-toolkits-java/blob/6157618bc86bcda3749af2a60bf869d8f3292960/src/test/java/no/uib/cipr/matrix/QRPTest.java
+   * 
+   * http://ejml.org/wiki/index.php?title=Main_Page
+   * 
    * https://github.com/scalanlp/breeze/blob/5fd292608f3152bb0126694f7454890fa47c3e78/math/src/test/scala/breeze/linalg/LinearAlgebraTest.scala
    * import breeze.linalg.qr.QR
    * import breeze.linalg.qrp.QRP
    * import breeze.{math => bmath}
+   * 
+   * https://eigen.tuxfamily.org/dox/group__QR__Module.html
+   * scipy.linalg.qr
+   * https://help.scilab.org/docs/5.5.1/ru_RU/rankqr.html
+   * (Slicot library routines MB03OD, ZB03OD.)
+   * https://searchcode.com/codesearch/view/25389128/
+   * https://sourcecodebrowser.com/scilab/5.1.1/sci__f__rankqr_8f_source.html
    * 
    * @param qr
    * @param dropThreshold
@@ -111,16 +126,17 @@ public class QRIssue {
       double thisNorm = r.getSubMatrix(rank, rows - 1, rank, columns - 1).getFrobeniusNorm();
       double thisRatio = (thisNorm / lastNorm) * rNorm;
       double diff = lastNorm - thisNorm;
+      System.out.println("rank = " + rank);
       System.out.println("ratio = " + thisRatio);
       System.out.println("diff = " + diff);
       lastNorm = thisNorm;
-      rank++;
       if (diff > maxDiff) {
         maxDiff = diff;
         maxDiffRank = rank;
       }
       System.out.println("maxDiff = " + maxDiff);
       System.out.println("maxDiffRank = " + maxDiffRank);
+      rank++;
     }
     // return rank;
     return maxDiffRank;
@@ -164,7 +180,9 @@ public class QRIssue {
     System.out.println("QR rank: " + rank);
     System.out.println("QR is singular: " + !qr.getSolver().isNonSingular());
     System.out.println("QR is singular: " + (numColumns == rank));
+    /* TODO */
     int nrank = getRankN(qr, threshold);
+    //int nrank = getRank(qr, 0.1);
     System.out.println("QR rank 1: " + nrank);
 
     System.out.println("R: \n" + r.toString());
@@ -175,7 +193,8 @@ public class QRIssue {
     
     //System.out.println( "" + rank + " == " + svdRank);
     //assert(rank == svdRank);
-    System.out.println( "" + nrank + " == " + svdRank);
+    
+    //System.out.println( "" + nrank + " == " + svdRank);
     assert(nrank == svdRank);
   }
 
@@ -198,11 +217,13 @@ public class QRIssue {
     am[4] = c6;
     test1(threshold, am);
     
+    
     double[][] am1 = new double[3][];
     am1[0] = c1;
     am1[1] = c2;
     am1[2] = c3;
     test1(threshold, am1);
+    
     
     double[][] am2 = new double[4][];
     am2[0] = c1;
@@ -210,6 +231,7 @@ public class QRIssue {
     am2[2] = c5;
     am2[3] = c6;
     test1(threshold, am2);
+    
     
     double[][] am3 = new double[6][];
     am3[0] = c1;
@@ -220,10 +242,11 @@ public class QRIssue {
     am3[5] = c6;
     test1(threshold, am3);
 
+    /*
     double[][] am4 = genColumns() ;
     for (int i = 0 ; i < 100 ; i++){
       test1(threshold, am4);
     }
-   
+   */
   }
 }

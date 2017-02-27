@@ -38,6 +38,11 @@ libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0"
 // Type-level
 libraryDependencies += "com.chuusai" %% "shapeless" % "2.3.2"
 
+// Linear Algebra
+libraryDependencies += "net.sourceforge.f2j" % "arpack_combined_all" % "0.1"
+libraryDependencies += "com.github.fommil.netlib" % "all" % "1.1.2" pomOnly()
+libraryDependencies += "com.googlecode.matrix-toolkits-java" % "mtj" % "1.0.4"
+    
 // ML
 libraryDependencies += "com.github.haifengl" % "smile-core" % "1.2.2"
 libraryDependencies += "com.github.haifengl" %% "smile-scala" % "1.2.2"
@@ -94,6 +99,7 @@ libraryDependencies += "org.deeplearning4j" % "deeplearning4j-core" % "0.7.2"
 
 libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.1" % "test"
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test"
+libraryDependencies += "junit" % "junit" % "4.4"
 
 // TODO: add scalastyle checks also
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Xlint", "-explaintypes")
