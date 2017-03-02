@@ -1,8 +1,15 @@
 package pt.inescn.scratchpad;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.stream.IntStream;
+
 import no.uib.cipr.matrix.DenseMatrix;
 import no.uib.cipr.matrix.Matrices;
 import no.uib.cipr.matrix.Matrix;
+import no.uib.cipr.matrix.MatrixEntry;
 import no.uib.cipr.matrix.QRP;
 import static org.junit.Assert.assertEquals;
 import no.uib.cipr.matrix.Vector;
@@ -23,6 +30,11 @@ import org.apache.commons.math3.util.FastMath;
  * Note: The threshold used to identify non-negligible terms is max(m,n) ×
  * ulp(s1) where ulp(s1) is the least significant bit of the largest singular
  * value.
+ * 
+ * @se https://github.com/fommil/matrix-toolkits-java
+ * @see https://github.com/fommil/netlib-java
+ * @see http://icl.cs.utk.edu/f2j/
+ * @see http://netlib.org/
  * 
  * sbt "run-main pt.inescn.scratchpad.QRMatrixToolkit"
  */
@@ -188,7 +200,258 @@ public class QRMatrixToolkit {
     }
   }
 
-  public static void main(String[] args) {
+  /*
+   * 
+   * def exp1( cols: List[ FloatColumn ], dropThreshold: Double = 1e-6 ) = {
+   * import scala.language.postfixOps import
+   * org.apache.commons.math3.linear.Array2DRowRealMatrix import
+   * org.apache.commons.math3.linear.DefaultRealMatrixChangingVisitor
+   * 
+   * // Create a matrix val am = DoubleArrays.to2dArray( cols: _* ) println(
+   * am.map( _.mkString( "|", ",", "|" ) ).mkString( "\n" ) ) // Prepare QR
+   * decomposition val m = new Array2DRowRealMatrix( am, false ) // use array,
+   * don't copy val qr = new RRQRDecomposition( m )
+   * 
+   * // R <- qr.R(qrObj) # extract R matrix val r = qr.getR // numColumns <-
+   * dim(R)[2] # number of columns in R val numColumns = r.getColumnDimension //
+   * rank <- qrObj$rank # number of independent columns val rank = qr.getRank(
+   * dropThreshold / 1000 ) // pivot <- qrObj$pivot # get the pivot vector val
+   * pivotm = qr.getP
+   * 
+   * // if (is.null(numColumns) || rank == numColumns) if ( ( numColumns == 0 )
+   * || ( rank == numColumns ) ) { //list() # there are no linear combinations
+   * // there are no linear combinations println( s"Empty: rank = $rank" )
+   * List() } else { // p1 <- 1:rank val p1 = 0 to ( rank - 1 ) toArray // X <-
+   * R[p1, p1] # extract the independent columns // extract the independent
+   * columns val x = r.getSubMatrix( p1, p1 ) println(
+   * s"x : ${( x.getRowDimension, x.getColumnDimension )}" ) // Y <- R[p1, -p1,
+   * drop = FALSE] # extract the dependent columns val p2 = rank to ( numColumns
+   * - 1 ) toArray val s1 = p1.mkString( "," ) val s2 = p2.mkString( "," )
+   * println( s1 ) println( s2 ) val y = r.getSubMatrix( p1, p2 ) println(
+   * s"y : ${( y.getRowDimension, y.getColumnDimension )}" ) // b <- qr(X) #
+   * factor the independent columns val b = new RRQRDecomposition( x ) // b <-
+   * qr.coef(b, Y) # get regression coefficients of the dependent columns val s
+   * = b.getSolver val bc = s.solve( y ) // b[abs(b) < 1e-6] <- 0 # zap small
+   * values println( s"coef' = ${bc.toString()}" ) bc.walkInColumnOrder( new
+   * DefaultRealMatrixChangingVisitor { //override def visit(row : Int, column :
+   * Int, value: Double) = { if (Math.abs(value) < dropThreshold) 0.0 else value
+   * } override def visit( row: Int, column: Int, value: Double ) = { if (
+   * Math.abs( value ) < dropThreshold ) 0.0 else value } } )
+   * 
+   * println( s"pivotM = ${pivotm.toString()}" ) println(
+   * s"coef = ${bc.toString()}" )
+   * 
+   * // Get the pivoted column inedexes val pivot = ( 0 to
+   * pivotm.getColumnDimension - 1 ) map { x => pivotm.getColumn( x ).indexWhere
+   * { x => x == 1.0 } } println( s"pivot = ${pivot.mkString( "," )}" )
+   * 
+   * // # generate a list with one element for each dependent column
+   * //lapply(1:dim(Y)[2], function(i) c(pivot[rank + i], pivot[which(b[,i] !=
+   * 0)])) val nColsy = y.getColumnDimension val depCols = 0 to nColsy - 1
+   * 
+   * val l = depCols.map { x => val v1 = bc.getColumn( x ) val v2 = which( v1, {
+   * x => x != 0.0 } ) val v3 = v2.map { x => pivot( x ) } val dep = pivot( rank
+   * + x ) println( s"dependent col = ${dep}" ) println(
+   * s"dependent cols = ${v3.mkString( "," )}" )
+   * 
+   * // Checking val ny = m.getColumnMatrix( dep ) val rs = 0 to
+   * (m.getRowDimension -1 ) toArray val nm = m.getSubMatrix(rs, v3.toArray) val
+   * rslt = nm.multiply(bc) println(s"Check: ${rslt.toString()}")
+   * 
+   * ( dep, v2 ) } l }
+   */
+
+  public static double[][] subTopLeftMatrix(DenseMatrix am, int row, int col) {
+    double[][] nam = new double[row][col];
+    for (int i = 0; i < row; i++) {
+      for (int j = 0; j < col; j++) {
+        nam[i][j] = am.get(i,j);
+      }
+    }
+    return nam;
+  }
+
+  public static double[][] subTopRightMatrix(DenseMatrix am, int row, int col) {
+    double[][] nam = new double[row][am.numColumns() - col];
+    for (int i = 0; i < row; i++) {
+      for (int j = col; j < am.numColumns(); j++) {
+        nam[i][j-col] = am.get(i,j);
+      }
+    }
+    return nam;
+  }
+
+  public static void zap(DenseMatrix m, double threshold) {
+    for (int i = 0 ; i < m.numRows(); i++)
+      for (int j = 0; j < m.numColumns(); j++)
+        if (Math.abs(m.get(i, j)) < threshold) 
+            m.set(i, j, 0.0);
+  }
+  
+  /*
+ Rank = 2
+[info] x : (2,2)
+[info] R:
+[info] Array2DRowRealMatrix{
+      {-2.4494897428,-1.2247448714,-1.2247448714},
+      {0.0,-1.2247448714,1.2247448714},
+      {0.0,0.0,0.0},
+      {0.0,0.0,0.0},
+      {0.0,0.0,0.0},
+      {0.0,0.0,0.0}}
+[info] X:
+[info] Array2DRowRealMatrix{
+                    {-2.4494897428,-1.2247448714},
+                    {0.0,-1.2247448714}}
+[info] 0,1
+[info] 2
+[info] y : (2,1)
+[info] y : Array2DRowRealMatrix{
+                   {-1.2247448714},
+                   {1.2247448714}}
+[info] coef' = Array2DRowRealMatrix{
+    {1.0},
+    {-1.0}}
+[info] pivotM = Array2DRowRealMatrix{{1.0,0.0,0.0},{0.0,1.0,0.0},{0.0,0.0,1.0}}
+[info] coef = Array2DRowRealMatrix{{1.0},{-1.0}}
+[info] pivot = 0,1,2
+[info] dependent col = 2
+[info] dependent cols = 0,1
+[info] Check: Array2DRowRealMatrix{{0.0},{0.0},{0.0},{1.0},{1.0},{1.0}}
+   */
+  
+  public static List<Integer> which( DenseMatrix m, int column) {
+    List<Integer> idxs = new ArrayList<Integer>();
+    for (int i=0; i < m.numRows(); i++)
+      if (m.get(i, column) != 0.0) 
+        idxs.add(i);
+    return idxs;
+  }
+  
+  public static DenseMatrix getSubMarix(Matrix am, List<Integer> cols, int row1, int row2){
+    int num_rows = row2-row1+1;
+    //System.out.println("num_rows : "+ num_rows);
+    //System.out.println("num_cols : "+ cols.size());
+    double[][] nam = new double[num_rows][cols.size()];
+    for (int i = row1; i <= row2; i++) {
+      for (int j = 0; j < cols.size(); j++) {
+        //System.out.println("(" + (i-row1) + "," + cols.get(j) + ") -> (" + i + ", " + j + ")");
+        nam[i-row1][j] = am.get(i, cols.get(j));
+      }
+    }
+    return new DenseMatrix(nam);
+  }
+
+  public static DenseMatrix getColumn(Matrix am, int col1, int row1, int row2){
+    List<Integer> cols = new ArrayList<Integer>();
+    cols.add(col1);
+    return getSubMarix(am, cols, row1, row2);
+  }
+  
+  public static boolean isEqual(DenseMatrix a, DenseMatrix b, double eps){
+    if (a.numColumns() != b.numColumns()) return false;
+    if (a.numRows() != b.numRows()) return false;
+    for (int i = 0; i < a.numRows(); i++) {
+      for (int j = 0; j < a.numColumns(); j++) {
+        if (FastMath.abs( a.get(i, j) - b.get(i, j) ) >= eps) return false;
+      }
+    }
+    return true;
+  }
+  
+  // TODO: matrix dimenstion incorrect, transposing
+  // Need to correct this outside of call
+  public static List<List<Integer>> collinear(double[][] am, double dropThreshold) {
+    //List<Integer> l = new ArrayList<Integer>();
+    List<List<Integer>> l = new ArrayList<List<Integer>>();
+
+    // R <- qr.R(qrObj) # extract R matrix
+    Matrix m = new DenseMatrix(am);
+    Matrix B = new DenseMatrix(m.numColumns(), m.numRows());
+    Matrix mm = m.transpose(B);
+    QRP qr = QRP.factorize(mm);
+    DenseMatrix r = qr.getR();
+    // numColumns <- dim(R)[2] # number of columns in R
+    int numColumns = r.numColumns();
+    // rank <- qrObj$rank # number of independent columns
+    int rank = qr.getRank();
+    System.out.println("Rank R = "+rank);
+    // pivot <- qrObj$pivot # get the pivot vector
+    //Matrix pivotm = qr.getP();
+    int[] pivotm = qr.getPVector();
+
+    // if (is.null(numColumns) || rank == numColumns)
+    if ((numColumns == 0) || (rank == numColumns)) {
+      // list() # there are no linear combinations
+      // there are no linear combinations
+      System.out.println("Empty: rank = " + rank);
+      return l;
+    } else {
+      // p1 <- 1:rank
+      // X <- R[p1, p1] # extract the independent columns
+      System.out.println("R :\n" + r.toString());
+      double[][] x = subTopLeftMatrix(r, rank, rank);
+      DenseMatrix X = new DenseMatrix(x);
+      System.out.println("X :\n" + X.toString());
+      // Y <- R[p1, -p1, drop = FALSE] # extract the dependent columns
+      double[][] y = subTopRightMatrix(r, rank,rank);
+      DenseMatrix Y = new DenseMatrix(y);
+      System.out.println("Y :\n" + Y.toString());
+      // b <- qr(X) # factor the independent columns
+      QRP bqr = QRP.factorize( X );
+      DenseMatrix br = bqr.getR();
+      DenseMatrix b = new DenseMatrix(y.length, y[0].length);
+      br.solve( new DenseMatrix(y), b);
+      System.out.println("b :\n" + b.toString());
+      // b <- qr.coef(b, Y) # get regression coefficients of the dependent columns
+      // b[abs(b) < 1e-6] <- 0 # zap small values
+      zap(b, 1e-6);
+      System.out.println("zapped(b) :\n" + b.toString());
+      
+      // Testing y = br*s
+      DenseMatrix yt = new DenseMatrix(y.length, y[0].length);
+      br.mult(b, yt);
+      //System.out.println("yt :\n" + yt.toString());
+      
+      System.out.println("pivot :\n" + Arrays.toString(pivotm));
+      System.out.println("br :\n" + br.toString());
+      // # generate a list with one element for each dependent column
+      //lapply(1:dim(Y)[2], function(i) c(pivot[rank + i], pivot[which(b[,i] != 0)]))
+      
+      int nColsy = Y.numColumns();
+      for (int k = 0; k < nColsy; k++){
+        List<Integer> depst = which( b, k);
+        System.out.println("depst(" + k + ") = " + depst.toString());
+        List<Integer> deps = new ArrayList<Integer>();
+        for (int e : depst){
+          deps.add( pivotm[e] );
+        }
+        int indep = pivotm[k+rank];
+        deps.add(0, indep);
+        System.out.println("deps(" + k + ") = " + deps.toString());
+        
+        // Checking
+        DenseMatrix idep = getColumn(B, indep, 0, B.numRows()-1);
+        System.out.println("check independent = \n" + idep.toString());
+        System.out.println("(" + B.numRows() + " , " + B.numColumns() + ")");
+        DenseMatrix ndep = getSubMarix(B, deps.subList(1, deps.size()), 0, B.numRows()-1);
+        System.out.println("check dependent = \n" + ndep.toString());
+        System.out.println("coeffs = \n" + b.toString());
+        System.out.println("coeffs(" + b.numRows()+ "," + b.numColumns() + ")" );
+        DenseMatrix C = new DenseMatrix(idep.numRows(), idep.numColumns());
+        ndep.mult(b, C);
+        System.out.println("dep = \n" + C.toString() );
+        assert(isEqual(idep, C, 1e-12));
+        // No subtract available
+        // ndep.multAdd(b, idep);
+        //System.out.println("idep = \n" + idep.toString() );
+        l.add(deps);
+      }
+      return l;
+    }
+  }
+
+  public static void basicTests() {
 
     double[] c1 = new double[] { 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 };
     double[] c2 = new double[] { 1.0, 1.0, 1.0, 0.0, 0.0, 0.0 };
@@ -270,6 +533,33 @@ public class QRMatrixToolkit {
       combineLinear1(am6);
       test3(threshold, am6);
     }
+  }
+
+  public static void main(String[] args) {
+    //basicTests();
+    
+    double[] c1 = new double[] { 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 };
+    double[] c2 = new double[] { 1.0, 1.0, 1.0, 0.0, 0.0, 0.0 };
+    double[] c3 = new double[] { 0.0, 0.0, 0.0, 1.0, 1.0, 1.0 };
+    double[] c4 = new double[] { 1.0, 0.0, 0.0, 1.0, 0.0, 0.0 };
+    double[] c5 = new double[] { 0.0, 1.0, 0.0, 0.0, 1.0, 0.0 };
+    double[] c6 = new double[] { 0.0, 0.0, 1.0, 0.0, 0.0, 1.0 };
+
+    Double threshold = 1e-7;
+
+//    double[][] am = new double[5][];
+//    am[0] = c1;
+//    am[1] = c2;
+//    am[2] = c3;
+//    am[3] = c4;
+//    am[4] = c6;
+    double[][] am = new double[3][];
+    am[0] = c1;
+    am[1] = c2;
+    am[2] = c3;
+    List<List<Integer>>l = collinear(am, threshold);
+    System.out.println(l.toString());
+
   }
 
 }

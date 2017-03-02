@@ -453,6 +453,12 @@ object TableSawExpV2 {
     println( "BOSCH 3: Spearman" )
     //report_correlation(Math.spearman, Math.abs(_) >= 0.75)( chk_if_dep )(dts)
     println( "BOSCH 4: Kendall" )
+    //  internal review ID : 9047913
+    // http://bugs.java.com/bugdatabase/view_bug.do?bug_id=JDK-8176074
+    // Workaround in this case to use "-XX:+UseCountedLoopSafepoints"
+    // http://www.oracle.com/technetwork/java/javase/tsg-vm-149989.pdf
+    // jdb -connect sun.jvm.hotspot.jdi.SACoreAttachingConnector:javaExecutable=$JAVA_HOME/bin/java,core=./core
+    // jsadebugd $JAVA_HOME/bin/java ./core
     //report_correlation( Math.kendall, Math.abs( _ ) >= 0.75 )( chk_if_dep )( dts )
 
     // TODO: for each group check if the distribution is a multivariate normal distribution
@@ -554,6 +560,7 @@ ltfrDesign[,6] <- c(0, 0, 1, 0, 0, 1)
       val numColumns = r.getColumnDimension
       // rank <- qrObj$rank                   # number of independent columns
       val rank = qr.getRank( dropThreshold / 1000 )
+      println( s"Rank = $rank" )
       // pivot <- qrObj$pivot                 # get the pivot vector
       val pivotm = qr.getP
 
@@ -570,6 +577,8 @@ ltfrDesign[,6] <- c(0, 0, 1, 0, 0, 1)
         // extract the independent columns
         val x = r.getSubMatrix( p1, p1 )
         println( s"x : ${( x.getRowDimension, x.getColumnDimension )}" )
+        println("R:\n" + r.toString())
+        println("X:\n" + x.toString())
         // Y <- R[p1, -p1, drop = FALSE]     # extract the dependent columns
         val p2 = rank to ( numColumns - 1 ) toArray
         val s1 = p1.mkString( "," )
@@ -578,6 +587,7 @@ ltfrDesign[,6] <- c(0, 0, 1, 0, 0, 1)
         println( s2 )
         val y = r.getSubMatrix( p1, p2 )
         println( s"y : ${( y.getRowDimension, y.getColumnDimension )}" )
+        println( s"y : ${y.toString()}" )
         // b <- qr(X)                        # factor the independent columns
         val b = new RRQRDecomposition( x )
         // b <- qr.coef(b, Y)                # get regression coefficients of the dependent columns
@@ -592,6 +602,11 @@ ltfrDesign[,6] <- c(0, 0, 1, 0, 0, 1)
 
         println( s"pivotM = ${pivotm.toString()}" )
         println( s"coef = ${bc.toString()}" )
+        println( s"coef(row, col) = (${bc.getRowDimension},${bc.getColumnDimension})")
+        println(bc.getRow(0).mkString(","))
+        println(bc.getRow(1).mkString(","))
+        println(bc.getColumn(0).mkString(",")) // ????
+        // println(bc.getColumn(1).mkString(","))
 
         // Get the pivoted column inedexes
         val pivot = ( 0 to pivotm.getColumnDimension - 1 ) map { x => pivotm.getColumn( x ).indexWhere { x => x == 1.0 } }
@@ -604,8 +619,10 @@ ltfrDesign[,6] <- c(0, 0, 1, 0, 0, 1)
 
         val l = depCols.map { x =>
           val v1 = bc.getColumn( x )
+          println(s"b[,$x] = " + v1.mkString(","));
           val v2 = which( v1, { x => x != 0.0 } )
           val v3 = v2.map { x => pivot( x ) }
+          println(s"rank + x = ${rank + x}")
           val dep = pivot( rank + x )
           println( s"dependent col = ${dep}" )
           println( s"dependent cols = ${v3.mkString( "," )}" )
@@ -625,14 +642,15 @@ ltfrDesign[,6] <- c(0, 0, 1, 0, 0, 1)
     }
 
     // Ok 2 = c3 - 0, 1
-    //exp1( List(c1, c2, c3) )
+    exp1( List(c1, c2, c3) )
     //Ok 3 = c6 - 0,1,2
     //exp1( List( c1, c4, c5, c6 ) )
     // Ok - selects 4 = c5 - 0,1,2,3,5
     //exp1( List(c1, c2, c3, c4, c5, c6) )
     // Empty ?
-    exp1( List(c1, c2, c3, c4, c6) )
+    //exp1( List(c1, c2, c3, c4, c6) )
 
+    /*
     // http://finmath.net/
     // https://issues.apache.org/jira/browse/MATH-1101
     // https://issues.apache.org/jira/browse/MATH-1100
@@ -677,7 +695,7 @@ ltfrDesign[,6] <- c(0, 0, 1, 0, 0, 1)
     }
     
     bug
-    
+    */
     /*
     def mm( cols: List[ FloatColumn ], c: Array[ Double ] ) = {
       import smile.math.Math._

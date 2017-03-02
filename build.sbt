@@ -64,15 +64,16 @@ libraryDependencies += "org.nd4j"     % "canova-nd4j-image" % "0.0.0.17"
 
 lazy val dl4jVersion = "0.7.2"
 
-lazy val nd4jVersion = "0.4-rc3.7"
+lazy val nd4jVersion = "0.7.2"
 
 
 // fails libraryDependencies += "org.nd4j" % "nd4j-native-platform" % "0.6.0" classifier "" classifier "linux-x86_64"
-//libraryDependencies += "org.nd4j"   % "nd4j-native-platform" % "0.7.2"
-//libraryDependencies += "org.nd4j" % "nd4j-cuda-7.5-platform" % "0.7.2"
-libraryDependencies += "org.nd4j" % "nd4j-cuda-8.0-platform" % "0.7.2"
+//libraryDependencies += "org.nd4j"   % "nd4j-native-platform" % nd4jVersion
+//libraryDependencies += "org.nd4j" % "nd4j-cuda-7.5-platform" % nd4jVersion
+libraryDependencies += "org.nd4j" % "nd4j-cuda-8.0-platform" % nd4jVersion
 
 // TODO
+// https://github.com/deeplearning4j/nd4s
 // we want https://github.com/deeplearning4j/nd4s/tree/nd4s-0.6.0
 // https://github.com/deeplearning4j/nd4s/issues/82
 // git clone https://github.com/deeplearning4j/nd4s.git
@@ -88,6 +89,10 @@ libraryDependencies += "org.nd4j" % "nd4j-cuda-8.0-platform" % "0.7.2"
 // https://github.com/deeplearning4j/nd4s/issues/96
 //libraryDependencies += "org.nd4j" %% "nd4s" % "0.7.0" 
 //libraryDependencies += "org.nd4j" %% "nd4s" % "0.6.0"
+// https://github.com/deeplearning4j/nd4s/issues/96#issuecomment-260345356
+// https://mvnrepository.com/artifact/org.nd4j/nd4s_2.11
+//libraryDependencies += "org.nd4j" %% "nd4s" % nd4jVersion
+
 
 libraryDependencies += "org.datavec" % "datavec-api" % "0.7.2"
 libraryDependencies += "org.datavec" % "datavec-data-image" % "0.7.2"
