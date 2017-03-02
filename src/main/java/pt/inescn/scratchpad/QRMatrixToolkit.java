@@ -15,6 +15,8 @@ import static org.junit.Assert.assertEquals;
 import no.uib.cipr.matrix.Vector;
 import no.uib.cipr.matrix.DenseVector;
 
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.commons.math3.distribution.NormalDistribution;
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 import org.apache.commons.math3.linear.RRQRDecomposition;
@@ -200,6 +202,30 @@ public class QRMatrixToolkit {
     }
   }
 
+  static Pair<DenseVector[], Integer> combineLinear2(int insert, int numrows, NormalDistribution[] dists, double coeff[]) {
+    
+    int len = dists.length;
+    DenseVector[] cols = new DenseVector[len];
+    for (int i = 0 ; i < len ; i++){
+      if (i != insert) 
+        cols[i] = new DenseVector( dists[i].sample(numrows)).scale(coeff[i]);
+    }
+    
+    cols[insert] = new DenseVector( numrows) ;
+    for (int i = 0 ; i < len ; i++){
+      if (i != insert) 
+        cols[insert].add(cols[i]);
+    }
+    /*
+    System.out.println("insert = "+insert);
+    for (int i = 0 ; i < len ; i++){
+        System.out.println(cols[i].toString());
+    }*/
+    
+    Pair<DenseVector[], Integer> p = Pair.of(cols, insert);
+    return p;
+  }
+  
   /*
    * 
    * def exp1( cols: List[ FloatColumn ], dropThreshold: Double = 1e-6 ) = {
@@ -373,7 +399,67 @@ public class QRMatrixToolkit {
     return true;
   }
   
-  public static List<List<Integer>> collinear(DenseMatrix B, double dropThreshold) {
+  /**
+   * 
+   * install.packages("caret", dependencies = c("Depends"))
+   * library("caret")
+   * functionBody(findLinearCombos)
+        {
+            if (!is.matrix(x)) 
+                x <- as.matrix(x)
+            lcList <- enumLC(x)
+            initialList <- lcList
+            badList <- NULL
+            if (length(lcList) > 0) {
+                continue <- TRUE
+                while (continue) {
+                    tmp <- unlist(lapply(lcList, function(x) x[1]))
+                    tmp <- unique(tmp[!is.na(tmp)])
+                    badList <- unique(c(tmp, badList))
+                    lcList <- enumLC(x[, -badList])
+                    continue <- (length(lcList) > 0)
+                }
+            }
+            else badList <- NULL
+            list(linearCombos = initialList, remove = badList)
+        }
+   *
+   *
+   * # this function does the actual work for all of the enumLC methods
+      internalEnumLC <- function(qrObj, ...)
+      {
+         R <- qr.R(qrObj)                     # extract R matrix
+         numColumns <- dim(R)[2]              # number of columns in R
+         rank <- qrObj$rank                   # number of independent columns
+         pivot <- qrObj$pivot                 # get the pivot vector
+      
+         if (is.null(numColumns) || rank == numColumns)
+         {
+            list()                            # there are no linear combinations
+         } else {
+            p1 <- 1:rank
+            X <- R[p1, p1]                    # extract the independent columns
+            Y <- R[p1, -p1, drop = FALSE]     # extract the dependent columns
+            b <- qr(X)                        # factor the independent columns
+            b <- qr.coef(b, Y)                # get regression coefficients of
+                                              # the dependent columns
+            b[abs(b) < 1e-6] <- 0             # zap small values
+      
+            # generate a list with one element for each dependent column
+            lapply(1:dim(Y)[2],
+               function(i) c(pivot[rank + i], pivot[which(b[,i] != 0)]))
+         }
+      }
+   *
+   * @see https://github.com/topepo/caret
+   * @see http://topepo.github.io/caret/index.html
+   * @see https://github.com/topepo/caret/blob/master/pkg/caret/R/findLinearCombos.R 
+   * 
+   * @param B
+   * @param dropThreshold
+   * @return
+   */
+  public static List<List<Integer>> collinear(DenseMatrix B, double dropThreshold, boolean checkResults) {
     //List<Integer> l = new ArrayList<Integer>();
     List<List<Integer>> l = new ArrayList<List<Integer>>();
 
@@ -441,30 +527,24 @@ public class QRMatrixToolkit {
         System.out.println("deps(" + k + ") = " + deps.toString());
         
         // Checking
-        DenseMatrix idep = getColumn(B, indep, 0, B.numRows()-1);
-        System.out.println("check independent = \n" + idep.toString());
-        System.out.println("(" + B.numRows() + " , " + B.numColumns() + ")");
-        DenseMatrix ndep = getSubMarix(B, deps.subList(1, deps.size()), 0, B.numRows()-1);
-        System.out.println("check dependent = \n" + ndep.toString());
-        System.out.println("coeffs = \n" + b.toString());
-        System.out.println("coeffs(" + b.numRows()+ "," + b.numColumns() + ")" );
-        // TODO: submatrix on list of rows + all columns
-        /*
-        List<Integer> bcols = new ArrayList<Integer>();
-        bcols.add(0);
-        DenseMatrix nb = getSubMarix(b, bcols, 0, depst.get(depst.size()-1));
-        */
-        DenseMatrix nb = getSubMarix(b, 0, b.numColumns()-1, depst);
-        System.out.println("ncoeffs = \n" + nb.toString());
-        DenseMatrix C = new DenseMatrix(idep.numRows(), idep.numColumns());
-        
-        ndep.mult(nb, C);
-        System.out.println("calculated dep = \n" + C.toString() );
-        assert(isEqual(idep, C, 1e-12));
-        
-        // No subtract available
-        // ndep.multAdd(b, idep);
-        //System.out.println("idep = \n" + idep.toString() );
+        if (checkResults){
+            DenseMatrix idep = getColumn(B, indep, 0, B.numRows()-1);
+            System.out.println("check independent = \n" + idep.toString());
+            System.out.println("(" + B.numRows() + " , " + B.numColumns() + ")");
+            DenseMatrix ndep = getSubMarix(B, deps.subList(1, deps.size()), 0, B.numRows()-1);
+            System.out.println("check dependent = \n" + ndep.toString());
+            System.out.println("coeffs = \n" + b.toString());
+            System.out.println("coeffs(" + b.numRows()+ "," + b.numColumns() + ")" );
+            DenseMatrix nb = getSubMarix(b, k, k, depst);
+            System.out.println("ncoeffs = \n" + nb.toString());
+            DenseMatrix C = new DenseMatrix(idep.numRows(), idep.numColumns());
+            ndep.mult(nb, C);
+            System.out.println("calculated dep = \n" + C.toString() );
+            assert(isEqual(idep, C, 1e-12));
+            // No subtract available
+            // ndep.multAdd(b, idep);
+            //System.out.println("idep = \n" + idep.toString() );
+        }
         l.add(deps);
       }
       return l;
@@ -554,10 +634,15 @@ public class QRMatrixToolkit {
       test3(threshold, am6);
     }
   }
-  public static void test4(Vector[] cols, double threshold, String expectedResult){
+  
+  public static List<List<Integer>> test3(Vector[] cols, double threshold){
     DenseMatrix M = new DenseMatrix(cols);
     System.out.println("Testing M = \n"+M.toString());
-    List<List<Integer>> l = collinear(M, threshold);
+    return collinear(M, threshold, true);
+  }
+  
+  public static void test4(Vector[] cols, double threshold, String expectedResult){
+    List<List<Integer>> l = test3(cols, threshold);
     System.out.println(l.toString());
     assert(l.toString().equalsIgnoreCase(expectedResult));
   }
@@ -580,7 +665,7 @@ public class QRMatrixToolkit {
     Vector v6 = new DenseVector(c6);
     
     Double threshold = 1e-7;
-   /*
+   
     // Test 1
     Vector[] cols1 = new Vector[]{ v1, v2, v3};
     test4(cols1, threshold, "[[1, 0, 2]]");
@@ -592,17 +677,32 @@ public class QRMatrixToolkit {
     // Test 3
     Vector[] cols3 = new Vector[]{ v1, v2, v3, v4, v6};
     test4(cols3, threshold, "[[1, 0, 2]]");
-    */
+    
     // Test 4
-    double[][] am5 = new double[6][];
-    am5[0] = c1;
-    am5[1] = c2;
-    am5[2] = c3;
-    am5[3] = c4;
-    am5[4] = c5;
-    am5[5] = c6;
     Vector[] cols4 = new Vector[]{ v1, v2, v3, v4, v5, v6};
     test4(cols4, threshold, "[[1, 0, 2], [5, 0, 3, 4]]");
+    
+    NormalDistribution d1 = new NormalDistribution(1.0, 2.0);
+    NormalDistribution d2 = new NormalDistribution(.05, 0.05);
+    NormalDistribution d3 = new NormalDistribution(10.0, 0.1);
+    NormalDistribution d4 = new NormalDistribution(100.0, 0.1);
+    NormalDistribution d5 = new NormalDistribution(0.6, 0.3);
+    
+    // Test 5
+    NormalDistribution dists1[] = new NormalDistribution[]{d1, d2, d3, d4, d5};
+    double coeff1[] = new double[]{ 1.0 , 2.0, 3.0, 4.0, 5.0 };
+    Pair<DenseVector[], Integer> p = combineLinear2(0, 5, dists1, coeff1) ;
+    //System.out.println(p.getLeft().toString());
+    //System.out.println("Dependent idx = " + p.getRight());
+    test3(p.getLeft(), threshold);
+    
+    // Test 6
+    NormalDistribution dists2[] = new NormalDistribution[]{d5, d3, d4, d2, d1};
+    double coeff2[] = new double[]{ -10.0 , 20.0, 3.0, 4.0, -500.0 };
+    Pair<DenseVector[], Integer> p2 = combineLinear2(3, 5, dists2, coeff2) ;
+    //System.out.println(p.getLeft().toString());
+    //System.out.println("Dependent idx = " + p.getRight());
+    test3(p2.getLeft(), threshold);
   }
 
 }
