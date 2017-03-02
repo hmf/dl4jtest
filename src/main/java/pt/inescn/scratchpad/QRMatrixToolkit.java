@@ -341,6 +341,20 @@ public class QRMatrixToolkit {
     }
     return new DenseMatrix(nam);
   }
+  
+  public static DenseMatrix getSubMarix(Matrix am, int col1, int col2, List<Integer> rows){
+    int num_cols = col2-col1+1;
+    //System.out.println("num_rows : "+ rows.size());
+    //System.out.println("num_cols : "+ num_cols);
+    double[][] nam = new double[rows.size()][num_cols];
+    for (int i = 0; i < rows.size(); i++) {
+      for (int j = col1; j <=col2 ; j++) {
+        //System.out.println("(" + rows.get(i) + "," + j + ") -> (" + i + ", " + (j-col1) + ")");
+        nam[i][j-col1] = am.get(rows.get(i), j);
+      }
+    }
+    return new DenseMatrix(nam);
+  }
 
   public static DenseMatrix getColumn(Matrix am, int col1, int row1, int row2){
     List<Integer> cols = new ArrayList<Integer>();
@@ -359,17 +373,12 @@ public class QRMatrixToolkit {
     return true;
   }
   
-  // TODO: matrix dimenstion incorrect, transposing
-  // Need to correct this outside of call
-  public static List<List<Integer>> collinear(double[][] am, double dropThreshold) {
+  public static List<List<Integer>> collinear(DenseMatrix B, double dropThreshold) {
     //List<Integer> l = new ArrayList<Integer>();
     List<List<Integer>> l = new ArrayList<List<Integer>>();
 
     // R <- qr.R(qrObj) # extract R matrix
-    Matrix m = new DenseMatrix(am);
-    Matrix B = new DenseMatrix(m.numColumns(), m.numRows());
-    Matrix mm = m.transpose(B);
-    QRP qr = QRP.factorize(mm);
+    QRP qr = QRP.factorize(B);
     DenseMatrix r = qr.getR();
     // numColumns <- dim(R)[2] # number of columns in R
     int numColumns = r.numColumns();
@@ -420,7 +429,8 @@ public class QRMatrixToolkit {
       
       int nColsy = Y.numColumns();
       for (int k = 0; k < nColsy; k++){
-        List<Integer> depst = which( b, k);
+        System.out.println("\n-------------------------------------------\n");
+        List<Integer> depst = which(b, k);
         System.out.println("depst(" + k + ") = " + depst.toString());
         List<Integer> deps = new ArrayList<Integer>();
         for (int e : depst){
@@ -438,10 +448,20 @@ public class QRMatrixToolkit {
         System.out.println("check dependent = \n" + ndep.toString());
         System.out.println("coeffs = \n" + b.toString());
         System.out.println("coeffs(" + b.numRows()+ "," + b.numColumns() + ")" );
+        // TODO: submatrix on list of rows + all columns
+        /*
+        List<Integer> bcols = new ArrayList<Integer>();
+        bcols.add(0);
+        DenseMatrix nb = getSubMarix(b, bcols, 0, depst.get(depst.size()-1));
+        */
+        DenseMatrix nb = getSubMarix(b, 0, b.numColumns()-1, depst);
+        System.out.println("ncoeffs = \n" + nb.toString());
         DenseMatrix C = new DenseMatrix(idep.numRows(), idep.numColumns());
-        ndep.mult(b, C);
-        System.out.println("dep = \n" + C.toString() );
+        
+        ndep.mult(nb, C);
+        System.out.println("calculated dep = \n" + C.toString() );
         assert(isEqual(idep, C, 1e-12));
+        
         // No subtract available
         // ndep.multAdd(b, idep);
         //System.out.println("idep = \n" + idep.toString() );
@@ -534,6 +554,13 @@ public class QRMatrixToolkit {
       test3(threshold, am6);
     }
   }
+  public static void test4(Vector[] cols, double threshold, String expectedResult){
+    DenseMatrix M = new DenseMatrix(cols);
+    System.out.println("Testing M = \n"+M.toString());
+    List<List<Integer>> l = collinear(M, threshold);
+    System.out.println(l.toString());
+    assert(l.toString().equalsIgnoreCase(expectedResult));
+  }
 
   public static void main(String[] args) {
     //basicTests();
@@ -545,21 +572,37 @@ public class QRMatrixToolkit {
     double[] c5 = new double[] { 0.0, 1.0, 0.0, 0.0, 1.0, 0.0 };
     double[] c6 = new double[] { 0.0, 0.0, 1.0, 0.0, 0.0, 1.0 };
 
+    Vector v1 = new DenseVector(c1);
+    Vector v2 = new DenseVector(c2);
+    Vector v3 = new DenseVector(c3);
+    Vector v4 = new DenseVector(c4);
+    Vector v5 = new DenseVector(c5);
+    Vector v6 = new DenseVector(c6);
+    
     Double threshold = 1e-7;
-
-//    double[][] am = new double[5][];
-//    am[0] = c1;
-//    am[1] = c2;
-//    am[2] = c3;
-//    am[3] = c4;
-//    am[4] = c6;
-    double[][] am = new double[3][];
-    am[0] = c1;
-    am[1] = c2;
-    am[2] = c3;
-    List<List<Integer>>l = collinear(am, threshold);
-    System.out.println(l.toString());
-
+   /*
+    // Test 1
+    Vector[] cols1 = new Vector[]{ v1, v2, v3};
+    test4(cols1, threshold, "[[1, 0, 2]]");
+    
+    // Test 2
+    Vector[] cols2 = new Vector[]{ v1, v4, v5, v6};
+    test4(cols2, threshold, "[[3, 0, 1, 2]]");
+    
+    // Test 3
+    Vector[] cols3 = new Vector[]{ v1, v2, v3, v4, v6};
+    test4(cols3, threshold, "[[1, 0, 2]]");
+    */
+    // Test 4
+    double[][] am5 = new double[6][];
+    am5[0] = c1;
+    am5[1] = c2;
+    am5[2] = c3;
+    am5[3] = c4;
+    am5[4] = c5;
+    am5[5] = c6;
+    Vector[] cols4 = new Vector[]{ v1, v2, v3, v4, v5, v6};
+    test4(cols4, threshold, "[[1, 0, 2], [5, 0, 3, 4]]");
   }
 
 }
