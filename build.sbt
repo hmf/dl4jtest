@@ -39,6 +39,9 @@ libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0"
 libraryDependencies += "com.chuusai" %% "shapeless" % "2.3.2"
 
 // Linear Algebra
+// http://statr.me/2015/09/an-overview-of-linear-algebra-libraries-in-scala-java/
+// http://ejml.org/wiki/index.php?title=Main_Page
+// http://commons.apache.org/proper/commons-math/index.html
 libraryDependencies += "net.sourceforge.f2j" % "arpack_combined_all" % "0.1"
 libraryDependencies += "com.github.fommil.netlib" % "all" % "1.1.2" pomOnly()
 libraryDependencies += "com.googlecode.matrix-toolkits-java" % "mtj" % "1.0.4"
@@ -105,6 +108,15 @@ libraryDependencies += "org.deeplearning4j" % "deeplearning4j-core" % "0.7.2"
 libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.1" % "test"
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test"
 libraryDependencies += "junit" % "junit" % "4.4"
+
+
+// TODO
+// https://scala-blitz.github.io/
+// https://bitbucket.org/oscarlib/oscar/wiki/Home
+// https://github.com/bruneli/scalaopt
+// https://github.com/scalanlp/breeze
+// https://github.com/vagmcs/Optimus
+
 
 // TODO: add scalastyle checks also
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Xlint", "-explaintypes")
