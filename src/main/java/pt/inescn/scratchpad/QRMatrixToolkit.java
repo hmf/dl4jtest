@@ -244,6 +244,11 @@ public class QRMatrixToolkit {
     return nam;
   }
 
+  /**
+   * 
+   * @param m
+   * @param threshold
+   */
   public static void zap(DenseMatrix m, double threshold) {
     for (int i = 0; i < m.numRows(); i++)
       for (int j = 0; j < m.numColumns(); j++)
