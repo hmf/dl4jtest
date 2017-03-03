@@ -129,8 +129,7 @@ public class QRMatrixToolkit {
     System.out.println("2 QR rank: " + nrank);
     // System.out.println("R: \n" + r.toString());
 
-    SingularValueDecomposition sv2 = new org.apache.commons.math3.linear.SingularValueDecomposition(
-        m);
+    SingularValueDecomposition sv2 = new org.apache.commons.math3.linear.SingularValueDecomposition(m);
     int svdRank = sv2.getRank();
     System.out.println("SVD rank: " + svdRank);
 
@@ -219,75 +218,11 @@ public class QRMatrixToolkit {
       if (i != insert)
         cols[insert].add(cols[i]);
     }
-    /*
-     * System.out.println("insert = "+insert); for (int i = 0 ; i < len ; i++){
-     * System.out.println(cols[i].toString()); }
-     */
-
+    
     Pair<DenseVector[], Integer> p = Pair.of(cols, insert);
     return p;
   }
 
-  /*
-   * 
-   * def exp1( cols: List[ FloatColumn ], dropThreshold: Double = 1e-6 ) = {
-   * import scala.language.postfixOps import
-   * org.apache.commons.math3.linear.Array2DRowRealMatrix import
-   * org.apache.commons.math3.linear.DefaultRealMatrixChangingVisitor
-   * 
-   * // Create a matrix val am = DoubleArrays.to2dArray( cols: _* ) println(
-   * am.map( _.mkString( "|", ",", "|" ) ).mkString( "\n" ) ) // Prepare QR
-   * decomposition val m = new Array2DRowRealMatrix( am, false ) // use array,
-   * don't copy val qr = new RRQRDecomposition( m )
-   * 
-   * // R <- qr.R(qrObj) # extract R matrix val r = qr.getR // numColumns <-
-   * dim(R)[2] # number of columns in R val numColumns = r.getColumnDimension //
-   * rank <- qrObj$rank # number of independent columns val rank = qr.getRank(
-   * dropThreshold / 1000 ) // pivot <- qrObj$pivot # get the pivot vector val
-   * pivotm = qr.getP
-   * 
-   * // if (is.null(numColumns) || rank == numColumns) if ( ( numColumns == 0 )
-   * || ( rank == numColumns ) ) { //list() # there are no linear combinations
-   * // there are no linear combinations println( s"Empty: rank = $rank" )
-   * List() } else { // p1 <- 1:rank val p1 = 0 to ( rank - 1 ) toArray // X <-
-   * R[p1, p1] # extract the independent columns // extract the independent
-   * columns val x = r.getSubMatrix( p1, p1 ) println(
-   * s"x : ${( x.getRowDimension, x.getColumnDimension )}" ) // Y <- R[p1, -p1,
-   * drop = FALSE] # extract the dependent columns val p2 = rank to ( numColumns
-   * - 1 ) toArray val s1 = p1.mkString( "," ) val s2 = p2.mkString( "," )
-   * println( s1 ) println( s2 ) val y = r.getSubMatrix( p1, p2 ) println(
-   * s"y : ${( y.getRowDimension, y.getColumnDimension )}" ) // b <- qr(X) #
-   * factor the independent columns val b = new RRQRDecomposition( x ) // b <-
-   * qr.coef(b, Y) # get regression coefficients of the dependent columns val s
-   * = b.getSolver val bc = s.solve( y ) // b[abs(b) < 1e-6] <- 0 # zap small
-   * values println( s"coef' = ${bc.toString()}" ) bc.walkInColumnOrder( new
-   * DefaultRealMatrixChangingVisitor { //override def visit(row : Int, column :
-   * Int, value: Double) = { if (Math.abs(value) < dropThreshold) 0.0 else value
-   * } override def visit( row: Int, column: Int, value: Double ) = { if (
-   * Math.abs( value ) < dropThreshold ) 0.0 else value } } )
-   * 
-   * println( s"pivotM = ${pivotm.toString()}" ) println(
-   * s"coef = ${bc.toString()}" )
-   * 
-   * // Get the pivoted column inedexes val pivot = ( 0 to
-   * pivotm.getColumnDimension - 1 ) map { x => pivotm.getColumn( x ).indexWhere
-   * { x => x == 1.0 } } println( s"pivot = ${pivot.mkString( "," )}" )
-   * 
-   * // # generate a list with one element for each dependent column
-   * //lapply(1:dim(Y)[2], function(i) c(pivot[rank + i], pivot[which(b[,i] !=
-   * 0)])) val nColsy = y.getColumnDimension val depCols = 0 to nColsy - 1
-   * 
-   * val l = depCols.map { x => val v1 = bc.getColumn( x ) val v2 = which( v1, {
-   * x => x != 0.0 } ) val v3 = v2.map { x => pivot( x ) } val dep = pivot( rank
-   * + x ) println( s"dependent col = ${dep}" ) println(
-   * s"dependent cols = ${v3.mkString( "," )}" )
-   * 
-   * // Checking val ny = m.getColumnMatrix( dep ) val rs = 0 to
-   * (m.getRowDimension -1 ) toArray val nm = m.getSubMatrix(rs, v3.toArray) val
-   * rslt = nm.multiply(bc) println(s"Check: ${rslt.toString()}")
-   * 
-   * ( dep, v2 ) } l }
-   */
 
   public static double[][] subTopLeftMatrix(DenseMatrix am, int row, int col) {
     double[][] nam = new double[row][col];
@@ -316,20 +251,16 @@ public class QRMatrixToolkit {
           m.set(i, j, 0.0);
   }
 
-  /*
-   * Rank = 2 [info] x : (2,2) [info] R: [info] Array2DRowRealMatrix{
-   * {-2.4494897428,-1.2247448714,-1.2247448714},
-   * {0.0,-1.2247448714,1.2247448714}, {0.0,0.0,0.0}, {0.0,0.0,0.0},
-   * {0.0,0.0,0.0}, {0.0,0.0,0.0}} [info] X: [info] Array2DRowRealMatrix{
-   * {-2.4494897428,-1.2247448714}, {0.0,-1.2247448714}} [info] 0,1 [info] 2
-   * [info] y : (2,1) [info] y : Array2DRowRealMatrix{ {-1.2247448714},
-   * {1.2247448714}} [info] coef' = Array2DRowRealMatrix{ {1.0}, {-1.0}} [info]
-   * pivotM = Array2DRowRealMatrix{{1.0,0.0,0.0},{0.0,1.0,0.0},{0.0,0.0,1.0}}
-   * [info] coef = Array2DRowRealMatrix{{1.0},{-1.0}} [info] pivot = 0,1,2
-   * [info] dependent col = 2 [info] dependent cols = 0,1 [info] Check:
-   * Array2DRowRealMatrix{{0.0},{0.0},{0.0},{1.0},{1.0},{1.0}}
+  /**
+   * This function scans all the rows of the `column` in the matrix `m`.
+   * It returns a list of the rows that are not 0.0. Note that we only use this 
+   * on values that have been "zapped". 
+   * 
+   * @param m
+   * @param column
+   * @return indexes of rows that are not 0.0 
+   * @see zap
    */
-
   public static List<Integer> which(DenseMatrix m, int column) {
     List<Integer> idxs = new ArrayList<Integer>();
     for (int i = 0; i < m.numRows(); i++)
@@ -338,8 +269,20 @@ public class QRMatrixToolkit {
     return idxs;
   }
 
-  public static DenseMatrix getSubMarix(Matrix am, List<Integer> cols,
-      int row1, int row2) {
+  /**
+   * Returns sub-matrix from the matrix `am`. It selects rows from `row1` to `row2` inclusive.  
+   * It only selects and returns the columns listed in `cols`. Note that this function performs a 
+   * deep copy twice. 
+   * 
+   * TODO: add to Matrix class
+   * 
+   * @param am
+   * @param cols
+   * @param row1
+   * @param row2
+   * @return DenseMatrix
+   */
+  public static DenseMatrix getSubMarix(Matrix am, List<Integer> cols, int row1, int row2) {
     int num_rows = row2 - row1 + 1;
     // System.out.println("num_rows : "+ num_rows);
     // System.out.println("num_cols : "+ cols.size());
@@ -354,8 +297,20 @@ public class QRMatrixToolkit {
     return new DenseMatrix(nam);
   }
 
-  public static DenseMatrix getSubMarix(Matrix am, int col1, int col2,
-      List<Integer> rows) {
+  /**
+   * Returns sub-matrix from the matrix `am`. It selects columns from `col1` to `col2` inclusive.  
+   * It only selects and returns the rows listed in `rows`. Note that this function performs a 
+   * deep copy twice. 
+   * 
+   * TODO: add to Matrix class
+   * 
+   * @param am
+   * @param col1
+   * @param col2
+   * @param rows
+   * @return DenseMatrix
+   */
+  public static DenseMatrix getSubMarix(Matrix am, int col1, int col2, List<Integer> rows) {
     int num_cols = col2 - col1 + 1;
     // System.out.println("num_rows : "+ rows.size());
     // System.out.println("num_cols : "+ num_cols);
@@ -370,12 +325,31 @@ public class QRMatrixToolkit {
     return new DenseMatrix(nam);
   }
 
+  /**
+   * Returns a single column from the matrix `am`. It selects column `col1`
+   * and all rows from `row1` to `row2` inclusive.  
+   * 
+   * @param am
+   * @param col1
+   * @param row1
+   * @param row2
+   * @return returns a DenseMatrix that represents the column matrix. 
+   */
   public static DenseMatrix getColumn(Matrix am, int col1, int row1, int row2) {
     List<Integer> cols = new ArrayList<Integer>();
     cols.add(col1);
     return getSubMarix(am, cols, row1, row2);
   }
 
+  /**
+   * Checks if two matrixes `a` and `b` are equal. These two matrices are not equal 
+   * if at least one elemnt has an absolute difference equal to or greater than `eps`. 
+   * 
+   * @param a
+   * @param b
+   * @param eps
+   * @return true if equal otherwise false
+   */
   public static boolean isEqual(DenseMatrix a, DenseMatrix b, double eps) {
     if (a.numColumns() != b.numColumns())
       return false;
@@ -391,18 +365,40 @@ public class QRMatrixToolkit {
     return true;
   }
 
-  public static void printMat(Matrix a) {
+  /**
+   * Convert a double `a` to its string representation. Use a maximum and 
+   * minimum of  `num_digits` decimal digits to represent the number. 
+   * 
+   * @param a
+   * @param num_digits
+   * @return string representation of the double
+   */
+  public static String floatToString(double a, int num_digits) {
+    //System.out.print(a.get(i, j) + ", ");
+    //System.out.printf("%f, ", a.get(i, j));
+    //System.out.println(new BigDecimal(a.get(i, j)).toPlainString());
+    //System.out.printf("%.80f, ", a.get(i, j));
+    DecimalFormat df = new DecimalFormat("#");
+    df.setMinimumFractionDigits(num_digits);
+    df.setMaximumFractionDigits(num_digits);
+    return  df.format( a );
+  }
+  
+  /**
+   * This function prints out the matrix `a`.  Use this function to output the values
+   * to an arbitrary number of decimal places. It allows us to output values so that 
+   * they can be used elsewhere for checking.  This allows us to avoid truncaton errors
+   * when we print out the values. 
+   * 
+   * @param a
+   * @see floatToString
+   */
+  public static void printMat(Matrix a, int num_digits) {
     for (int i = 0; i < a.numRows(); i++) {
       System.out.println();
       for (int j = 0; j < a.numColumns(); j++) {
-        //System.out.print(a.get(i, j) + ", ");
-        //System.out.printf("%f, ", a.get(i, j));
-        //System.out.println(new BigDecimal(a.get(i, j)).toPlainString());
-        DecimalFormat df = new DecimalFormat("#");
-        df.setMinimumFractionDigits(30);
-        df.setMaximumFractionDigits(30);
-        System.out.print( df.format( a.get(i, j) )+ ", " );
-        //System.out.printf("%.80f, ", a.get(i, j));
+        String s = floatToString( a.get(i, j), num_digits );
+        System.out.print(  s + ", " );
       }
     }
     System.out.println();
@@ -410,50 +406,35 @@ public class QRMatrixToolkit {
 
   /**
    * 
-   * install.packages("caret", dependencies = c("Depends")) library("caret")
-   * functionBody(findLinearCombos) { if (!is.matrix(x)) x <- as.matrix(x)
-   * lcList <- enumLC(x) initialList <- lcList badList <- NULL if
-   * (length(lcList) > 0) { continue <- TRUE while (continue) { tmp <-
-   * unlist(lapply(lcList, function(x) x[1])) tmp <- unique(tmp[!is.na(tmp)])
-   * badList <- unique(c(tmp, badList)) lcList <- enumLC(x[, -badList]) continue
-   * <- (length(lcList) > 0) } } else badList <- NULL list(linearCombos =
-   * initialList, remove = badList) }
+   * This is an re-implementation of Caret's `internalEnumLC`. It checks if matrix `B` has
+   * any colinear columns. It returns a list of lists. Each inner list consists of a set of column 
+   * indexes. The first index represents the dependent column. The next indexes represent the 
+   * columns that can be linearly combined to produce the dependent column. 
+   * This method produces the regression coefficients eficiently but does not return them. 
    *
-   *
-   * # this function does the actual work for all of the enumLC methods
-   * internalEnumLC <- function(qrObj, ...) { R <- qr.R(qrObj) # extract R
-   * matrix numColumns <- dim(R)[2] # number of columns in R rank <- qrObj$rank
-   * # number of independent columns pivot <- qrObj$pivot # get the pivot vector
+   * If the boolean `checkResults` is set to `true`, then each set of regression coefficients that 
+   * are found are multiplied with the orginal Matrix's independent columns and cheked if it equals 
+   * the original independent column. 
    * 
-   * if (is.null(numColumns) || rank == numColumns) { list() # there are no
-   * linear combinations } else { p1 <- 1:rank X <- R[p1, p1] # extract the
-   * independent columns Y <- R[p1, -p1, drop = FALSE] # extract the dependent
-   * columns b <- qr(X) # factor the independent columns b <- qr.coef(b, Y) #
-   * get regression coefficients of # the dependent columns b[abs(b) < 1e-6] <-
-   * 0 # zap small values
+   * We identify and select the collinear coefficients if they are not zero. We assume zero if an
+   * element has an absolute value less than `dropThreshold` (see zap). 
    * 
-   * # generate a list with one element for each dependent column
-   * lapply(1:dim(Y)[2], function(i) c(pivot[rank + i], pivot[which(b[,i] !=
-   * 0)])) } }
-   *
-   *
-   * Bug report in Caret.
-   * 
-   * @ßee https://github.com/topepo/caret/issues/607
-   *
+   * @see isEqual
+   * @see zap
    * @see https://github.com/topepo/caret
    * @see http://topepo.github.io/caret/index.html
    * @see https://github.com/topepo/caret/blob/master/pkg/caret/R/findLinearCombos.R
-   * 
    * @see https://en.wikipedia.org/wiki/Multicollinearity
    * @see https://en.wikipedia.org/wiki/Condition_number
+   * @See https://github.com/topepo/caret/issues/607
    * 
    * @param B
    * @param dropThreshold
-   * @return
+   * @param checkResults
+   * @return sets of collinear columns of the matrix. The first element of each sublist is the dependent 
+   * column. The rest are the indepedent ones.  
    */
-  public static List<List<Integer>> collinear(DenseMatrix B,
-      double dropThreshold, boolean checkResults) {
+  public static List<List<Integer>> collinear(DenseMatrix B, double dropThreshold, boolean checkResults) {
     // List<Integer> l = new ArrayList<Integer>();
     List<List<Integer>> l = new ArrayList<List<Integer>>();
 
@@ -532,8 +513,7 @@ public class QRMatrixToolkit {
           System.out.println("check dependent = \n" + ndep.toString());
           System.out.println("coeffs = \n" + b.toString());
           //printMat(b);
-          System.out.println("coeffs(" + b.numRows() + "," + b.numColumns()
-              + ")");
+          System.out.println("coeffs(" + b.numRows() + "," + b.numColumns()+ ")");
           DenseMatrix nb = getSubMarix(b, k, k, depst);
           System.out.println("ncoeffs = \n" + nb.toString());
           DenseMatrix C = new DenseMatrix(idep.numRows(), idep.numColumns());
@@ -543,8 +523,6 @@ public class QRMatrixToolkit {
           // No subtract available
           // ndep.multAdd(b, idep);
           // System.out.println("idep = \n" + idep.toString() );
-
-          // ??
         }
         l.add(deps);
       }
