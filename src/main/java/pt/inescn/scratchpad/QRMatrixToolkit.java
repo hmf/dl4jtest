@@ -33,7 +33,7 @@ import org.apache.commons.math3.util.FastMath;
  * ulp(s1) where ulp(s1) is the least significant bit of the largest singular
  * value.
  * 
- * @se https://github.com/fommil/matrix-toolkits-java
+ * @see https://github.com/fommil/matrix-toolkits-java
  * @see https://github.com/fommil/netlib-java
  * @see http://icl.cs.utk.edu/f2j/
  * @see http://netlib.org/
@@ -393,12 +393,21 @@ public class QRMatrixToolkit {
     if (a.numRows() != b.numRows()) return false;
     for (int i = 0; i < a.numRows(); i++) {
       for (int j = 0; j < a.numColumns(); j++) {
+        //System.out.println(a.get(i, j) + " - " +  b.get(i, j));
         if (FastMath.abs( a.get(i, j) - b.get(i, j) ) >= eps) return false;
       }
     }
     return true;
   }
   
+  public static void printMat(Matrix a) {
+    for (int i = 0; i < a.numRows(); i++) {
+      System.out.println();
+      for (int j = 0; j < a.numColumns(); j++)
+        System.out.print(a.get(i, j) + ", ");
+    }
+    System.out.println();
+  }
   /**
    * 
    * install.packages("caret", dependencies = c("Depends"))
@@ -450,6 +459,10 @@ public class QRMatrixToolkit {
                function(i) c(pivot[rank + i], pivot[which(b[,i] != 0)]))
          }
       }
+   *
+   *
+   * Bug report in Caret. 
+   * @ßee https://github.com/topepo/caret/issues/607
    *
    * @see https://github.com/topepo/caret
    * @see http://topepo.github.io/caret/index.html
@@ -506,7 +519,7 @@ public class QRMatrixToolkit {
       // Testing y = br*s
       DenseMatrix yt = new DenseMatrix(y.length, y[0].length);
       br.mult(b, yt);
-      //System.out.println("yt :\n" + yt.toString());
+      System.out.println("yt :\n" + yt.toString());
       
       System.out.println("pivot :\n" + Arrays.toString(pivotm));
       System.out.println("br :\n" + br.toString());
@@ -534,6 +547,7 @@ public class QRMatrixToolkit {
             DenseMatrix ndep = getSubMarix(B, deps.subList(1, deps.size()), 0, B.numRows()-1);
             System.out.println("check dependent = \n" + ndep.toString());
             System.out.println("coeffs = \n" + b.toString());
+            //printMat(b);
             System.out.println("coeffs(" + b.numRows()+ "," + b.numColumns() + ")" );
             DenseMatrix nb = getSubMarix(b, k, k, depst);
             System.out.println("ncoeffs = \n" + nb.toString());
@@ -544,6 +558,8 @@ public class QRMatrixToolkit {
             // No subtract available
             // ndep.multAdd(b, idep);
             //System.out.println("idep = \n" + idep.toString() );
+            
+            // ??
         }
         l.add(deps);
       }
@@ -665,7 +681,7 @@ public class QRMatrixToolkit {
     Vector v6 = new DenseVector(c6);
     
     Double threshold = 1e-7;
-   
+   /*
     // Test 1
     Vector[] cols1 = new Vector[]{ v1, v2, v3};
     test4(cols1, threshold, "[[1, 0, 2]]");
@@ -703,6 +719,30 @@ public class QRMatrixToolkit {
     //System.out.println(p.getLeft().toString());
     //System.out.println("Dependent idx = " + p.getRight());
     test3(p2.getLeft(), threshold);
+    */
+    double[] c11 = new double[] { 1.012, 10.01, 20.0211, 300.0303, 5.06, 6.06 };
+    double[] c12 = new double[] { 0.033, 0.045, 0.022, 0.033, 0.045, 0.06 };
+    double[] c13 = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+    double[] c14 = new double[] { 1.0, 0.0, 0.0, 1.0, 0.0, 0.0 };
+    double[] c15 = new double[] { 66.06, 98.9, 107.707, 110.0119, 67.08, 88.87 };
+    double[] c16 = new double[] { 0.0, 0.0, 1.0, 0.0, 0.0, 1.0 };
+
+    Vector v11 = new DenseVector(c11);
+    Vector v12 = new DenseVector(c12);
+    Vector v13 = new DenseVector(c13);
+    Vector v14 = new DenseVector(c14);
+    Vector v15 = new DenseVector(c15);
+    Vector v16 = new DenseVector(c16);
+    
+    Vector v11t = v11.copy().scale(56.03);
+    Vector v12t = v12.copy().scale(89.309);
+    Vector v15t = v15.copy().scale(0.9077);
+    v13.add(v11t).add(v12t).add(v15t);
+    
+    // Test 7
+    Vector[] cols7 = new Vector[]{ v11, v12, v13, v14, v15};
+    test4(cols7, threshold, "[[1, 2, 4, 0]]");
+    
   }
 
 }

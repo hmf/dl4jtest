@@ -115,6 +115,17 @@ scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Xlint", "-expl
 //scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Xlint", "-uniqid", "-explaintypes")
 
 
-fork in run := true
-
-javaOptions in run += "-ea"
+//
+//SBT offers 3 ways to pass JVM parameters:
+//
+//    Set environment variable SBT_OPTS
+//    Set environment variable JAVA_OPTS
+//    Pass parameters by command line option `-J-X`
+//
+// export JAVA_OPTS="-Xmx512m" sbt run
+// JAVA_OPTS= -Dhttp.proxyHost=http://proxy2.inescn.pt -Dhttp.proxyPort=3128
+// Use -J-X options to sbt for individual options, e.g. -J-Xmx2048 -J-XX:MaxPermSize=512
+// This must be true for the line below to work
+//fork in run := true
+//
+//javaOptions in run += "-ea"
