@@ -1,24 +1,20 @@
 package pt.inescn.scratchpad;
 
-import java.math.BigDecimal;
+import static org.junit.Assert.assertEquals;
+
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
-import java.util.stream.IntStream;
 
 import no.uib.cipr.matrix.DenseMatrix;
+import no.uib.cipr.matrix.DenseVector;
 import no.uib.cipr.matrix.Matrices;
 import no.uib.cipr.matrix.Matrix;
-import no.uib.cipr.matrix.MatrixEntry;
 import no.uib.cipr.matrix.QRP;
-import static org.junit.Assert.assertEquals;
 import no.uib.cipr.matrix.Vector;
-import no.uib.cipr.matrix.DenseVector;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.commons.lang3.tuple.Triple;
 import org.apache.commons.math3.distribution.NormalDistribution;
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 import org.apache.commons.math3.linear.RRQRDecomposition;
@@ -433,7 +429,7 @@ public class QRMatrixToolkit {
   
   /**
    * Original test from Matrix Toolkit Java
-   */
+   *
   public static void testRank1() {
     Matrix rand = Matrices.random(6, 4);
 
@@ -443,11 +439,11 @@ public class QRMatrixToolkit {
     QRP qrp = QRP.factorize(A);
 
     assertEquals(Math.min(rand.numRows(), rand.numColumns()), qrp.getRank());
-  }
+  }*/
 
   /**
    * Original test from Matrix Toolkit Java
-   */
+   *
   public static void testRank2() {
     Matrix rand = Matrices.random(4, 6);
 
@@ -457,7 +453,7 @@ public class QRMatrixToolkit {
     QRP qrp = QRP.factorize(A);
 
     assertEquals(Math.min(rand.numRows(), rand.numColumns()), qrp.getRank());
-  }
+  }*/
 
   /**
    * Due to a possibly a numeric stability issue (see link below),  we found that the rank
@@ -648,8 +644,8 @@ public class QRMatrixToolkit {
 
     Double threshold = 1e-7;
 
-    testRank1();
-    testRank2();
+    //testRank1();
+   //testRank2();
 
     double[][] am = new double[5][];
     am[0] = c1;

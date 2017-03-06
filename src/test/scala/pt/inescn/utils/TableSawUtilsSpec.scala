@@ -204,4 +204,5 @@ class TableSawUtilsSpec extends FlatSpec with Matchers {
       emptyStack.pop()
     }
   }
+  
 }
