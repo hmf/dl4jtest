@@ -16,7 +16,7 @@ import pt.inescn.utils.TestUtils._
  *  test:runMain
  *
  * sbt test
- * sbt testOnly "pt.inescn.utils.TableSawUtilsSpec"
+ * sbt "testOnly pt.inescn.utils.TableSawUtilsSpec"
  */
 class TableSawUtilsSpec extends FlatSpec with Matchers {
 
@@ -86,6 +86,15 @@ class TableSawUtilsSpec extends FlatSpec with Matchers {
 
     // We can now attempt to read the full file - using the types identified above
     val dt1: Table = time { Table.createFromCsv( tps.toArray, "/home/hmf/Desktop/bosch/mdrrdesc.csv" ) }
+    // See https://github.com/lwhite1/tablesaw/issues/103
+    // How can we use a snapshot?
+    // https://github.com/alexarchambault/sbt-website/blob/master/src/reference/02-DetailTopics/03-Dependency-Management/05-Publishing.md
+    // http://stackoverflow.com/questions/7550376/how-can-sbt-pull-dependency-artifacts-from-git
+    // http://blog.xebia.com/git-subproject-compile-time-dependencies-in-sbt/
+     val header = true
+     val delimiter = ','
+     val skipSampling = true
+    //Table.createFromCsv("/home/hmf/Desktop/bosch/mdrrdesc.csv", header, delimiter, skipSampling)
     println( dt1.first( 3 ).print )
     println( dt1.structure.first( 5 ).print )
 

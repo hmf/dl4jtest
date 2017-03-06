@@ -65,12 +65,15 @@ object TableSawUtils {
   /**
    * Used to read the string description of the inferred column type
    * and convert that to TableSaw's `ColumnType`
+   * 
+   * TODOP: remove. USe  CsvReader.detectedColumnTypes
    */
   def toColumnType( s: String ): ColumnType = {
     s match {
       case "BOOLEAN"         => ColumnType.BOOLEAN
       case "CATEGORY"        => ColumnType.CATEGORY
       case "FLOAT"           => ColumnType.FLOAT
+      case "DOUBLE"           => ColumnType.DOUBLE
       case "SHORT_INT"       => ColumnType.SHORT_INT
       case "INTEGER"         => ColumnType.INTEGER
       case "LONG_INT"        => ColumnType.LONG_INT
@@ -275,7 +278,7 @@ object TableSawUtils {
       * 2) large ratio of the frequency of the most common value to the frequency of the second most 
       *     common value (near-zero variance predictors).
       * 
-      * More specifcally:
+      * More specifically:
       * - The frequency of the most prevalent value over the second most frequent value (called the 
       *   “frequency ratio’’), which would be near one for well-behaved predictors and very large for 
       *   highly-unbalanced data
@@ -301,6 +304,10 @@ object TableSawUtils {
         val l = c.asScala
         calcRatios( l, uniqueCut, freqCut )
       case ColumnType.FLOAT =>
+        val c = t.floatColumn( colName )
+        val l = c.asScala
+        calcRatios( l, uniqueCut, freqCut )
+      case ColumnType.DOUBLE =>
         val c = t.floatColumn( colName )
         val l = c.asScala
         calcRatios( l, uniqueCut, freqCut )
