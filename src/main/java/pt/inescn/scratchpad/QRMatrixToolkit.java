@@ -647,37 +647,37 @@ public class QRMatrixToolkit {
     //testRank1();
    //testRank2();
 
-    double[][] am = new double[5][];
+    /*double[][] am = new double[5][];
     am[0] = c1;
     am[1] = c2;
     am[2] = c3;
     am[3] = c4;
     am[4] = c6;
-    checkRank(threshold, am);
+    checkRank(threshold, am);*/
 
-    double[][] am1 = new double[3][];
+    /*double[][] am1 = new double[3][];
     am1[0] = c1;
     am1[1] = c2;
     am1[2] = c3;
-    checkRank(threshold, am1);
+    checkRank(threshold, am1);*/
 
-    double[][] am2 = new double[4][];
+    /*double[][] am2 = new double[4][];
     am2[0] = c1;
     am2[1] = c4;
     am2[2] = c5;
     am2[3] = c6;
-    checkRank(threshold, am2);
+    checkRank(threshold, am2);*/
 
-    double[][] am3 = new double[6][];
+    /*double[][] am3 = new double[6][];
     am3[0] = c1;
     am3[1] = c2;
     am3[2] = c3;
     am3[3] = c4;
     am3[4] = c5;
     am3[5] = c6;
-    checkRank(threshold, am3);
+    checkRank(threshold, am3);*/
 
-    double[][] am4 = new double[6][];
+    /*double[][] am4 = new double[6][];
     am4[0] = c1;
     am4[1] = c2;
     am4[2] = c3;
@@ -685,7 +685,7 @@ public class QRMatrixToolkit {
     am4[4] = c5;
     am4[5] = c6;
     combineLinear1(am4);
-    checkRank(threshold, am4);
+    checkRank(threshold, am4);*/
 
     double[][] am5 = new double[6][];
     am5[0] = c1;
