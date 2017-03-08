@@ -455,6 +455,7 @@ public class QRMatrixToolkit {
     assertEquals(Math.min(rand.numRows(), rand.numColumns()), qrp.getRank());
   }*/
 
+  // TODO: remove
   /**
    * Due to a possibly a numeric stability issue (see link below),  we found that the rank
    * was not correctly determined by the rank revealing QR decomposition function of the 
@@ -687,6 +688,7 @@ public class QRMatrixToolkit {
     combineLinear1(am4);
     checkRank(threshold, am4);*/
 
+    /*
     double[][] am5 = new double[6][];
     am5[0] = c1;
     am5[1] = c2;
@@ -696,7 +698,7 @@ public class QRMatrixToolkit {
     am5[5] = c6;
     combineLinear1(am5);
     combineLinear1(am5);
-    checkRank(threshold, am5);
+    checkRank(threshold, am5);*/
 
     for (int i = 0; i < 10; i++) {
       double[][] am6 = genColumns();

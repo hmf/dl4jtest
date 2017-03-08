@@ -42,6 +42,128 @@ import org.apache.commons.math3.util.FastMath;
  */
 class QRMatrixToolkitSpec extends WordSpec with Matchers {
 
+  /**
+   * Due to a possibly a numeric stability issue (see link below),  we found that the rank
+   * was not correctly determined by the rank revealing QR decomposition function of the 
+   * Apache Commons Math3. This function calculates the rank via SVD and checks that 
+   * it is equal to the rank calculated by the Matrix Toolkit Java code. 
+   * 
+   * @param threshold - any matrix value below the threshold is considered  0. 
+   * @param am - a column wise matrix (each first index points to a column)
+   * 
+   * @see  https://issues.apache.org/jira/browse/MATH-1403
+   * @see no.uib.cipr.matrix.QRP.factor(Matrix A)
+   * @see https://github.com/fommil/matrix-toolkits-java/blob/6157618bc86bcda3749af2a60bf869d8f3292960/src/main/java/no/uib/cipr/matrix/QRP.java
+   */
+  def checkRank( threshold: Double, am: Array[ Array[ Double ] ] ) = {
+    import pt.inescn.scratchpad.QRMatrixToolkit.getRankN
+
+    val m = new Array2DRowRealMatrix( am, false ) // use array, don't copy
+    val qr = new RRQRDecomposition( m, threshold )
+    val rank = qr.getRank( threshold )
+    println( "0 QR rank: " + rank )
+    println( "1 QR rank: " + getRankN( qr ) )
+
+    val A = new DenseMatrix( am )
+    val qrp = QRP.factorize( A )
+    val nrank = qrp.getRank()
+    println( "2 QR rank: " + nrank );
+    // println("R: \n" + r.toString());
+
+    val sv2 = new org.apache.commons.math3.linear.SingularValueDecomposition( m )
+    val svdRank = sv2.getRank()
+    println( "SVD rank: " + svdRank )
+
+    ( nrank, svdRank )
+  }
+
+  /**
+   * Takes an existing matrix `am` and generates a single column that is 
+   * linearly dependent on another 3 columns. Both the coefficients and 
+   * the columns are randomly selected. 
+   * 
+   * Note that a column major matrix is returned. 
+   * 
+   * @see https://en.wikipedia.org/wiki/Rank_%28linear_algebra%29
+   * @see https://en.wikipedia.org/wiki/Condition_number
+   * @see https://github.com/topepo/caret/issues/607
+   * @see https://en.wikipedia.org/wiki/Row-_and_column-major_order
+   * 
+   * @return  a column major matrix with one column linearly dependent on another 3. 
+   */
+  def combineLinear1(am: Array[ Array[ Double ] ]) = {
+    // Coefficients
+    val d1 = new NormalDistribution(1.0, 2.0)
+    val d2 = new NormalDistribution(.05, 0.05)
+    val d3 = new NormalDistribution(10.0, 0.1)
+    val a = d1.sample()
+    val b = d2.sample()
+    val c = d3.sample()
+  
+    // Select columns
+    val r = new java.util.Random()
+    val i1 = r.nextInt(am.length)
+    val i2 = r.nextInt(am.length)
+    val i3 = r.nextInt(am.length)
+    val i4 = r.nextInt(am.length)
+
+    // Generate linear combination
+    // am[i1] = (am[i2] * a) + (am[i3] * b) - (am[i4]*c)
+    val v1 = new DenseVector(am(i2)).scale(a);
+    val v2 = new DenseVector(am(i3)).scale(b);
+    val v3 = new DenseVector(am(i4)).scale(-c);
+    val v4 = v1.add(v2).add(v3);
+    for (i <- 0 until am(i1).length) {
+      am(i1)(i) = v4.get(i);
+    }
+}
+  
+    /**
+   * Generates a 10 x 6 matrix were all the columns are randomly generated
+   * using Gaussian (normal) distributions. This is used to check the rank 
+   * of a singular matrix (more columns than rows) where all columns are 
+   * linearly independent.
+   * 
+   * Note that a column major matrix is returned. 
+   * 
+   * @see https://en.wikipedia.org/wiki/Rank_%28linear_algebra%29
+   * @see https://en.wikipedia.org/wiki/Condition_number
+   * @see https://github.com/topepo/caret/issues/607
+   * @see https://en.wikipedia.org/wiki/Row-_and_column-major_order
+   * 
+   * @return  a column major matrix wit all columns linearly independent of each other. 
+   */
+  
+  /*
+  static public double[][] genColumns() {
+    NormalDistribution d1 = new NormalDistribution(5.0, 2.0);
+    NormalDistribution d2 = new NormalDistribution(15.0, 5.0);
+    NormalDistribution d3 = new NormalDistribution(25.0, 6.0);
+    NormalDistribution d4 = new NormalDistribution(35.0, 7.0);
+    NormalDistribution d5 = new NormalDistribution(45.0, 8.0);
+    NormalDistribution d6 = new NormalDistribution(55.0, 9.0);
+
+    int n = 10;
+
+    double[][] am = new double[6][];
+    double[] c1 = d1.sample(n);
+    double[] c2 = d2.sample(n);
+    double[] c3 = d3.sample(n);
+    double[] c4 = d4.sample(n);
+    double[] c5 = d5.sample(n);
+    double[] c6 = d6.sample(n);
+
+    am[0] = c1;
+    am[1] = c2;
+    am[2] = c3;
+    am[3] = c4;
+    am[4] = c5;
+    am[5] = c6;
+
+    return am;
+  }
+*/
+  
   "Matrices" when {
     "genrated with random elements " should {
       "being thin have only linear independent columns" in {
@@ -74,29 +196,6 @@ class QRMatrixToolkitSpec extends WordSpec with Matchers {
 
     val threshold = 1e-7
 
-    def checkRank( threshold: Double, am: Array[ Array[ Double ] ] ) = {
-      
-      import pt.inescn.scratchpad.QRMatrixToolkit.getRankN
-      
-      val m = new Array2DRowRealMatrix(am, false) // use array, don't copy
-      val qr = new RRQRDecomposition(m, threshold)
-      val rank = qr.getRank(threshold)
-      println("0 QR rank: " + rank)
-      println("1 QR rank: " + getRankN(qr))
-      
-      val A = new DenseMatrix(am) 
-      val qrp = QRP.factorize(A) 
-      val nrank = qrp.getRank()
-      println("2 QR rank: " + nrank);
-      // println("R: \n" + r.toString());
-      
-      val sv2 = new org.apache.commons.math3.linear.SingularValueDecomposition(m)
-      val svdRank = sv2.getRank()
-      println("SVD rank: " + svdRank)
-
-      (nrank, svdRank)
-    }
-
     "checked for rank" should {
       "give the same result as SVD 1" in {
         //double[][] am = new double[5][];
@@ -109,48 +208,78 @@ class QRMatrixToolkitSpec extends WordSpec with Matchers {
         am( 2 ) = c3
         am( 3 ) = c4
         am( 4 ) = c6
-        val (nrank, svdRank) = checkRank( threshold, am )
+        val ( nrank, svdRank ) = checkRank( threshold, am )
         nrank shouldBe svdRank
       }
       "give the same result as SVD 2" in {
         var am = Array.ofDim[ Array[ Double ] ]( 3 )
-        am(0) = c1
-        am(1) = c2
-        am(2) = c3
-        val (nrank, svdRank) = checkRank( threshold, am )
+        am( 0 ) = c1
+        am( 1 ) = c2
+        am( 2 ) = c3
+        val ( nrank, svdRank ) = checkRank( threshold, am )
         nrank shouldBe svdRank
       }
       "give the same result as SVD 3" in {
         var am = Array.ofDim[ Array[ Double ] ]( 4 )
-        am(0) = c1
-        am(1) = c4
-        am(2) = c5
-        am(3) = c6
-        val (nrank, svdRank) = checkRank( threshold, am )
+        am( 0 ) = c1
+        am( 1 ) = c4
+        am( 2 ) = c5
+        am( 3 ) = c6
+        val ( nrank, svdRank ) = checkRank( threshold, am )
         nrank shouldBe svdRank
       }
       "give the same result as SVD 4" in {
         var am = Array.ofDim[ Array[ Double ] ]( 6 )
-        am(0) = c1
-        am(1) = c2
-        am(2) = c3
-        am(3) = c4
-        am(4) = c5
-        am(5) = c6
-        val (nrank, svdRank) = checkRank( threshold, am )
+        am( 0 ) = c1
+        am( 1 ) = c2
+        am( 2 ) = c3
+        am( 3 ) = c4
+        am( 4 ) = c5
+        am( 5 ) = c6
+        val ( nrank, svdRank ) = checkRank( threshold, am )
         nrank shouldBe svdRank
       }
       "give the same result as SVD 5" in {
         var am = Array.ofDim[ Array[ Double ] ]( 6 )
-        am(0) = c1
-        am(1) = c2
-        am(2) = c3
-        am(3) = c4
-        am(4) = c5
-        am(5) = c6
-        val (nrank, svdRank) = checkRank( threshold, am )
+        am( 0 ) = c1
+        am( 1 ) = c2
+        am( 2 ) = c3
+        am( 3 ) = c4
+        am( 4 ) = c5
+        am( 5 ) = c6
+        val ( nrank, svdRank ) = checkRank( threshold, am )
         nrank shouldBe svdRank
       }
+      "give the same result as SVD 6" in {
+        var am = Array.ofDim[ Array[ Double ] ]( 6 )
+        am( 0 ) = c1
+        am( 1 ) = c2
+        am( 2 ) = c3
+        am( 3 ) = c4
+        am( 4 ) = c5
+        am( 5 ) = c6
+        combineLinear1( am );
+        combineLinear1( am );
+        val ( nrank, svdRank ) = checkRank( threshold, am )
+        nrank shouldBe svdRank
+      }
+      "give the same result as SVD 7" in {
+        val r = (0 to 10)
+        r.foreach { x =>  
+            val am = genColumns()
+            val ( nrank, svdRank ) = checkRank( threshold, am )
+            nrank shouldBe svdRank
+          }
+        /*
+          for (int i = 0; i < 10; i++) {
+        var am = Array.ofDim[ Array[ Double ] ]( 6 )
+      double[][] am6 = genColumns();
+        val ( nrank, svdRank ) = checkRank( threshold, am )
+        nrank shouldBe svdRank*
+    } */
+      }
+
+
 
     }
 
