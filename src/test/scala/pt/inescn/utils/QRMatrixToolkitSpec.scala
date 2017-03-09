@@ -133,36 +133,28 @@ class QRMatrixToolkitSpec extends WordSpec with Matchers {
    * 
    * @return  a column major matrix wit all columns linearly independent of each other. 
    */
-  
-  /*
-  static public double[][] genColumns() {
-    NormalDistribution d1 = new NormalDistribution(5.0, 2.0);
-    NormalDistribution d2 = new NormalDistribution(15.0, 5.0);
-    NormalDistribution d3 = new NormalDistribution(25.0, 6.0);
-    NormalDistribution d4 = new NormalDistribution(35.0, 7.0);
-    NormalDistribution d5 = new NormalDistribution(45.0, 8.0);
-    NormalDistribution d6 = new NormalDistribution(55.0, 9.0);
+  def  genColumns :  Array[ Array[ Double ] ] = {
 
-    int n = 10;
+    val d1 = new NormalDistribution(5.0, 2.0)
+    val d2 = new NormalDistribution(15.0, 5.0)
+    val d3 = new NormalDistribution(25.0, 6.0)
+    val d4 = new NormalDistribution(35.0, 7.0)
+    val d5 = new NormalDistribution(45.0, 8.0)
+    val d6 = new NormalDistribution(55.0, 9.0)
 
-    double[][] am = new double[6][];
-    double[] c1 = d1.sample(n);
-    double[] c2 = d2.sample(n);
-    double[] c3 = d3.sample(n);
-    double[] c4 = d4.sample(n);
-    double[] c5 = d5.sample(n);
-    double[] c6 = d6.sample(n);
+    val n = 10
 
-    am[0] = c1;
-    am[1] = c2;
-    am[2] = c3;
-    am[3] = c4;
-    am[4] = c5;
-    am[5] = c6;
+    val am = Array.ofDim[ Array[ Double ] ]( 6 )
+    
+    am(0) = d1.sample(n)
+    am(1) = d2.sample(n)
+    am(2) = d3.sample(n)
+    am(3) = d4.sample(n)
+    am(4) = d5.sample(n)
+    am(5) = d6.sample(n)
 
-    return am;
+    am
   }
-*/
   
   "Matrices" when {
     "genrated with random elements " should {
@@ -239,7 +231,7 @@ class QRMatrixToolkitSpec extends WordSpec with Matchers {
         val ( nrank, svdRank ) = checkRank( threshold, am )
         nrank shouldBe svdRank
       }
-      "give the same result as SVD 5" in {
+      "give the same result as SVD 5 with 1 linear combination" in {
         var am = Array.ofDim[ Array[ Double ] ]( 6 )
         am( 0 ) = c1
         am( 1 ) = c2
@@ -247,10 +239,11 @@ class QRMatrixToolkitSpec extends WordSpec with Matchers {
         am( 3 ) = c4
         am( 4 ) = c5
         am( 5 ) = c6
+        combineLinear1(am);
         val ( nrank, svdRank ) = checkRank( threshold, am )
         nrank shouldBe svdRank
       }
-      "give the same result as SVD 6" in {
+      "give the same result as SVD 6 with 2 linear combinations" in {
         var am = Array.ofDim[ Array[ Double ] ]( 6 )
         am( 0 ) = c1
         am( 1 ) = c2
@@ -263,23 +256,51 @@ class QRMatrixToolkitSpec extends WordSpec with Matchers {
         val ( nrank, svdRank ) = checkRank( threshold, am )
         nrank shouldBe svdRank
       }
-      "give the same result as SVD 7" in {
+      "give the same result as SVD 7 with repeated 0 linear combinations" in {
         val r = (0 to 10)
-        r.foreach { x =>  
-            val am = genColumns()
+        r.foreach { i =>  
+            val am = genColumns
             val ( nrank, svdRank ) = checkRank( threshold, am )
             nrank shouldBe svdRank
+            List(i, nrank)  should contain theSameElementsInOrderAs List( i, svdRank)
           }
-        /*
-          for (int i = 0; i < 10; i++) {
-        var am = Array.ofDim[ Array[ Double ] ]( 6 )
-      double[][] am6 = genColumns();
-        val ( nrank, svdRank ) = checkRank( threshold, am )
-        nrank shouldBe svdRank*
-    } */
+      }
+      "give the same result as SVD 8 with repeated 1 linear combination" in {
+        val r = (0 to 10)
+        r.foreach { i =>  
+            val am = genColumns
+            combineLinear1(am)
+            val ( nrank, svdRank ) = checkRank( threshold, am )
+            nrank shouldBe svdRank
+            List(i, nrank)  should contain theSameElementsInOrderAs List( i, svdRank)
+          }
+      }
+      "give the same result as SVD 9 with repeated 2 linear combinations" in {
+        val r = (0 to 10)
+        r.foreach { i =>  
+            val am = genColumns
+            combineLinear1(am)
+            combineLinear1(am)
+            val ( nrank, svdRank ) = checkRank( threshold, am )
+            nrank shouldBe svdRank
+            List(i, nrank)  should contain theSameElementsInOrderAs List( i, svdRank)
+          }
       }
 
-
+/*
+    for (int i = 0; i < 10; i++) {
+      double[][] am6 = genColumns();
+      combineLinear1(am6);
+      combineLinear1(am6);
+      checkRank(threshold, am6);
+    }
+    for (int i = 0; i < 10; i++) {
+      double[][] am6 = genColumns();
+      combineLinear1(am6);
+      combineLinear1(am6);
+      checkRank(threshold, am6);
+    }
+ */
 
     }
 

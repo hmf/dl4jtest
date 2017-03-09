@@ -700,16 +700,18 @@ public class QRMatrixToolkit {
     combineLinear1(am5);
     checkRank(threshold, am5);*/
 
+    /*
     for (int i = 0; i < 10; i++) {
       double[][] am6 = genColumns();
       checkRank(threshold, am6);
-    }
+    }*/
 
+    /*
     for (int i = 0; i < 10; i++) {
       double[][] am6 = genColumns();
       combineLinear1(am6);
       checkRank(threshold, am6);
-    }
+    }*/
 
     for (int i = 0; i < 10; i++) {
       double[][] am6 = genColumns();
