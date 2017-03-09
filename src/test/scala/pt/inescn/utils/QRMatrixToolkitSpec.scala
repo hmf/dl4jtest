@@ -432,7 +432,7 @@ class QRMatrixToolkitSpec extends WordSpec with Matchers {
         val dists = Array[ NormalDistribution ]( d1, d2, d3, d4, d5 )
         val coeff = Array[ Double ]( 1.0, 2.0, 3.0, 4.0, 5.0 )
         val p = combineLinear2( 0, 5, dists, coeff )
-        println( p._1.toString )
+        //println( p._1.mkString("<",",", ">") )
         //println("Dependent idx = " + p._2)
         test3( p._1, threshold );
       }
@@ -440,7 +440,7 @@ class QRMatrixToolkitSpec extends WordSpec with Matchers {
         val dists = Array[ NormalDistribution ]( d5, d3, d4, d2, d1 )
         val coeff = Array[ Double ]( -10.0, 20.0, 3.0, 4.0, -500.0 )
         val p = combineLinear2( 3, 5, dists, coeff )
-        println( p._1.toString )
+        //println( p._1.mkString("<",",", ">") )
         //println("Dependent idx = " + p._2)
         test3( p._1, threshold );
       }
