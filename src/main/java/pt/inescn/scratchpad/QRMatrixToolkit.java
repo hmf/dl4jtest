@@ -469,6 +469,7 @@ public class QRMatrixToolkit {
    * @see no.uib.cipr.matrix.QRP.factor(Matrix A)
    * @see https://github.com/fommil/matrix-toolkits-java/blob/6157618bc86bcda3749af2a60bf869d8f3292960/src/main/java/no/uib/cipr/matrix/QRP.java
    */
+  /*
   static public void checkRank(double threshold, double[][] am) {
     Array2DRowRealMatrix m = new Array2DRowRealMatrix(am, false); // use array, don't copy
     RRQRDecomposition qr = new RRQRDecomposition(m, threshold);
@@ -487,7 +488,7 @@ public class QRMatrixToolkit {
     System.out.println("SVD rank: " + svdRank);
 
     assert (nrank == svdRank);
-  }
+  }*/
 
   /**
    * Calculate the rank based on a precision EPS. 
@@ -525,6 +526,7 @@ public class QRMatrixToolkit {
    * 
    * @return  a column major matrix wit all columns linearly independent of each other. 
    */
+  /*
   static public double[][] genColumns() {
     NormalDistribution d1 = new NormalDistribution(5.0, 2.0);
     NormalDistribution d2 = new NormalDistribution(15.0, 5.0);
@@ -551,7 +553,7 @@ public class QRMatrixToolkit {
     am[5] = c6;
 
     return am;
-  }
+  }*/
 
   /**
    * Takes an existing matrix `am` and generates a single column that is 
@@ -567,6 +569,7 @@ public class QRMatrixToolkit {
    * 
    * @return  a column major matrix with one column linearly dependent on another 3. 
    */
+  /*
   static void combineLinear1(double[][] am) {
     // Coefficients
     NormalDistribution d1 = new NormalDistribution(1.0, 2.0);
@@ -592,7 +595,7 @@ public class QRMatrixToolkit {
     for (int i = 0; i < am[i1].length; i++) {
       am[i1][i] = v4.get(i);
     }
-  }
+  }*/
 
   
   /**
@@ -613,6 +616,7 @@ public class QRMatrixToolkit {
    * @param coeff
    * @return the set of columns generated and the index of the linear dependent column 
    */
+  /*
   static Pair<DenseVector[], Integer> combineLinear2(
       int insert, int numrows, NormalDistribution[] dists, double coeff[]) {
 
@@ -631,9 +635,9 @@ public class QRMatrixToolkit {
     
     Pair<DenseVector[], Integer> p = Pair.of(cols, insert);
     return p;
-  }
+  }*/
 
-
+/*
   public static void basicTests() {
 
     double[] c1 = new double[] { 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 };
@@ -645,40 +649,40 @@ public class QRMatrixToolkit {
 
     Double threshold = 1e-7;
 
-    //testRank1();
-   //testRank2();
+    testRank1();
+    testRank2();
 
-    /*double[][] am = new double[5][];
+    double[][] am = new double[5][];
     am[0] = c1;
     am[1] = c2;
     am[2] = c3;
     am[3] = c4;
     am[4] = c6;
-    checkRank(threshold, am);*/
+    checkRank(threshold, am);
 
-    /*double[][] am1 = new double[3][];
+    double[][] am1 = new double[3][];
     am1[0] = c1;
     am1[1] = c2;
     am1[2] = c3;
-    checkRank(threshold, am1);*/
+    checkRank(threshold, am1);
 
-    /*double[][] am2 = new double[4][];
+    double[][] am2 = new double[4][];
     am2[0] = c1;
     am2[1] = c4;
     am2[2] = c5;
     am2[3] = c6;
-    checkRank(threshold, am2);*/
+    checkRank(threshold, am2);
 
-    /*double[][] am3 = new double[6][];
+    double[][] am3 = new double[6][];
     am3[0] = c1;
     am3[1] = c2;
     am3[2] = c3;
     am3[3] = c4;
     am3[4] = c5;
     am3[5] = c6;
-    checkRank(threshold, am3);*/
+    checkRank(threshold, am3);
 
-    /*double[][] am4 = new double[6][];
+    double[][] am4 = new double[6][];
     am4[0] = c1;
     am4[1] = c2;
     am4[2] = c3;
@@ -686,9 +690,8 @@ public class QRMatrixToolkit {
     am4[4] = c5;
     am4[5] = c6;
     combineLinear1(am4);
-    checkRank(threshold, am4);*/
+    checkRank(threshold, am4);
 
-    /*
     double[][] am5 = new double[6][];
     am5[0] = c1;
     am5[1] = c2;
@@ -698,21 +701,19 @@ public class QRMatrixToolkit {
     am5[5] = c6;
     combineLinear1(am5);
     combineLinear1(am5);
-    checkRank(threshold, am5);*/
+    checkRank(threshold, am5);
 
-    /*
     for (int i = 0; i < 10; i++) {
       double[][] am6 = genColumns();
       checkRank(threshold, am6);
-    }*/
+    }
 
-    /*
     for (int i = 0; i < 10; i++) {
       double[][] am6 = genColumns();
       combineLinear1(am6);
       checkRank(threshold, am6);
-    }*/
-
+    }
+   
     for (int i = 0; i < 10; i++) {
       double[][] am6 = genColumns();
       combineLinear1(am6);
@@ -720,7 +721,7 @@ public class QRMatrixToolkit {
       checkRank(threshold, am6);
     }
   }
-
+*/
   /**
    * This function take sin  a set of vectors that represent a matrice's columns. 
    * It converts these into a dense matrix and checks do a single set of multicollinearity.
@@ -805,19 +806,19 @@ public class QRMatrixToolkit {
      // Test 5 
      NormalDistribution dists1[] = new NormalDistribution[]{d1, d2, d3, d4, d5}; 
      double coeff1[] = new double[]{ 1.0 , 2.0, 3.0, 4.0, 5.0 };
-     Pair<DenseVector[], Integer> p = combineLinear2(0, 5, dists1, coeff1) ;
+/*     Pair<DenseVector[], Integer> p = combineLinear2(0, 5, dists1, coeff1) ;
      //System.out.println(p.getLeft().toString());
      //System.out.println("Dependent idx = " + p.getRight());
      test3(p.getLeft(), threshold);
-     
+ */    
      // Test 6 
      NormalDistribution dists2[] = new NormalDistribution[]{d5, d3,d4, d2, d1}; 
      double coeff2[] = new double[]{ -10.0 , 20.0, 3.0, 4.0,-500.0 }; 
-     Pair<DenseVector[], Integer> p2 = combineLinear2(3, 5, dists2,coeff2) ; 
+/*     Pair<DenseVector[], Integer> p2 = combineLinear2(3, 5, dists2,coeff2) ; 
      //System.out.println(p.getLeft().toString());
      //System.out.println("Dependent idx = " + p.getRight());
      test3(p2.getLeft(), threshold);
-     
+ */    
     double[] c11 = new double[] { 1.012, 10.01, 20.0211, 300.0303, 5.06, 6.06 };
     double[] c12 = new double[] { 0.033, 0.045, 0.022, 0.033, 0.045, 0.06 };
     double[] c13 = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
