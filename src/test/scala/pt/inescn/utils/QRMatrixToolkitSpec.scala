@@ -224,6 +224,7 @@ class QRMatrixToolkitSpec extends WordSpec with Matchers {
     val len = dists.length
     val cols = Array.ofDim[ Vector ]( len )
     val colst = cols.zipWithIndex
+    // Create all the independent columns
     colst.filter( _._2 != insert )
       .map {
         case ( c, i ) =>
@@ -231,48 +232,17 @@ class QRMatrixToolkitSpec extends WordSpec with Matchers {
           ()
       }
 
+    // Create the single independent column
     cols( insert ) = new DenseVector( numrows )
+    // Make it a lnear combination of all the independent columns
     colst.filter( _._2 != insert )
       .map {
         case ( c, i ) =>
           cols( insert ).add( cols( i ) )
       }
-
     ( cols, insert )
   }
 
-  /*      
-
-    cols[insert] = new DenseVector(numrows);
-    for (int i = 0; i < len; i++) {
-      if (i != insert)
-        cols[insert].add(cols[i]);
-    }
-    
-    Pair<DenseVector[], Integer> p = Pair.of(cols, insert);
-    return p;
-  }*/
-
-  /*
-  static Pair<DenseVector[], Integer> combineLinear2(
-      int insert, int numrows, NormalDistribution[] dists, double coeff[]) {
-
-    int len = dists.length;
-    DenseVector[] cols = new DenseVector[len];
-    for (int i = 0; i < len; i++) {
-      if (i != insert)
-        cols[i] = new DenseVector(dists[i].sample(numrows)).scale(coeff[i]);
-    }
-
-    cols[insert] = new DenseVector(numrows);
-    for (int i = 0; i < len; i++) {
-      if (i != insert)
-        cols[insert].add(cols[i]);
-    }
-    
-    Pair<DenseVector[], Integer> p = Pair.of(cols, insert);
-    return p;
-  }*/
 
   "Matrices" when {
     "genrated with random elements " should {
@@ -295,6 +265,7 @@ class QRMatrixToolkitSpec extends WordSpec with Matchers {
     }
   }
 
+  
   "The sub-matrices of the simple 1/0 matrix" when {
 
     val c1 = Array( 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 )
@@ -404,9 +375,10 @@ class QRMatrixToolkitSpec extends WordSpec with Matchers {
           List( i, nrank ) should contain theSameElementsInOrderAs List( i, svdRank )
         }
       }
-    }
-  }
-
+     }
+   }
+  
+  
   "The sub-matrices of the simple 1/0 matrix" when {
 
     val c1 = Array( 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 )
@@ -445,7 +417,7 @@ class QRMatrixToolkitSpec extends WordSpec with Matchers {
     }
   }
 
-  "The sub-matrices of the random matrix" when {
+  "The sub-matrices of the random matrix 1 " when {
 
     val d1 = new NormalDistribution( 1.0, 2.0 )
     val d2 = new NormalDistribution( .05, 0.05 )
@@ -457,16 +429,62 @@ class QRMatrixToolkitSpec extends WordSpec with Matchers {
 
     "checked for collinearity" should {
       "find solution with correct coefficents 1" in {
-        val dists1 = Array[ NormalDistribution ]( d1, d2, d3, d4, d5 )
-        val coeff1 = Array[ Double ]( 1.0, 2.0, 3.0, 4.0, 5.0 )
-        val p = combineLinear2( 0, 5, dists1, coeff1 )
+        val dists = Array[ NormalDistribution ]( d1, d2, d3, d4, d5 )
+        val coeff = Array[ Double ]( 1.0, 2.0, 3.0, 4.0, 5.0 )
+        val p = combineLinear2( 0, 5, dists, coeff )
         println( p._1.toString )
         //println("Dependent idx = " + p._2)
         test3( p._1, threshold );
       }
       "find solution with correct coefficents 2" in {
+        val dists = Array[ NormalDistribution ]( d5, d3, d4, d2, d1 )
+        val coeff = Array[ Double ]( -10.0, 20.0, 3.0, 4.0, -500.0 )
+        val p = combineLinear2( 3, 5, dists, coeff )
+        println( p._1.toString )
+        //println("Dependent idx = " + p._2)
+        test3( p._1, threshold );
       }
     }
   }
+
+  "The sub-matrices of the random matrix 2 " when {
+    
+    val c11 = Array[Double]( 1.012, 10.01, 20.0211, 300.0303, 5.06, 6.06 )
+    val c12 = Array[Double]( 0.033, 0.045, 0.022, 0.033, 0.045, 0.06 )
+    val c13 = Array[Double]( 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 )
+    val c14 = Array[Double]( 1.0, 0.0, 0.0, 1.0, 0.0, 0.0 )
+    val c15 = Array[Double]( 66.06, 98.9, 107.707, 110.0119, 67.08, 88.87 )
+    val c16 = Array[Double]( 0.0, 0.0, 1.0, 0.0, 0.0, 1.0 )
+
+    val v11 = new DenseVector(c11)
+    val v12 = new DenseVector(c12)
+    val v13 = new DenseVector(c13)
+    val v14 = new DenseVector(c14)
+    val v15 = new DenseVector(c15)
+    val v16 = new DenseVector(c16)
+
+    val threshold = 1e-7
+
+    "checked for collinearity" should {
+      "find solution with correct coefficents 1" in {
+        val v11t = v11.copy().scale(56.03)
+        val v12t = v12.copy().scale(89.309)
+        val v15t = v15.copy().scale(0.9077)
+        v13.add(v11t).add(v12t).add(v15t);
+        
+        val cols7 = Array[Vector]( v11, v12, v13, v14, v15 )
+        test4(cols7, threshold, "[[1, 2, 4, 0]]")
+        }
+      "find solution with correct coefficents 2" in {
+        val v11t = v11.copy().scale(6.03)
+        val v12t = v12.copy().scale(899.309)
+        val v15t = v15.copy().scale(0.177)
+        v13.add(v11t).add(v12t).add(v15t);
+        
+        val cols7 = Array[Vector]( v11, v12, v13, v14, v15 )
+        test4(cols7, threshold, "[[1, 2, 4, 0]]")
+        }
+      }
+    }
 
 }

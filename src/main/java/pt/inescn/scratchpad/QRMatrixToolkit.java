@@ -804,17 +804,19 @@ public class QRMatrixToolkit {
      NormalDistribution d5 = new NormalDistribution(0.6, 0.3);
      
      // Test 5 
+     /*
      NormalDistribution dists1[] = new NormalDistribution[]{d1, d2, d3, d4, d5}; 
      double coeff1[] = new double[]{ 1.0 , 2.0, 3.0, 4.0, 5.0 };
-/*     Pair<DenseVector[], Integer> p = combineLinear2(0, 5, dists1, coeff1) ;
+    Pair<DenseVector[], Integer> p = combineLinear2(0, 5, dists1, coeff1) ;
      //System.out.println(p.getLeft().toString());
      //System.out.println("Dependent idx = " + p.getRight());
      test3(p.getLeft(), threshold);
  */    
      // Test 6 
+     /*
      NormalDistribution dists2[] = new NormalDistribution[]{d5, d3,d4, d2, d1}; 
      double coeff2[] = new double[]{ -10.0 , 20.0, 3.0, 4.0,-500.0 }; 
-/*     Pair<DenseVector[], Integer> p2 = combineLinear2(3, 5, dists2,coeff2) ; 
+     Pair<DenseVector[], Integer> p2 = combineLinear2(3, 5, dists2,coeff2) ; 
      //System.out.println(p.getLeft().toString());
      //System.out.println("Dependent idx = " + p.getRight());
      test3(p2.getLeft(), threshold);
