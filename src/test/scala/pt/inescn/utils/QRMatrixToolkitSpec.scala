@@ -486,12 +486,29 @@ class QRMatrixToolkitSpec extends WordSpec with Matchers {
 
   "The sub-matrices of the simple 1/0 matrix" when {
 
-    val c1 = Array( 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 )
-    val c2 = Array( 1.0, 1.0, 1.0, 0.0, 0.0, 0.0 )
-    val c3 = Array( 0.0, 0.0, 0.0, 1.0, 1.0, 1.0 )
-    val c4 = Array( 1.0, 0.0, 0.0, 1.0, 0.0, 0.0 )
-    val c5 = Array( 0.0, 1.0, 0.0, 0.0, 1.0, 0.0 )
-    val c6 = Array( 0.0, 0.0, 1.0, 0.0, 0.0, 1.0 )
+    val c1 = Array( 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0 )
+    val c2 = Array( 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0 )
+    val c3 = Array( 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0 )
+    val c4 = Array( 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0 )
+    val c5 = Array( 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0 )
+    val c6 = Array( 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0 )
+    val c7 = Array( 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0 )
+    val c8 = Array( 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0, 2.0 )
+    val c9 = Array( 0.0, 0.0, 2.0, 0.0, 0.0, 2.0, 0.0, 0.0 )
+    val c10 = Array( 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0 )
+    //val c7 = Array( 0.0, 2.0, 2.0, 0.0, 2.0, 2.0 )
+    //val c8 = Array( 0.0, -2.0, -1.0, 0.0, -2.0, -1.0 )
+    
+    val v1 = new DenseVector( c1 )
+    val v2 = new DenseVector( c2 )
+    val v3 = new DenseVector( c3 )
+    val v4 = new DenseVector( c4 )
+    val v5 = new DenseVector( c5 )
+    val v6 = new DenseVector( c6 )
+    val v7 = new DenseVector( c7 )
+    val v8 = new DenseVector( c8 )
+    val v9 = new DenseVector( c9 )
+    val v10 = new DenseVector( c10 )
 
     val threshold = 1e-7
 
@@ -499,23 +516,7 @@ class QRMatrixToolkitSpec extends WordSpec with Matchers {
       "give Caret's results" in {
         import pt.inescn.scratchpad.QRMatrixToolkit.findLinearCombos
 
-        val c1 = Array( 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 )
-        val c2 = Array( 1.0, 1.0, 1.0, 0.0, 0.0, 0.0 )
-        val c3 = Array( 0.0, 0.0, 0.0, 1.0, 1.0, 1.0 )
-        val c4 = Array( 1.0, 0.0, 0.0, 1.0, 0.0, 0.0 )
-        val c5 = Array( 0.0, 1.0, 0.0, 0.0, 1.0, 0.0 )
-        val c6 = Array( 0.0, 0.0, 1.0, 0.0, 0.0, 1.0 )
-
-        val v1 = new DenseVector( c1 )
-        val v2 = new DenseVector( c2 )
-        val v3 = new DenseVector( c3 )
-        val v4 = new DenseVector( c4 )
-        val v5 = new DenseVector( c5 )
-        val v6 = new DenseVector( c6 )
-
-        val threshold = 1e-7
         val cols = Array[ Vector ]( v1, v2, v3, v4, v5, v6 )
-
         val M = new DenseMatrix( cols )
         val p = findLinearCombos( M, threshold, true )
         
@@ -529,6 +530,58 @@ class QRMatrixToolkitSpec extends WordSpec with Matchers {
         //ll should contain theSameElementsAs List( List(1,0,2), List(5,0,3,4) )
         ll should contain theSameElementsInOrderAs List( List(1,0,2), List(5,0,3,4) )
         r.asScala should contain theSameElementsInOrderAs List(1,5)
+     }
+     "find multiple groups" in {
+        import pt.inescn.scratchpad.QRMatrixToolkit.findLinearCombos
+
+        val cols = Array[ Vector ]( v1, v2, v3, v4, v5, v6, v7, v8 )
+        val M = new DenseMatrix( cols )
+        val p = findLinearCombos( M, threshold, true )
+        
+        import scala.collection.JavaConverters._
+
+        val l : java.util.List[java.util.List[Integer]] = p.getFirst()
+        val r : java.util.List[Integer] = p.getSecond()
+        println("ls = " + l.asScala.mkString(","))
+        println("rs = " + r.asScala.mkString(","))
+        val ll = l.asScala.toList.map { x => x.asScala }
+        ll should contain theSameElementsInOrderAs List( List(1,0,2), List(4,0,3,5), List(6,7) )
+        r.asScala should contain theSameElementsInOrderAs List(1,4,6)
+     }
+     /*
+      * Finds correct slution, but not the same as caret's
+      * $linearCombos
+      * $linearCombos[[1]]
+      * [1] 3 1 2
+      * 
+      * $linearCombos[[2]]
+      * [1] 6 1 4 5
+      * 
+      * $linearCombos[[3]]
+      * [1] 7 1 4 5
+      * 
+      * $linearCombos[[4]]
+      * [1] 8 1 4 5
+      * 
+      * $remove
+      * [1] 3 6 7 8
+      */
+      "give Caret's results 2" in {
+        import pt.inescn.scratchpad.QRMatrixToolkit.findLinearCombos
+
+        val cols = Array[ Vector ]( v1, v2, v3, v4, v5, v6, v9, v10 )
+        val M = new DenseMatrix( cols )
+        val p = findLinearCombos( M, threshold, true )
+        
+        import scala.collection.JavaConverters._
+
+        val l : java.util.List[java.util.List[Integer]] = p.getFirst()
+        val r : java.util.List[Integer] = p.getSecond()
+        println("ls = " + l.asScala.mkString(","))
+        println("rs = " + r.asScala.mkString(","))
+        val ll = l.asScala.toList.map { x => x.asScala }
+        ll should contain theSameElementsInOrderAs List( List(1,0,2), List(4,6,0,3), List(5,6), List(7,6) )
+        r.asScala should contain theSameElementsInOrderAs List(1,4,5,7)
      }
     }
   }

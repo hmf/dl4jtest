@@ -84,7 +84,7 @@ public class QRMatrixToolkit {
    * @return
    */
 
-  static final boolean debug = true;
+  static final boolean debug = false;
 
   public static void printd(String s) {
     if (debug)
@@ -437,6 +437,19 @@ public class QRMatrixToolkit {
     }
   }
 
+  /**
+   * Finds all groups of collinear columns. It does this by repeatedly removing the dependent column from the 
+   * matrix until no collinear columns are found. This was implemented was copied R Caret package. See
+   * link below.  Unfortunately, although the results seem to be ok, they do not match perfectly with the
+   * results one gets from Caret. 
+   * 
+   * @see https://github.com/topepo/caret/blob/master/pkg/caret/R/findLinearCombos.R
+   * 
+   * @param B
+   * @param dropThreshold
+   * @param checkResults
+   * @return
+   */
   public static Pair<List<List<Integer>>, List<Integer> > findLinearCombos(DenseMatrix B,
       double dropThreshold, boolean checkResults) {
     List<List<Integer>> l = new ArrayList<List<Integer>>();
@@ -444,8 +457,6 @@ public class QRMatrixToolkit {
     List<Integer> range = IntStream.range(0, B.numColumns())
                                                       .boxed()
                                                       .collect(Collectors.toList());
-    //Set<Integer> activeCols = new TreeSet<Integer>(range);
-    //ArrayList<Integer> activeCols = new ArrayList<Integer>(range);
 
     // lcList <- enumLC(x)
     List<List<Integer>> lcList = collinear(B, dropThreshold, checkResults);  
@@ -462,15 +473,15 @@ public class QRMatrixToolkit {
         //tmp <- unique(tmp[!is.na(tmp)])
         Stream<Integer> tmp = lcList.stream().map( il -> il.get(0) ).distinct();
         List<Integer> tmp1 = tmp.collect(Collectors.toList());
-        printlnd("tmp:\n" + tmp1.toString());
+        //System.out.println("tmp:\n" + tmp1.toString());
          //badList <- unique(c(tmp, badList))
         badList.addAll(tmp1);
         badList = badList.stream().distinct().collect(Collectors.toList());
-        printlnd("badList:\n" + badList.toString());
+        //System.out.println("badList:\n" + badList.toString());
          //lcList <- enumLC(x[,-badList])
         ArrayList<Integer> activeCols = new ArrayList<Integer>(range);
         activeCols.removeAll(badList);
-        printlnd("activeCols:\n" + badList.toString());
+        //System.out.println("activeCols:\n" + activeCols.toString());
         DenseMatrix Btmp = getSubMarix(B, activeCols, 0, B.numRows()-1);
         lcList = collinear(Btmp, dropThreshold, checkResults);  
          //continue <- (length(lcList) > 0)
@@ -482,10 +493,6 @@ public class QRMatrixToolkit {
     Pair<List<List<Integer>>, List<Integer> > p = new Pair<List<List<Integer>>, List<Integer> >(initialList,badList);
     return p;
   }
-
-  // //////////////////////////////////////////
-  // ///////// Test Code
-  // /////////////////////////////////////////
 
   /**
    * Calculate the rank based on a precision EPS. Function found in Matrix
@@ -507,9 +514,6 @@ public class QRMatrixToolkit {
         break;
     }
     return rank;
-  }
-
-  public static void main(String[] args) {
   }
 
 }
