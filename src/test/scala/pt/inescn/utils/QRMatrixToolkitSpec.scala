@@ -6,7 +6,7 @@ import collection.mutable.Stack
 import org.scalatest._
 
 //import pt.inescn.utils.TestUtils._
-// import scala.collection.JavaConversions._
+// import scala.collection.JavaConverters._
 
 import no.uib.cipr.matrix.DenseMatrix
 import no.uib.cipr.matrix.DenseVector
@@ -243,7 +243,6 @@ class QRMatrixToolkitSpec extends WordSpec with Matchers {
     ( cols, insert )
   }
 
-
   "Matrices" when {
     "genrated with random elements " should {
       "being thin have only linear independent columns" in {
@@ -265,7 +264,6 @@ class QRMatrixToolkitSpec extends WordSpec with Matchers {
     }
   }
 
-  
   "The sub-matrices of the simple 1/0 matrix" when {
 
     val c1 = Array( 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 )
@@ -284,62 +282,62 @@ class QRMatrixToolkitSpec extends WordSpec with Matchers {
         // Array.fill[ABCD](100,6) { new ABCD }
         // Array.tabulate[ABCD](100,6) { (i,j) => new ABCD(i,j) }
         var am = Array.ofDim[ Array[ Double ] ]( 5 )
-        am( 0 ) = c1.clone // TODO
-        am( 1 ) = c2
-        am( 2 ) = c3
-        am( 3 ) = c4
-        am( 4 ) = c6
+        am( 0 ) = c1.clone
+        am( 1 ) = c2.clone
+        am( 2 ) = c3.clone
+        am( 3 ) = c4.clone
+        am( 4 ) = c6.clone
         val ( nrank, svdRank ) = checkRank( threshold, am )
         nrank shouldBe svdRank
       }
       "give the same result as SVD 2" in {
         var am = Array.ofDim[ Array[ Double ] ]( 3 )
-        am( 0 ) = c1
-        am( 1 ) = c2
-        am( 2 ) = c3
+        am( 0 ) = c1.clone
+        am( 1 ) = c2.clone
+        am( 2 ) = c3.clone
         val ( nrank, svdRank ) = checkRank( threshold, am )
         nrank shouldBe svdRank
       }
       "give the same result as SVD 3" in {
         var am = Array.ofDim[ Array[ Double ] ]( 4 )
-        am( 0 ) = c1
-        am( 1 ) = c4
-        am( 2 ) = c5
-        am( 3 ) = c6
+        am( 0 ) = c1.clone
+        am( 1 ) = c4.clone
+        am( 2 ) = c5.clone
+        am( 3 ) = c6.clone
         val ( nrank, svdRank ) = checkRank( threshold, am )
         nrank shouldBe svdRank
       }
       "give the same result as SVD 4" in {
         var am = Array.ofDim[ Array[ Double ] ]( 6 )
-        am( 0 ) = c1
-        am( 1 ) = c2
-        am( 2 ) = c3
-        am( 3 ) = c4
-        am( 4 ) = c5
-        am( 5 ) = c6
+        am( 0 ) = c1.clone
+        am( 1 ) = c2.clone
+        am( 2 ) = c3.clone
+        am( 3 ) = c4.clone
+        am( 4 ) = c5.clone
+        am( 5 ) = c6.clone
         val ( nrank, svdRank ) = checkRank( threshold, am )
         nrank shouldBe svdRank
       }
       "give the same result as SVD 5 with 1 linear combination" in {
         var am = Array.ofDim[ Array[ Double ] ]( 6 )
-        am( 0 ) = c1
-        am( 1 ) = c2
-        am( 2 ) = c3
-        am( 3 ) = c4
-        am( 4 ) = c5
-        am( 5 ) = c6
+        am( 0 ) = c1.clone
+        am( 1 ) = c2.clone
+        am( 2 ) = c3.clone
+        am( 3 ) = c4.clone
+        am( 4 ) = c5.clone
+        am( 5 ) = c6.clone
         combineLinear1( am )
         val ( nrank, svdRank ) = checkRank( threshold, am )
         nrank shouldBe svdRank
       }
       "give the same result as SVD 6 with 2 linear combinations" in {
         var am = Array.ofDim[ Array[ Double ] ]( 6 )
-        am( 0 ) = c1
-        am( 1 ) = c2
-        am( 2 ) = c3
-        am( 3 ) = c4
-        am( 4 ) = c5
-        am( 5 ) = c6
+        am( 0 ) = c1.clone
+        am( 1 ) = c2.clone
+        am( 2 ) = c3.clone
+        am( 3 ) = c4.clone
+        am( 4 ) = c5.clone
+        am( 5 ) = c6.clone
         combineLinear1( am )
         combineLinear1( am )
         val ( nrank, svdRank ) = checkRank( threshold, am )
@@ -375,10 +373,9 @@ class QRMatrixToolkitSpec extends WordSpec with Matchers {
           List( i, nrank ) should contain theSameElementsInOrderAs List( i, svdRank )
         }
       }
-     }
-   }
-  
-  
+    }
+  }
+
   "The sub-matrices of the simple 1/0 matrix" when {
 
     val c1 = Array( 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 )
@@ -448,43 +445,91 @@ class QRMatrixToolkitSpec extends WordSpec with Matchers {
   }
 
   "The sub-matrices of the random matrix 2 " when {
-    
-    val c11 = Array[Double]( 1.012, 10.01, 20.0211, 300.0303, 5.06, 6.06 )
-    val c12 = Array[Double]( 0.033, 0.045, 0.022, 0.033, 0.045, 0.06 )
-    val c13 = Array[Double]( 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 )
-    val c14 = Array[Double]( 1.0, 0.0, 0.0, 1.0, 0.0, 0.0 )
-    val c15 = Array[Double]( 66.06, 98.9, 107.707, 110.0119, 67.08, 88.87 )
-    val c16 = Array[Double]( 0.0, 0.0, 1.0, 0.0, 0.0, 1.0 )
 
-    val v11 = new DenseVector(c11)
-    val v12 = new DenseVector(c12)
-    val v13 = new DenseVector(c13)
-    val v14 = new DenseVector(c14)
-    val v15 = new DenseVector(c15)
-    val v16 = new DenseVector(c16)
+    val c11 = Array[ Double ]( 1.012, 10.01, 20.0211, 300.0303, 5.06, 6.06 )
+    val c12 = Array[ Double ]( 0.033, 0.045, 0.022, 0.033, 0.045, 0.06 )
+    val c13 = Array[ Double ]( 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 )
+    val c14 = Array[ Double ]( 1.0, 0.0, 0.0, 1.0, 0.0, 0.0 )
+    val c15 = Array[ Double ]( 66.06, 98.9, 107.707, 110.0119, 67.08, 88.87 )
+    val c16 = Array[ Double ]( 0.0, 0.0, 1.0, 0.0, 0.0, 1.0 )
+
+    val v11 = new DenseVector( c11 )
+    val v12 = new DenseVector( c12 )
+    val v13 = new DenseVector( c13 )
+    val v14 = new DenseVector( c14 )
+    val v15 = new DenseVector( c15 )
+    val v16 = new DenseVector( c16 )
 
     val threshold = 1e-7
 
     "checked for collinearity" should {
       "find solution with correct coefficents 1" in {
-        val v11t = v11.copy().scale(56.03)
-        val v12t = v12.copy().scale(89.309)
-        val v15t = v15.copy().scale(0.9077)
-        v13.add(v11t).add(v12t).add(v15t);
-        
-        val cols7 = Array[Vector]( v11, v12, v13, v14, v15 )
-        test4(cols7, threshold, "[[1, 2, 4, 0]]")
-        }
+        val v11t = v11.copy().scale( 56.03 )
+        val v12t = v12.copy().scale( 89.309 )
+        val v15t = v15.copy().scale( 0.9077 )
+        v13.add( v11t ).add( v12t ).add( v15t );
+
+        val cols7 = Array[ Vector ]( v11, v12, v13, v14, v15 )
+        test4( cols7, threshold, "[[1, 2, 4, 0]]" )
+      }
       "find solution with correct coefficents 2" in {
-        val v11t = v11.copy().scale(6.03)
-        val v12t = v12.copy().scale(899.309)
-        val v15t = v15.copy().scale(0.177)
-        v13.add(v11t).add(v12t).add(v15t);
-        
-        val cols7 = Array[Vector]( v11, v12, v13, v14, v15 )
-        test4(cols7, threshold, "[[1, 2, 4, 0]]")
-        }
+        val v11t = v11.copy().scale( 6.03 )
+        val v12t = v12.copy().scale( 899.309 )
+        val v15t = v15.copy().scale( 0.177 )
+        v13.add( v11t ).add( v12t ).add( v15t );
+
+        val cols7 = Array[ Vector ]( v11, v12, v13, v14, v15 )
+        test4( cols7, threshold, "[[1, 2, 4, 0]]" )
       }
     }
+  }
 
+  "The sub-matrices of the simple 1/0 matrix" when {
+
+    val c1 = Array( 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 )
+    val c2 = Array( 1.0, 1.0, 1.0, 0.0, 0.0, 0.0 )
+    val c3 = Array( 0.0, 0.0, 0.0, 1.0, 1.0, 1.0 )
+    val c4 = Array( 1.0, 0.0, 0.0, 1.0, 0.0, 0.0 )
+    val c5 = Array( 0.0, 1.0, 0.0, 0.0, 1.0, 0.0 )
+    val c6 = Array( 0.0, 0.0, 1.0, 0.0, 0.0, 1.0 )
+
+    val threshold = 1e-7
+
+    "checked for badlists" should {
+      "give Caret's results" in {
+        import pt.inescn.scratchpad.QRMatrixToolkit.findLinearCombos
+
+        val c1 = Array( 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 )
+        val c2 = Array( 1.0, 1.0, 1.0, 0.0, 0.0, 0.0 )
+        val c3 = Array( 0.0, 0.0, 0.0, 1.0, 1.0, 1.0 )
+        val c4 = Array( 1.0, 0.0, 0.0, 1.0, 0.0, 0.0 )
+        val c5 = Array( 0.0, 1.0, 0.0, 0.0, 1.0, 0.0 )
+        val c6 = Array( 0.0, 0.0, 1.0, 0.0, 0.0, 1.0 )
+
+        val v1 = new DenseVector( c1 )
+        val v2 = new DenseVector( c2 )
+        val v3 = new DenseVector( c3 )
+        val v4 = new DenseVector( c4 )
+        val v5 = new DenseVector( c5 )
+        val v6 = new DenseVector( c6 )
+
+        val threshold = 1e-7
+        val cols = Array[ Vector ]( v1, v2, v3, v4, v5, v6 )
+
+        val M = new DenseMatrix( cols )
+        val p = findLinearCombos( M, threshold, true )
+        
+        import scala.collection.JavaConverters._
+
+        val l : java.util.List[java.util.List[Integer]] = p.getFirst()
+        val r : java.util.List[Integer] = p.getSecond()
+        println("ls = " + l.asScala.mkString(","))
+        println("rs = " + r.asScala.mkString(","))
+        val ll = l.asScala.toList.map { x => x.asScala }
+        //ll should contain theSameElementsAs List( List(1,0,2), List(5,0,3,4) )
+        ll should contain theSameElementsInOrderAs List( List(1,0,2), List(5,0,3,4) )
+        r.asScala should contain theSameElementsInOrderAs List(1,5)
+     }
+    }
+  }
 }

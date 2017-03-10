@@ -17,6 +17,16 @@ import pt.inescn.utils.TestUtils._
  *
  * sbt test
  * sbt "testOnly pt.inescn.utils.TableSawUtilsSpec"
+ * 
+ * https://github.com/jeenalee/scala-dataframe-libraries
+ * https://github.com/tototoshi/scala-csv
+ * https://github.com/nrinaudo/kantan.csv
+ *   http://nrinaudo.github.io/kantan.csv/
+ * https://github.com/t-pleasure/mighty-csv
+ * https://github.com/melrief/PureCSV
+ * https://github.com/marklister/product-collections
+ * https://github.com/srhea/scalacsv X
+ * 
  */
 class TableSawUtilsSpec extends FlatSpec with Matchers {
 
@@ -48,20 +58,31 @@ class TableSawUtilsSpec extends FlatSpec with Matchers {
     addColumns( dt, c1, c2, c3 )
 
     val nzc1 = nearZero( dt, "col1" )
-    println( nzc1 )
+    //println( nzc1 )
     assertNearZeroCheck( nzc1, 1.5, false, 0.571429, false, false )
 
     val nzc2 = nearZero( dt, "col2" )
-    println( nzc2 )
+    //println( nzc2 )
     assertNearZeroCheck( nzc2, 1.0, false, 1.0, false, false )
 
     val nzc3 = nearZero( dt, "col3" )
-    println( nzc3 )
+    //println( nzc3 )
     //assertNearZeroCheck( nzc3, Double.NaN, false, 0.14285714285714285, false, true )
     assertNearZeroCheck( nzc3, Double.NaN, false, 0.142857, false, true )
 
     val nzt1 = nearZeros( dt )
-    println( nzt1.print )
+    val r1 = getRow(nzt1, 0) 
+    val s1 = List( 1.5, 0.0, 0.571429, 0.0, 0.0)
+    //r1  should contain theSameElementsInOrderAs s1
+    r1.zip(s1).foreach{ case ( a, b ) => chk(a,b,precision)  }
+    
+    val r2 = getRow(nzt1, 1) 
+    val s2 = List( 1.0, 0.0, 1.0, 0.0, 0.0)
+    r2.zip(s2).foreach{ case ( a, b ) => chk(a,b,precision)  }
+    
+    val r3 = getRow(nzt1, 2) 
+    val s3 = List( Double.NaN, 0.0, 0.142857, 0.0, 1.0)
+    r3.zip(s3).foreach{ case ( a, b ) => chk(a,b,precision)  }
 
   }
 
@@ -80,23 +101,27 @@ class TableSawUtilsSpec extends FlatSpec with Matchers {
     // When reading the file, type inference fails. Sampling fails. Sampling of 1st row always occurs 
     // We used a smaller file to fill in the value of the first row of the column generating the error.
     // We keep doing this until inference succeeds. 
-    val dtt = CsvReader.detectedColumnTypes( "/home/hmf/Desktop/bosch/mdrrdesc_b.csv", true, ',' )
-    val tps = toColumnTypes( dtt )
-    //println(tps.mkString("{",",","}"))
+    //val dtt = CsvReader.detectedColumnTypes( "/home/hmf/Desktop/bosch/mdrrdesc_b.csv", true, ',' )
 
     // We can now attempt to read the full file - using the types identified above
-    val dt1: Table = time { Table.createFromCsv( tps.toArray, "/home/hmf/Desktop/bosch/mdrrdesc.csv" ) }
+    val file = "/home/hmf/Desktop/bosch/mdrrdesc.csv"
+    val header = true
+    val delimiter = ','
+    val skipSampling = true
+    
+     val ntps = CsvReader.detectColumnTypes(file, header, delimiter, skipSampling)
+     println(ntps.mkString("{", ",", "}"))
+    
+    //val dt1: Table = time { Table.createFromCsv( ???, "/home/hmf/Desktop/bosch/mdrrdesc.csv" ) }
+    //val dt1 : Table = time { Table.createFromCsv( "/home/hmf/Desktop/bosch/mdrrdesc.csv", header, delimiter, skipSampling ) }
+    val dt1 : Table = time { Table.createFromCsv( file, header, delimiter, skipSampling ) }
     // See https://github.com/lwhite1/tablesaw/issues/103
     // How can we use a snapshot?
     // https://github.com/alexarchambault/sbt-website/blob/master/src/reference/02-DetailTopics/03-Dependency-Management/05-Publishing.md
     // http://stackoverflow.com/questions/7550376/how-can-sbt-pull-dependency-artifacts-from-git
     // http://blog.xebia.com/git-subproject-compile-time-dependencies-in-sbt/
-     val header = true
-     val delimiter = ','
-     val skipSampling = true
-    //Table.createFromCsv("/home/hmf/Desktop/bosch/mdrrdesc.csv", header, delimiter, skipSampling)
-    println( dt1.first( 3 ).print )
-    println( dt1.structure.first( 5 ).print )
+    //println( dt1.first( 3 ).print )
+    //println( dt1.structure.first( 5 ).print )
 
     // Now calculate and check for near zero columns
     import com.github.lwhite1.tablesaw.api.QueryHelper.anyOf
@@ -188,6 +213,32 @@ class TableSawUtilsSpec extends FlatSpec with Matchers {
     println( s"Found ${t2.size} pairs o significant correlations" )
     t1.size should be >= (t2.size)
 
+  }
+
+  "TableSaw detect column types" should "should have the correct column types" in {
+    import pt.inescn.utils.TableSawUtils._
+    import com.github.lwhite1.tablesaw.api.Table
+    import com.github.lwhite1.tablesaw.io.csv.CsvReader
+
+     val file = "/home/hmf/Desktop/bosch/mdrrdesc.csv"
+     val header = true
+     val delimiter = ','
+     val skipSampling = true
+
+    // See https://github.com/lwhite1/tablesaw/issues/103
+    // When reading the file, type inference fails because sampling fails. Sampling of 1st row always occurs 
+    // We used a smaller file to fill in the value of the first row of the column generating the error.
+    // We keep doing this until inference succeeds. 
+    //val dtt = CsvReader.detectedColumnTypes( "/home/hmf/Desktop/bosch/mdrrdesc_b.csv", header, delimiter )
+     // This function prints out the columns types, column number and the column name (if a header exists)
+     // It does not allow for skipping sampling and therefore fails if sampling incorrectly determines the type incorrectly
+    // println(CsvReader.printColumnTypes(file, header, delimiter));
+    // Types we expect
+    val tpsString = "{FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,FLOAT,SHORT_INT,SHORT_INT,SHORT_INT,FLOAT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,FLOAT,FLOAT,FLOAT,SHORT_INT,FLOAT,SHORT_INT,FLOAT,SHORT_INT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,SHORT_INT,SHORT_INT,FLOAT,FLOAT,FLOAT,INTEGER,FLOAT,INTEGER,FLOAT,FLOAT,FLOAT,SHORT_INT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,SHORT_INT,INTEGER,FLOAT,FLOAT,INTEGER,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,SHORT_INT,SHORT_INT,FLOAT,FLOAT,FLOAT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,SHORT_INT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,SHORT_INT,FLOAT,FLOAT,FLOAT,SHORT_INT,FLOAT,FLOAT,FLOAT,FLOAT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,SHORT_INT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,SHORT_INT,FLOAT}"
+
+    // Read and infer types
+     val ntps = CsvReader.detectColumnTypes(file, header, delimiter, skipSampling)
+     ntps.mkString("{", ",", "}") shouldBe   tpsString 
   }
 
   "A Stack" should "pop values in last-in-first-out order" in {
