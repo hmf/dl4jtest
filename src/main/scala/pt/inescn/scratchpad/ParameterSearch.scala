@@ -1,5 +1,16 @@
 package pt.inescn.scratchpad
 
+/**
+ * Notes:
+ * 
+ * @see http://fastml.com/tuning-hyperparams-fast-with-hyperband/
+ * @see https://github.com/zygmuntz/hyperband
+ * @see https://github.com/hyperopt/hyperopt/wiki/FMin#21-parameter-expressions
+ * @see https://github.com/automl/multibeep/blob/master/python_examples/hyperband.py
+ * @see http://www.argmin.net/2016/06/23/hyperband/
+ * 
+ */
+
 import StreamBuilder._
 
 //case class learningRate( override val value: Double ) extends SParameter[ Double ] { def apply( v: Double ) = new learningRate( v ) }

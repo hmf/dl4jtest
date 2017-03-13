@@ -63,44 +63,30 @@ object TableSawUtils {
   }
 
   /**
-   * Used to read the string description of the inferred column type
-   * and convert that to TableSaw's `ColumnType`
-   * 
-   * TODOP: remove. USe  CsvReader.detectedColumnTypes
-   */
-  def toColumnType( s: String ): ColumnType = {
-    s match {
-      case "BOOLEAN"         => ColumnType.BOOLEAN
-      case "CATEGORY"        => ColumnType.CATEGORY
-      case "FLOAT"           => ColumnType.FLOAT
-      case "DOUBLE"           => ColumnType.DOUBLE
-      case "SHORT_INT"       => ColumnType.SHORT_INT
-      case "INTEGER"         => ColumnType.INTEGER
-      case "LONG_INT"        => ColumnType.LONG_INT
-      case "LOCAL_DATE"      => ColumnType.LOCAL_DATE
-      case "LOCAL_DATE_TIME" => ColumnType.LOCAL_DATE_TIME
-      case "LOCAL_TIME"      => ColumnType.LOCAL_TIME
-      case "SKIP"            => ColumnType.SKIP
-    }
-  }
-
-  /**
    * Returns `true` if the column `tp` is non-numeric otherwise returns a `false`
    */
   def isNonNumeric( tp: ColumnType ) = {
-    val nonNumeric = List( ColumnType.CATEGORY, ColumnType.LOCAL_DATE, ColumnType.LOCAL_DATE_TIME, ColumnType.LOCAL_TIME, ColumnType.SKIP )
+    val nonNumeric = List( ColumnType.BOOLEAN, ColumnType.CATEGORY, ColumnType.LOCAL_DATE, ColumnType.LOCAL_DATE_TIME, ColumnType.LOCAL_TIME, ColumnType.SKIP )
     nonNumeric.contains( tp )
   }
 
   import collection.JavaConverters._
-
-  def toColumnTypes( t: Table ): Iterable[ ColumnType ] = {
-    val typeCol = t.column( "Column Type" )
-    val typeColIndex = t.columnIndex( typeCol )
-    val tps = t.categoryColumn( typeColIndex )
-    val types = tps.asScala.map { x => toColumnType( x ) }
-    types
+  
+  /**
+   * Gets all column values of a given row. Assumes all data can be converted into a double. 
+   * Currently only supports doubles, floats, integers and booleans. 
+   */
+  def getRow(t: Table, row : Int) = {
+    val n = t.columnCount
+    val c = 1 until t.columnCount
+    c.map { x => 
+      val cl = t.column(x)
+      if (! isNonNumeric(cl.`type`)) cl.toDoubleArray()(row) 
+      else if (cl.`type` == ColumnType.BOOLEAN) (t.booleanColumn(x).toIntArray()(row).toDouble)
+      else Double.NaN
+      }
   }
+  
 
   /**
    * Applies a function to two numeric columns of a table.

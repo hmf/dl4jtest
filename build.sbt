@@ -51,7 +51,7 @@ libraryDependencies += "com.github.haifengl" % "smile-core" % "1.2.2"
 libraryDependencies += "com.github.haifengl" %% "smile-scala" % "1.2.2"
 //libraryDependencies += "com.github.lwhite1" % "tablesaw" % "0.7.6.4"
 //libraryDependencies += "com.github.lwhite1" % "tablesaw" % "0.7.6.9"
-libraryDependencies += "com.github.lwhite1" % "tablesaw" % "0.7.7.0"
+libraryDependencies += "com.github.lwhite1" % "tablesaw" % "0.7.7.1"
 
 // Apache Common
 libraryDependencies += "org.apache.commons" % "commons-math3" % "3.6.1" withSources() withJavadoc()

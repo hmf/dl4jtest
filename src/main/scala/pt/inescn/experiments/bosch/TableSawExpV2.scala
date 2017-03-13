@@ -27,6 +27,21 @@ object TableSawExpV2 {
 
     import pt.inescn.utils.Utils._
     import com.github.lwhite1.tablesaw.api.Table
+    import com.github.lwhite1.tablesaw.io.csv.CsvReader
+    
+    // We can now attempt to read the full file - using the types identified above
+    val file = "/home/hmf/Desktop/bosch/mdrrdesc.csv"
+    val header = true
+    val delimiter = ','
+    val skipSampling = true
+    
+     val ntps = CsvReader.detectColumnTypes(file, header, delimiter, skipSampling)
+     println(ntps.mkString("{", ",", "}"))
+    
+    //val dt1: Table = time { Table.createFromCsv( ???, "/home/hmf/Desktop/bosch/mdrrdesc.csv" ) }
+    //val dt1 : Table = time { Table.createFromCsv( "/home/hmf/Desktop/bosch/mdrrdesc.csv", header, delimiter, skipSampling ) }
+    val dt1 : Table = time { Table.createFromCsv( file, header, delimiter, skipSampling ) }
+    
     /*
     val fileName = "/home/hmf/Desktop/bosch/Anonymized_Fuel_System.csv"
     //val fileName = "/home/hmf/Desktop/bosch/short_1012031.csv"
