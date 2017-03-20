@@ -1,7 +1,12 @@
 package pt.inescn.anomaly.nn
 
 /**
+ * Types
+ * -------
+ *  https://handong1587.github.io/deep_learning/2015/10/09/rnn-and-lstm.html
+ *  
  * 
+ *  
  * Zip files in Scala
  * @see http://stackoverflow.com/questions/30640627/how-to-unzip-a-zip-file-using-scala
  * @see http://stackoverflow.com/questions/5153544/how-to-read-from-zipped-xml-files-in-scala-code
@@ -35,6 +40,8 @@ package pt.inescn.anomaly.nn
  *  
  *  Experiment is carried out for 35 days. After day 30 onset of failure begins. Once failure starts it is rapid 
  *  (order of 3 days). The failures can be observed as "weak" periodic impulses. 
+ *  
+ *  Best for RUL
  *  
  * Hai Qiu, Jay Lee, Jing Lin. “Wavelet Filter-based Weak Signature Detection Method and its Application on Roller 
  * Bearing Prognostics.” Journal of Sound and Vibration 289 (2006) 1066-1090
@@ -71,6 +78,73 @@ package pt.inescn.anomaly.nn
  * FemtoBearing 
  * __________
  * 
+ * 1. Radial force applied on the bearing, 
+ *    Rotation speed of the shaft handling the bearing
+ *    Torque inflicted to the bearing. 
+ *    All three acquired at a frequency equal to 100 Hz.
+ * 2. 2 accelerometers sampled at 25.6 kHz 
+ * 3. 1 temperature sensor sampled at 10 Hz.
+ * 4. 6 fields in total
+ * 
+ * "3 different loads were considered:
+ * • First operating conditions: 1800 rpm and 4000 N;
+ * • Second operating conditions: 1650 rpm and 4200 N;
+ * • Third operating conditions: 1500 rpm and 5000 N.
+ * Participants are provided with 6 run-to-failure datasets, and are asked to estimate accurately the RUL of 
+ * 11 remaining bearings"
+ * 
+ * File naming convention:
+ * 1. BearuingX_Y
+ * 2. X - Operating condition
+ * 3. Y - Bearing ID
+ * 
+ * Datasets: training set, validation set and a full (test?) data set (see original link). 
+ * 
+ * "According to the bearing and to the way the degradation evolves, the fault modes can be slightly different for 
+ * distinct bearings." Note: failures may come from bearings, inner or outer races. 
+ * 
+ * Best for RUL ("... IEEE PHM 2012 Prognostic Challenge. The challenge is focused on prognostics of the remaining 
+ * useful life (RUL) ...")
+ * 
+ * PRONOSTIA : An experimental platform for bearings accelerated degradation tests. Patrick Nectoux, Rafael 
+ * Gouriveau, Kamal Medjaher, Emmanuel Ramasso, Brigitte Chebel-Morello, Noureddine Zerhouni, 
+ * Christophe Varnier
+ * 
+ * @see http://www.femto-st.fr/en/Research-departments/AS2M/Research-groups/PHM/IEEE-PHM-2012-Data-challenge.php
+ * 
+ * NAB Data Corpus
+ * _____________
+ * 
+ * 1. realAWSCloudwatch - hand labeled
+ * 2. realAdExchange - hand labeled
+ * 3. realKnownCause - no hand labeling
+ *     1. ambient_temperature_system_failure.csv
+ *     2. cpu_utilization_asg_misconfiguration.csv
+ *     3. ec2_request_latency_system_failure.csv
+ *     4. machine_temperature_system_failure.csv  <------
+ *     5. nyc_taxi.csv
+ *     6. rogue_agent_key_hold.csv
+ *     7. rogue_agent_key_updown.csv
+ *  4. realRogueAgent
+ *  5. realTraffic
+ *  6. realTweets
+ *  7. artificialNoAnomaly
+ *  8. artificialWithAnomaly
+ *  
+ *  "No hand labeling" means that the contributed data already contains the labels were a failure occurred.
+ *  The other data is hand-labeled following a pre-defined protocol (link missing in the NAB FAQ but
+ *  can be found in Wiki Home). The labels are provided in JSON format and are found here:
+ *  https://github.com/numenta/NAB/tree/master/labels
+ *  
+ *  Twitter Anomaly Detector
+ *  "NAB are CSV files with a "timestamp" column and a "value" column. The values are floats or integers, and the 
+ *  timestamps are strings of the form YYYY-mm-dd HH:MM:SS.s (in Python notation)."
+ * 
+ * @see https://github.com/numenta/NAB/tree/master/data#nab-data-corpus
+ * @see https://github.com/numenta/NAB/tree/master/data
+ * @see https://github.com/numenta/NAB/wiki/Twitter-Anomaly-Detector
+ * @see https://github.com/numenta/NAB/wiki#reporting-results-with-nabreporting-results-with-nab
+ * @see https://drive.google.com/file/d/0B1_XUjaAXeV3YlgwRXdsb3Voa1k/view
  * 
  * General References
  * Sequential Feature Explanations for Anomaly Detection
