@@ -206,3 +206,112 @@ https://github.com/yahoo/egads
 https://blog.scalac.io/2015/05/07/encog-dsl.html
 http://haifengl.github.io/smile
 http://www.heatonresearch.com/encog/
+
+
+Anomaly Detection Benckmark
+----------------------------
+
+0. Numenta Anomaly Detection Benchmark
+   https://github.com/numenta/NAB
+   
+0. Create a virtual environment for python 2.7
+   cd /home/hmf
+   mkdir my_py2
+   sudo pip install virtualenv
+   sudo pip install --upgrade virtualenv
+   pip install --upgrade pip
+   virtualenv --system-site-packages --always-copy --python=/usr/bin/python2 my_py2
+   source my_py2/bin/activate
+   
+0. Clone the repository
+   https://help.github.com/articles/importing-a-git-repository-using-the-command-line/
+   git clone --bare https://external-host.com/extuser/repo.git
+   # Makes a bare clone of the external repository in a local directory
+   http://stackoverflow.com/questions/1872113/how-do-i-clone-a-github-project-to-run-locally
+   git clone git://github.com/ryanb/railscasts-episodes.git
+   git clone git://github.com/ryanb/railscasts-episodes.git -b branch_name
+   git clone https://github.com/ryanb/railscasts-episodes.git Rails
+   ```
+    cd /home/hmf/my_py2/
+    mkdir download
+    cd download/
+    cd /home/hmf/my_py2/download
+    git clone https://github.com/numenta/NAB.git
+    ```
+
+0. Update the cloned repository
+   http://stackoverflow.com/questions/7244321/how-do-i-update-a-github-forked-repository
+   
+   ```
+	# Add the remote, call it "upstream":
+	
+	cd /home/hmf/my_py2/download/NAB
+	git remote add upstream https://github.com/numenta/NAB.git
+	
+	# Fetch all the branches of that remote into remote-tracking branches,
+	# such as upstream/master:
+	
+	git fetch upstream
+	
+	# Make sure that you're on your master branch:
+	
+	git checkout master
+	
+	# Rewrite your master branch so that any commits of yours that
+	# aren't already in upstream/master are replayed on top of that
+	# other branch:
+	
+	git rebase upstream/master   
+    ```
+   
+0. Installing NAB
+   cd /home/hmf/my_py2
+   source ./bin/activate
+   
+   # Force local numpy install
+   pip install -U --force numpy
+   
+   cd /home/hmf/my_py2/download/NAB
+   pip install -r requirements.txt
+   python setup.py install --user
+   python run.py --help
+     
+0. Running existing bench marks
+   cd /home/hmf/my_py2
+   cd /home/hmf/my_py2/download/NAB
+   
+   # Run single algorithm HTM - but use obnly a subset of the benchmark data
+   # Need to install NuPIC first - https://github.com/numenta/nupic
+   python run.py -d numenta --detect --windowsFile labels/combined_windows_tiny.json
+ 
+   # Run all of NAB
+   python run.py
+   
+   # Run HTM with NAB with all of the data   
+   python run.py -d numenta --detect --optimize --score --normalize
+   
+   # This should work
+   # Run Twitter's algorithm - "--optimize" is ptional
+   python run.py -d twitterADVec --optimize (optional) --score --normalize
+   
+   Others (see NAB/results):
+   ```
+	bayesChangePt  null    random     skyline
+	contextOSE     htmjava numenta    twitterADVec
+	expose         knncad  numentaTM  relativeEntropy  windowedGaussian   
+   ```
+   
+0. See results
+	```
+	Running scoring step
+	twitterADVec detector benchmark scores written to /home/hmf/my_py2/download/NAB/results/twitterADVec/twitterADVec_reward_low_FP_rate_scores.csv
+	twitterADVec detector benchmark scores written to /home/hmf/my_py2/download/NAB/results/twitterADVec/twitterADVec_reward_low_FN_rate_scores.csv
+	twitterADVec detector benchmark scores written to /home/hmf/my_py2/download/NAB/results/twitterADVec/twitterADVec_standard_scores.csv
+	
+	Running score normalization step
+	Final score for 'twitterADVec' detector on 'reward_low_FP_rate' profile = 33.61
+	Final score for 'twitterADVec' detector on 'reward_low_FN_rate' profile = 53.50
+	Final score for 'twitterADVec' detector on 'standard' profile = 47.06
+	Final scores have been written to /home/hmf/my_py2/download/NAB/results/final_results.json.
+   ```
+   

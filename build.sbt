@@ -67,9 +67,11 @@ libraryDependencies += "org.nd4j"     % "canova-api" % "0.0.0.17"
 libraryDependencies += "org.nd4j"     % "canova-nd4j-image" % "0.0.0.17"
 
 
-lazy val dl4jVersion = "0.7.2"
+//lazy val dl4jVersion = "0.7.2"
+lazy val dl4jVersion = "0.8.0"
 
-lazy val nd4jVersion = "0.7.2"
+//lazy val nd4jVersion = "0.7.2"
+lazy val nd4jVersion = "0.8.0"
 
 
 // fails libraryDependencies += "org.nd4j" % "nd4j-native-platform" % "0.6.0" classifier "" classifier "linux-x86_64"
