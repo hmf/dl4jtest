@@ -237,7 +237,215 @@ package pt.inescn.anomaly.nn
  * 
  * http://www.bioshare.info/en/audacity ?????
  * https://www.ncbi.nlm.nih.gov/pubmed/24377903 ???
+ * 
+ * https://github.com/pathikrit/better-files
+ * http://www.lihaoyi.com/Ammonite/#Ammonite-Ops
+ * https://github.com/lauris/awesome-scala
+ * https://github.com/jesseeichar/scala-io
+ * http://rapture.io/
+ * https://github.com/scalaz/scalaz-stream
+ * 
+ * sbt "run-main pt.inescn.anomaly.nn.AutoEncoders"
  */
 object AutoEncoders {
+
+  val algorithm = "autoencoder"
+  
+  val data_dir = "/home/hmf/my_py2/download/NAB/data/"
+  val label_dir = "/home/hmf/my_py2/download/NAB/labels"
+  val results_dir = "/home/hmf/my_py2/download/NAB/results"
+
+  val combined_labels = "combined_labels.json"
+  val combined_windows = "combined_windows.json"
+  val combined_windows_tiny =  "combined_windows_tiny.json"
+  
+  //import scala.io.Source 
+  import better.files._
+  import java.io.{File => JFile}
+  
+  /**
+   * Get all files listed in the directory 
+   */
+  def allFiles(dirName : String) : Option[Seq[File]] = {
+    val dir = File(dirName)
+    if (!dir.isDirectory) 
+      None
+    else {
+      //val matches: Iterator[File] = dir.glob("**") 
+      val matches: Iterator[File] = dir.glob("**") 
+      Some(matches.toList)
+    }
+  }
+
+  /** 
+   *  Get all the data files
+   */
+  def allDataFiles(ext: String = "csv") : Option[Seq[File]] = 
+    allFiles(data_dir).map { _.filter { _.extension(includeDot=false).exists { e => e.equals( ext ) }  } }
+
+  /** 
+   *  Get all the label files
+   */
+  def allLabelFiles(ext: String = "json") : Option[Seq[File]] = 
+    allFiles(label_dir).map { _.filter { _.extension(includeDot=false).exists { e => e.equals( ext ) }  } }
+  
+/*
+(root/"tmp"/"diary.txt")
+  .createIfNotExists()  
+  */  
+  
+  import java.time.LocalDate
+  //import org.threeten.extra.Interval
+  import org.joda.time.Interval
+  
+  def runAlgo(data: File) = ???
+  def addDetection(data: File, detections: List[Double]) = ???
+  def addLabels(detections: List[Interval], windows: List[Interval]) = ???
+  
+  
+  def runExp(data: File, windows:Map[String, List[Interval]]) = {
+    val a = runAlgo(data)
+    val d = addDetection(data, a)
+    val r = addLabels(d, windows(data.nameWithoutExtension))
+  }
+  
+  import org.json4s._
+  //import org.json4s.jackson.JsonMethods._
+  import org.json4s.native.JsonMethods._
+
+  implicit val formats = DefaultFormats // Brings in default date formats etc.
+
+  // https://www.mkyong.com/java8/java-8-how-to-convert-string-to-localdate/
+  // http://www.threeten.org/threeten-extra/apidocs/org/threeten/extra/Interval.html
+  // https://www.playframework.com/documentation/2.4.x/ScalaJson
+  // https://github.com/lift/framework/tree/master/core/json
+  // http://spray.io/
+  // https://github.com/fommil/spray-json-shapeless
+  // http://json4s.org/
+  // http://argonaut.io/
+  // https://github.com/circe/circe
+  // https://github.com/sphereio/sphere-scala-libs/tree/master/json (uses json4s)
+  // https://github.com/non/jawn
+  // https://github.com/propensive/rapture/blob/dev/doc/json.md
+  // scala.util.parsing
+  // https://github.com/scala/scala-parser-combinators
+  // https://github.com/julienrf/play-json-derived-codecs
+  // https://github.com/mandubian/play-json-zipper
+  // https://github.com/rjmac/rojoma-json
+  def readWindows(file: File) : Map[String, List[Interval]]= ???
+  
+  // https://docs.oracle.com/javase/8/docs/api/java/time/package-summary.html
+  // java.time
+  // https://www.hackingnote.com/en/scala/datetime/
+  // http://www.threeten.org/threeten-extra/
+  //    http://www.threeten.org/threeten-extra/apidocs/org/threeten/extra/Interval.html
+  // https://github.com/MenoData/Time4J
+  // https://github.com/nscala-time/nscala-time
+  // https://github.com/reactivecodes/scala-time
+  // http://www.lamma.io/
+  // https://github.com/maxcellent/lamma
+  // 
+  
+  def main( args: Array[ String ] ) {
+   
+    //println( allDataFiles().mkString(",") )
+    //println( allLabelFiles().mkString(",") )
+    
+    case class OneDate(t1: java.util.Date)
+    case class Window(t1: java.util.Date, t2: java.util.Date)
+    case class Windows(files: Map[String, List[Window]])
+    
+    implicit val formats = new DefaultFormats {
+         import java.text.SimpleDateFormat
+         // https://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html
+         override def dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSSSS")
+       }
+    
+    val json0 = parse("""{
+            "t1" : "2014-04-10 16:15:00.000000"
+            }
+      """)
+    val w0 = json0.extract[OneDate]
+    println(json0)
+    println(w0)
+    
+    val json1 = parse("""
+        [
+            "2014-04-10 16:15:00.000000",
+            "2014-04-12 01:45:00.000000"
+        ]
+      """)
+    println(json1)
+    val w1 = json1.extract[List[java.util.Date]]
+    println(w1.mkString(","))
+
+    val json2 = parse("""[
+        [
+            "2014-02-19 10:50:00.000000",
+            "2014-02-20 03:30:00.000000"
+        ],
+        [
+            "2014-02-23 11:45:00.000000",
+            "2014-02-24 04:25:00.000000"
+        ]
+      ]
+      """)
+    println(json2)
+    val w2 = json2.extract[List[List[java.util.Date]]]
+    println(w2.mkString(";"))
+    
+    val json3 = parse("""
+            {
+                "artificialNoAnomaly/art_daily_no_noise.csv": [],
+                "artificialNoAnomaly/art_daily_perfect_square_wave.csv": [],
+                "artificialNoAnomaly/art_daily_small_noise.csv": [],
+                "artificialNoAnomaly/art_flatline.csv": [],
+                "artificialNoAnomaly/art_noisy.csv": [],
+                "artificialWithAnomaly/art_daily_flatmiddle.csv": [
+                    [
+                        "2014-04-10 07:15:00.000000",
+                        "2014-04-11 16:45:00.000000"
+                    ]
+                ]
+            }
+            """)
+    println(json3)
+    val w3 = json3.extract[Map[ String, List[List[java.util.Date]]] ]
+    println(w3.mkString(";\n"))
+    
+    
+    val list1 = List(Some(1), None, Some(2))
+    val list2 = list1.flatten // will be: List(1,2)
+    val list3 = list1.flatMap { x => x }// will be: List(1,2)
+    
+    def windowToIntervals(windows : Map[String, List[List[java.util.Date]]]) = {
+      
+      def makeInterval(t1 : java.util.Date, t2 : java.util.Date) : Option[Interval] = {
+          val tn1 = t1.getTime
+          val tn2 = t2.getTime
+          if (tn1 <= tn2) Some(new Interval(tn1, tn2)) else None  
+      }
+      
+      def makeWindows(wins : List[List[java.util.Date]]) : Option[ List[ Option[Interval]] ] = wins match {
+        case Nil => None
+        case _ => 
+          Some( wins.map { win => if (win.length != 2) None else makeInterval(win(0), win(1)) } )
+      }
+
+      val t0 = windows.map { case (k, wins) => (k, makeWindows(wins)  ) }
+      val t1 = t0.collect { case (k,Some(v)) => (k,v.flatten) }
+      // val tx = t0.map { case (k, Some(wins)) => (k, wins.flatten  ) } // not complete
+      t1
+    }
+    
+    val w4 = windowToIntervals(w3)
+    println(w4)
+    
+    val windowFile = label_dir / "combined_windows.json"
+    // TODO val windows = readWindows(windowFile)
+    // allDataFiles().map { data => data.map { x => runExp(x, windows) } }
+    
+  }
+  
   
 }

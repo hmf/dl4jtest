@@ -35,6 +35,12 @@ libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.7.23"
 //libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.1"
 libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0"
 
+// Date and Time
+// http://www.time4j.net/tutorial/appendix.html
+//libraryDependencies += "org.threeten" % "threeten-extra" % "1.0"
+libraryDependencies += "org.json4s" %% "json4s-native" % "3.5.1"
+
+
 // Type-level
 libraryDependencies += "com.chuusai" %% "shapeless" % "2.3.2"
 
@@ -45,6 +51,9 @@ libraryDependencies += "com.chuusai" %% "shapeless" % "2.3.2"
 libraryDependencies += "net.sourceforge.f2j" % "arpack_combined_all" % "0.1"
 libraryDependencies += "com.github.fommil.netlib" % "all" % "1.1.2" pomOnly()
 libraryDependencies += "com.googlecode.matrix-toolkits-java" % "mtj" % "1.0.4"
+    
+// SCala I/O
+libraryDependencies += "com.github.pathikrit" %% "better-files" % "2.17.1"
     
 // ML
 libraryDependencies += "com.github.haifengl" % "smile-core" % "1.2.2"
