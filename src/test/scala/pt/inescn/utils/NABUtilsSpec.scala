@@ -168,7 +168,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
   import java.time.Clock
   
   
-  "Labelling the JSON Window file" should "map the data-sets windows to list of intervals correctly" in {
+  "Labelling the JSON Window file" should "generate the labels for a time-stamp list for a given data-set windows correctly" in {
     val json3 = parse( """
             {
                 "artificialNoAnomaly/art_daily_no_noise.csv": [],
@@ -201,7 +201,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     // println( dates.mkString(","))
     println( dates.mkString(",\n") )
     
-    val jdates = dates map { d => 
+    val jdates = dates.toList map { d => 
        /*val zdt = d.atZone(ZoneId.systemDefault()) 
        java.util.Date.from( zdt.toInstant() )
        val ins4 = Instant.from(d.atZone(ZoneId.of("UTC"))) */
@@ -209,6 +209,9 @@ class NABUtilsSpec extends FlatSpec with Matchers {
        java.util.Date.from( ins3 )
       }
     println( jdates.mkString(",\n") )
+    
+    val labels = label( jdates, List[ Double ](), w4("artificialWithAnomaly/art_daily_flatmiddle.csv") )
+    println( labels.mkString(",\n") )
   }
 
   it should "map the data-sets windows to list of intervals correctly" in {
