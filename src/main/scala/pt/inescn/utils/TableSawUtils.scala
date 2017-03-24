@@ -8,6 +8,7 @@ object TableSawUtils {
   import com.github.lwhite1.tablesaw.api.IntColumn
   import com.github.lwhite1.tablesaw.api.BooleanColumn
   import com.github.lwhite1.tablesaw.api.FloatColumn
+  import com.github.lwhite1.tablesaw.api.DoubleColumn
   import com.github.lwhite1.tablesaw.api.CategoryColumn
 
   /**
@@ -62,6 +63,18 @@ object TableSawUtils {
     col
   }
 
+  /**
+   * SawTable utility that allows one to create
+   * a specific type of column.
+   *
+   * @see [[pt.inescn.utils.addColumn[ A ]( tbl: Table, col: A )]]
+   */
+  def createDoubleColumn( colName: String, vals: Seq[ Int ] ) = {
+    val col = DoubleColumn.create( colName )
+    vals.foreach { x => col.add( x ) }
+    col
+  }
+  
   /**
    * Returns `true` if the column `tp` is non-numeric otherwise returns a `false`
    */

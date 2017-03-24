@@ -226,61 +226,6 @@ object AutoEncoders {
     import org.json4s._
     import org.json4s.native.JsonMethods._
 
-    val json0 = parse( """{
-            "t1" : "2014-04-10 16:15:00.000000"
-            }
-      """ )
-    val w0 = json0.extract[ OneDate ]
-    println( json0 )
-    println( w0 )
-
-    val json1 = parse( """
-        [
-            "2014-04-10 16:15:00.000000",
-            "2014-04-12 01:45:00.000000"
-        ]
-      """ )
-    println( json1 )
-    val w1 = json1.extract[ List[ java.util.Date ] ]
-    println( w1.mkString( "," ) )
-
-    val json2 = parse( """[
-        [
-            "2014-02-19 10:50:00.000000",
-            "2014-02-20 03:30:00.000000"
-        ],
-        [
-            "2014-02-23 11:45:00.000000",
-            "2014-02-24 04:25:00.000000"
-        ]
-      ]
-      """ )
-    println( json2 )
-    val w2 = json2.extract[ List[ List[ java.util.Date ] ] ]
-    println( w2.mkString( ";" ) )
-
-    val json3 = parse( """
-            {
-                "artificialNoAnomaly/art_daily_no_noise.csv": [],
-                "artificialNoAnomaly/art_daily_perfect_square_wave.csv": [],
-                "artificialNoAnomaly/art_daily_small_noise.csv": [],
-                "artificialNoAnomaly/art_flatline.csv": [],
-                "artificialNoAnomaly/art_noisy.csv": [],
-                "artificialWithAnomaly/art_daily_flatmiddle.csv": [
-                    [
-                        "2014-04-10 07:15:00.000000",
-                        "2014-04-11 16:45:00.000000"
-                    ]
-                ]
-            }
-            """ )
-    println( json3 )
-    val w3 = json3.extract[ Map[ String, List[ List[ java.util.Date ] ] ] ]
-    println( w3.mkString( ";\n" ) )
-
-    val w4 = windowToIntervals( w3 )
-    println( w4 )
-
     //import scala.io.Source 
     import better.files._
     import java.io.{ File => JFile }

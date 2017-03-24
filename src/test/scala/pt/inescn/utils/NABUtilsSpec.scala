@@ -106,13 +106,13 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     val w2 = json2.extract[ List[ List[ java.util.Date ] ] ]
     //println( w2.mkString( ";" ) )
     w2.size shouldBe 2
-    
+
     w2( 0 ).size shouldBe 2
     val d1 = makeData( year = 2014, month = 2, date = 19, hrs = 10, min = 50, sec = 0, milli = 0 )
     val d2 = makeData( year = 2014, month = 2, date = 20, hrs = 3, min = 30, sec = 0, milli = 0 )
     w2( 0 )( 0 ).compareTo( d1 ) shouldBe 0
     w2( 0 )( 1 ).compareTo( d2 ) shouldBe 0
-    
+
     w2( 1 ).size shouldBe 2
     val d3 = makeData( year = 2014, month = 2, date = 23, hrs = 11, min = 45, sec = 0, milli = 0 )
     val d4 = makeData( year = 2014, month = 2, date = 24, hrs = 4, min = 25, sec = 0, milli = 0 )
@@ -139,7 +139,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     //println( json3 )
     val w3 = json3.extract[ Map[ String, List[ List[ java.util.Date ] ] ] ]
     //println( w3.mkString( ";\n" ) )
-    
+
     val d1 = w3( "artificialNoAnomaly/art_daily_no_noise.csv" )
     d1.size shouldBe 0
     val d2 = w3( "artificialNoAnomaly/art_daily_perfect_square_wave.csv" )
@@ -152,11 +152,50 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     d5.size shouldBe 0
     val d6 = w3( "artificialWithAnomaly/art_daily_flatmiddle.csv" )
     d6.size shouldBe 1
-    d6(0).size shouldBe 2
+    d6( 0 ).size shouldBe 2
     val dt1 = makeData( year = 2014, month = 4, date = 10, hrs = 7, min = 15, sec = 0, milli = 0 )
     val dt2 = makeData( year = 2014, month = 4, date = 11, hrs = 16, min = 45, sec = 0, milli = 0 )
     d6( 0 )( 0 ).compareTo( dt1 ) shouldBe 0
     d6( 0 )( 1 ).compareTo( dt2 ) shouldBe 0
+  }
+
+  import java.time.LocalDateTime
+  import java.time.format.DateTimeFormatter
+  
+  
+  "Labelling the JSON Window file" should "map the data-sets windows to list of intervals correctly" in {
+    val json3 = parse( """
+            {
+                "artificialNoAnomaly/art_daily_no_noise.csv": [],
+                "artificialNoAnomaly/art_daily_perfect_square_wave.csv": [],
+                "artificialNoAnomaly/art_daily_small_noise.csv": [],
+                "artificialNoAnomaly/art_flatline.csv": [],
+                "artificialNoAnomaly/art_noisy.csv": [],
+                "artificialWithAnomaly/art_daily_flatmiddle.csv": [
+                    [
+                        "2014-04-10 07:15:00.000000",
+                        "2014-04-11 16:45:00.000000"
+                    ]
+                ]
+            }
+            """ )
+    //println( json3 )
+    val w3 = json3.extract[ Map[ String, List[ List[ java.util.Date ] ] ] ]
+    //println( w3.mkString( ";\n" ) )
+
+    val w4 = windowToIntervals( w3 )
+    println( w4 )
+    
+    val formatter = DateTimeFormatter.ofPattern( "yyyy-MM-dd HH:mm:ss.SSSSSS")
+    val delta = 5000 // 5 ms 
+    val start = LocalDateTime.parse("2014-04-10 07:15:00.000000", formatter)
+    val next = start.plusNanos(delta)
+    println(s"Next = $next")
+    
+    val dates = 0 to (100 * delta ) by delta  map { n => start.plusNanos(n)}
+    // println( dates.mkString(","))
+    println( dates.mkString(",\n") )
     
   }
+
 }

@@ -6,7 +6,7 @@ package pt.inescn.utils
  * @see https://numenta.com/numenta-anomaly-benchmark/
  * @see https://github.com/numenta/NAB
  * @see https://arxiv.org/abs/1510.03336
- *  
+ *
  * NAB Data Corpus
  * _____________
  *
@@ -40,7 +40,16 @@ package pt.inescn.utils
  * @see https://github.com/numenta/NAB/wiki/Twitter-Anomaly-Detector
  * @see https://github.com/numenta/NAB/wiki#reporting-results-with-nabreporting-results-with-nab
  * @see https://drive.google.com/file/d/0B1_XUjaAXeV3YlgwRXdsb3Voa1k/view
- * 
+ *
+ *
+ * Files I/O
+ * @see https://github.com/pathikrit/better-files
+ *
+ * Time
+ * @see http://joda-time.sourceforge.net
+ *
+ * JSON
+ * @see https://github.com/json4s/json4s
  */
 object NABUtils {
 
@@ -107,11 +116,13 @@ object NABUtils {
   //import org.json4s.jackson.JsonMethods._
   import org.json4s.native.JsonMethods._
 
+  val dtFormatter = "yyyy-MM-dd HH:mm:ss.SSSSSS"
+
   //implicit val formats = DefaultFormats // Brings in default date formats etc.
   implicit val formats = new DefaultFormats {
     import java.text.SimpleDateFormat
     // https://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html
-    override def dateFormatter = new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss.SSSSSS" )
+    override def dateFormatter = new SimpleDateFormat( dtFormatter )
   }
 
   // https://www.mkyong.com/java8/java-8-how-to-convert-string-to-localdate/
@@ -145,31 +156,71 @@ object NABUtils {
   // https://github.com/maxcellent/lamma
   // 
 
-  val list1 = List( Some( 1 ), None, Some( 2 ) )
-  val list2 = list1.flatten // will be: List(1,2)
-  val list3 = list1.flatMap { x => x } // will be: List(1,2)
+  /**
+   * Convert two dates into an Interval
+   * @see org.joda.time.Interval
+   */
+  def makeInterval( t1: java.util.Date, t2: java.util.Date ): Option[ Interval ] = {
+    val tn1 = t1.getTime
+    val tn2 = t2.getTime
+    if ( tn1 <= tn2 ) Some( new Interval( tn1, tn2 ) ) else None
+  }
+
+  def makeOptionWindows( wins: List[ List[ java.util.Date ] ] ): Option[ List[ Option[ Interval ] ] ] = wins match {
+    case Nil => None
+    case _ =>
+      Some( wins.map { win => if ( win.length != 2 ) None else makeInterval( win( 0 ), win( 1 ) ) } )
+  }
 
   /**
-   * This funtion reads
+   * This function reads
    */
   def windowToIntervals( windows: Map[ String, List[ List[ java.util.Date ] ] ] ) = {
 
-    def makeInterval( t1: java.util.Date, t2: java.util.Date ): Option[ Interval ] = {
-      val tn1 = t1.getTime
-      val tn2 = t2.getTime
-      if ( tn1 <= tn2 ) Some( new Interval( tn1, tn2 ) ) else None
-    }
-
-    def makeWindows( wins: List[ List[ java.util.Date ] ] ): Option[ List[ Option[ Interval ] ] ] = wins match {
-      case Nil => None
-      case _ =>
-        Some( wins.map { win => if ( win.length != 2 ) None else makeInterval( win( 0 ), win( 1 ) ) } )
-    }
-
-    val t0 = windows.map { case ( k, wins ) => ( k, makeWindows( wins ) ) }
+    val t0 = windows.map { case ( k, wins ) => ( k, makeOptionWindows( wins ) ) }
     val t1 = t0.collect { case ( k, Some( v ) ) => ( k, v.flatten ) }
     // val tx = t0.map { case (k, Some(wins)) => (k, wins.flatten  ) } // not complete
     t1
+
+  }
+
+  import com.github.lwhite1.tablesaw.api.Table
+  /*import com.github.lwhite1.tablesaw.api.ColumnType
+  import com.github.lwhite1.tablesaw.columns.Column
+  import com.github.lwhite1.tablesaw.api.IntColumn
+  import com.github.lwhite1.tablesaw.api.BooleanColumn
+  import com.github.lwhite1.tablesaw.api.FloatColumn
+  import com.github.lwhite1.tablesaw.api.CategoryColumn*/
+
+  def addLabels( windows: List[ Interval ], t: Table ) = {
+    import pt.inescn.utils.TableSawUtils._
+
+    val values = List.fill( t.rowCount )( 0 )
+    val timeStamps = t.dateColumn( 0 )
+
+    def inInterval( d: java.util.Date, i: List[ Interval ] ): ( Double, List[ Interval ] ) = i match {
+      case Nil => ( 0.0, i )
+      case h :: t =>
+        if ( h.contains( d.getTime ) )
+          ( 1.0, i )
+        else if ( h.isBefore( d.getTime ) )
+          ( 0.0, i.tail )
+        else
+          ( 0.0, i )
+    }
+
+    @annotation.tailrec
+    def label( timeStamp: List[ java.util.Date ], labels: List[ Double ], wins: List[ Interval ] ): List[ Double ] =
+      timeStamp match {
+        case Nil => labels
+        case h :: t =>
+          val ( isIn, winst ) = inInterval( h, wins )
+          label( t, isIn :: labels, winst )
+      }
+
+    val column = createDoubleColumn( "label", values )
+    addColumn( t, column )
+
   }
 
 }
