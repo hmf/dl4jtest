@@ -20,7 +20,7 @@ import org.scalatest._
 class NABUtilsSpec extends FlatSpec with Matchers {
   import pt.inescn.utils.NABUtils._
 
-  // Cannot be defined n method body - JSON4S barfs complaining about this. 
+  // Cannot be defined in method body - JSON4S barfs complaining about this. 
   case class OneDate( t1: java.util.Date )
 
   "Listing files" should "find the NAB data files" in {
@@ -161,6 +161,11 @@ class NABUtilsSpec extends FlatSpec with Matchers {
 
   import java.time.LocalDateTime
   import java.time.format.DateTimeFormatter
+  import java.time.ZoneId
+  import java.time.ZonedDateTime
+  import java.time.ZoneOffset
+  import java.time.Instant
+  import java.time.Clock
   
   
   "Labelling the JSON Window file" should "map the data-sets windows to list of intervals correctly" in {
@@ -192,10 +197,62 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     val next = start.plusNanos(delta)
     println(s"Next = $next")
     
-    val dates = 0 to (100 * delta ) by delta  map { n => start.plusNanos(n)}
+    val dates = 0 to (10 * delta ) by delta  map { n => start.plusNanos(n) }
     // println( dates.mkString(","))
     println( dates.mkString(",\n") )
     
+    val jdates = dates map { d => 
+       /*val zdt = d.atZone(ZoneId.systemDefault()) 
+       java.util.Date.from( zdt.toInstant() )
+       val ins4 = Instant.from(d.atZone(ZoneId.of("UTC"))) */
+       val ins3 = Instant.from(d.atOffset(ZoneOffset.UTC)) 
+       java.util.Date.from( ins3 )
+      }
+    println( jdates.mkString(",\n") )
   }
 
+  it should "map the data-sets windows to list of intervals correctly" in {
+    val json3 = parse( """
+            {
+                "artificialNoAnomaly/art_daily_no_noise.csv": [],
+                "artificialNoAnomaly/art_daily_perfect_square_wave.csv": [],
+                "artificialNoAnomaly/art_daily_small_noise.csv": [],
+                "artificialNoAnomaly/art_flatline.csv": [],
+                "artificialNoAnomaly/art_noisy.csv": [],
+                "artificialWithAnomaly/art_daily_flatmiddle.csv": [
+                    [
+                        "2014-04-10 07:15:00.000000",
+                        "2014-04-11 16:45:00.000000"
+                    ]
+                ]
+            }
+            """ )
+    //println( json3 )
+    val w3 = json3.extract[ Map[ String, List[ List[ java.util.Date ] ] ] ]
+    //println( w3.mkString( ";\n" ) )
+
+    val w4 = windowToIntervals( w3 )
+    println( w4 )
+    
+    val formatter = DateTimeFormatter.ofPattern( "yyyy-MM-dd HH:mm:ss.SSSSSS")
+    val delta = 5000 // 5 ms 
+    val start = LocalDateTime.parse("2014-04-10 07:15:00.000000", formatter)
+    val next = start.plusNanos(delta)
+    println(s"Next = $next")
+    
+    val dates = 0 to (10 * delta ) by delta  map { n => start.plusNanos(n) }
+    // println( dates.mkString(","))
+    println( dates.mkString(",\n") )
+    
+    val jdates = dates map { d => 
+       /*val zdt = d.atZone(ZoneId.systemDefault()) 
+       java.util.Date.from( zdt.toInstant() )
+       val ins4 = Instant.from(d.atZone(ZoneId.of("UTC"))) */
+       val ins3 = Instant.from(d.atOffset(ZoneOffset.UTC)) 
+       java.util.Date.from( ins3 )
+      }
+    println( jdates.mkString(",\n") )
+  }
+  
+  
 }

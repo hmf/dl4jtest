@@ -122,7 +122,13 @@ object NABUtils {
   implicit val formats = new DefaultFormats {
     import java.text.SimpleDateFormat
     // https://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html
-    override def dateFormatter = new SimpleDateFormat( dtFormatter )
+    // import java.time.format.DateTimeFormatter
+    // DateTimeFormatter.ofPattern( dtFormatter )
+    override def dateFormatter = {
+      val f = new SimpleDateFormat( dtFormatter )
+      f.setTimeZone(DefaultFormats.UTC)
+      f
+    }
   }
 
   // https://www.mkyong.com/java8/java-8-how-to-convert-string-to-localdate/
@@ -192,31 +198,34 @@ object NABUtils {
   import com.github.lwhite1.tablesaw.api.FloatColumn
   import com.github.lwhite1.tablesaw.api.CategoryColumn*/
 
+  def inInterval( d: java.util.Date, i: List[ Interval ] ): ( Double, List[ Interval ] ) = i match {
+    case Nil => ( 0.0, i )
+    case h :: t =>
+      if ( h.contains( d.getTime ) )
+        ( 1.0, i )
+      else if ( h.isBefore( d.getTime ) )
+        ( 0.0, i.tail )
+      else
+        ( 0.0, i )
+  }
+
+  @annotation.tailrec
+  def label( timeStamp: List[ java.util.Date ], labels: List[ Double ], wins: List[ Interval ] ): List[ Double ] =
+    timeStamp match {
+      case Nil => labels
+      case h :: t =>
+        val ( isIn, winst ) = inInterval( h, wins )
+        label( t, isIn :: labels, winst )
+    }
+
   def addLabels( windows: List[ Interval ], t: Table ) = {
     import pt.inescn.utils.TableSawUtils._
 
     val values = List.fill( t.rowCount )( 0 )
     val timeStamps = t.dateColumn( 0 )
 
-    def inInterval( d: java.util.Date, i: List[ Interval ] ): ( Double, List[ Interval ] ) = i match {
-      case Nil => ( 0.0, i )
-      case h :: t =>
-        if ( h.contains( d.getTime ) )
-          ( 1.0, i )
-        else if ( h.isBefore( d.getTime ) )
-          ( 0.0, i.tail )
-        else
-          ( 0.0, i )
-    }
-
-    @annotation.tailrec
-    def label( timeStamp: List[ java.util.Date ], labels: List[ Double ], wins: List[ Interval ] ): List[ Double ] =
-      timeStamp match {
-        case Nil => labels
-        case h :: t =>
-          val ( isIn, winst ) = inInterval( h, wins )
-          label( t, isIn :: labels, winst )
-      }
+    val column1 = createDateTimeColumn( "datetime", null )
+    val tmp = column1.get(0)
 
     val column = createDoubleColumn( "label", values )
     addColumn( t, column )

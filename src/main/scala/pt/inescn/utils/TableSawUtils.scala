@@ -10,6 +10,7 @@ object TableSawUtils {
   import com.github.lwhite1.tablesaw.api.FloatColumn
   import com.github.lwhite1.tablesaw.api.DoubleColumn
   import com.github.lwhite1.tablesaw.api.CategoryColumn
+  import com.github.lwhite1.tablesaw.api.DateTimeColumn
 
   /**
    * SawTable utility that adds a column to a table.
@@ -74,6 +75,13 @@ object TableSawUtils {
     vals.foreach { x => col.add( x ) }
     col
   }
+
+  def createDateTimeColumn( colName: String, vals: Seq[ Int ] ) = {
+    val col =  DateTimeColumn.create( colName )
+    vals.foreach { x => col.add( x ) }
+    col
+  }
+  
   
   /**
    * Returns `true` if the column `tp` is non-numeric otherwise returns a `false`

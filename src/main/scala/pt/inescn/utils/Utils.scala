@@ -14,10 +14,15 @@ object Utils {
     result
   }
 
+  /**
+   * Utility function to generate a `java.util.Date` used prior to JDK 8. 
+   * For example: json4s.orf still uses the `java.util.Date` date. 
+   */
   def makeData(year : Short, month : Short, date : Short, hrs : Short, min : Short,  sec : Short = 0, milli : Short = 0) = {
     import java.util.Calendar 
+    import java.util.TimeZone 
 
-    val cal = Calendar.getInstance()
+    val cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
     cal.clear()
     cal.set( Calendar.YEAR, year )
     cal.set( Calendar.MONTH, month - 1 )
