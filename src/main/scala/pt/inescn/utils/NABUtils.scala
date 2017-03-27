@@ -143,7 +143,6 @@ object NABUtils {
   }*/
 
   val datePattern = "yyyy-MM-dd HH:mm:ss.SSSSSS"
-  val offset_UTC = java.time.ZoneId.of("UTC")
   val NABformatter = java.time.format.DateTimeFormatter.ofPattern( datePattern )
 
   object StringToJDKLocalDateTime extends CustomSerializer[ java.time.LocalDateTime ]( format => (
@@ -159,7 +158,8 @@ object NABUtils {
   // To use the above formatter you must add it implicitly to the context
   // implicit val formats = DefaultFormats + StringToJDKLocalDateTime
 
-
+  import pt.inescn.utils.Utils.offset_UTC
+ 
   object StringToJDKInstant extends CustomSerializer[ java.time.Instant ]( format => (
     {
       case JString( x ) =>

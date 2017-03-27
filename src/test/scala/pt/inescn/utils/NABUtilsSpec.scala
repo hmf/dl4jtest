@@ -174,7 +174,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
   // Cannot be defined in method body - JSON4S barfs complaining about this. 
   case class OneDate( t1: java.time.Instant )
 
-  "Parsing the JSON window file " should "parse the date format correctly" in {
+  "Parsing the JSON window file " should "parse the date with microsecond precision" in {
 
     val json0 = parse( """{
             "t1" : "2014-04-10 16:15:00.000001"
@@ -183,8 +183,8 @@ class NABUtilsSpec extends FlatSpec with Matchers {
       
     implicit val formats = DefaultFormats + StringToJDKInstant
     val w0 = json0.extract[ OneDate ]
-    println( json0 )
-    println( w0 )
+    //println( json0 )
+    //println( w0 )
     json0.toString shouldBe "JObject(List((t1,JString(2014-04-10 16:15:00.000001))))"
 
     val r = java.time.LocalDateTime.of( 2014, 4, 10, 16, 15, 0, 1 * 1000 )
@@ -194,46 +194,47 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     w0.t1.compareTo( r1 ) shouldBe 0 
   }
 
-  /*
   it should "parse the date format with millisecond precision" in {
 
-    // "t1" : "2014-04-10 16:15:00.001000"
     val json0 = parse( """{
-            "t1" : "2014-04-10 16:15:00.001"
+            "t1" : "2014-04-10 16:15:00.001000"
             }
       """ )
+    implicit val formats = DefaultFormats + StringToJDKInstant
     val w0 = json0.extract[ OneDate ]
-    println( json0 )
-    println( w0 )
-    json0.toString shouldBe "JObject(List((t1,JString(2014-04-10 16:15:00.001))))"
-    /*
-    println(w0.t1.getTime)
-    println(w0.t1.toInstant().getNano)
-    
-    val utilDate = makeData( year = 2014, month = 4, date = 10, hrs = 16, min = 15, sec = 0, milli = 1 ) // cal.getTime()
-    println(utilDate)
-    val t = OneDate( utilDate )
-    w0.t1.compareTo( utilDate ) shouldBe 0
-    */
+    //println( json0 )
+    //println( w0 )
+    json0.toString shouldBe "JObject(List((t1,JString(2014-04-10 16:15:00.001000))))"
 
+    val r = java.time.LocalDateTime.of( 2014, 4, 10, 16, 15, 0, 1 * 1000000 )
+    val off = java.time.ZoneId.of("UTC")
+    // parsedDate.atStartOfDay(off).toInstant() // for java.time.Local
+    val r1 = r.atZone(off).toInstant()
+    w0.t1.compareTo( r1 ) shouldBe 0 
   }
-  */
-  /*
+  
   it should "parse a list of dates correctly" in {
     val json1 = parse( """
         [
-            "2014-04-10 16:15:00.000000",
-            "2014-04-12 01:45:00.000000"
+            "2014-04-10 16:15:00.000002",
+            "2014-04-12 01:45:00.000003"
         ]
       """ )
+    implicit val formats = DefaultFormats + StringToJDKInstant
     //println( json1 )
-    val w1 = json1.extract[ List[ java.util.Date ] ]
+    val w1 = json1.extract[ List[ java.time.Instant] ]
     //println( w1.mkString( "," ) )
     w1.size shouldBe 2
-    val d1 = makeData( year = 2014, month = 4, date = 10, hrs = 16, min = 15, sec = 0, milli = 0 )
-    val d2 = makeData( year = 2014, month = 4, date = 12, hrs = 1, min = 45, sec = 0, milli = 0 )
-    w1( 0 ).compareTo( d1 ) shouldBe 0
-    w1( 1 ).compareTo( d2 ) shouldBe 0
+    val r1 = java.time.LocalDateTime.of( 2014, 4, 10, 16, 15, 0, 2 * 1000 )
+    val r2 = java.time.LocalDateTime.of( 2014, 4, 12, 1, 45, 0, 3 * 1000 )
+    val off = java.time.ZoneId.of("UTC")
+    // parsedDate.atStartOfDay(off).toInstant() // for java.time.Local
+    val ri1 = r1.atZone(off).toInstant()
+    val ri2 = r2.atZone(off).toInstant()
+    //println(ri1)
+    //println(ri2)
+    w1(0).compareTo( ri1 ) shouldBe 0 
+    w1(1).compareTo( ri2 ) shouldBe 0 
   }
 
   it should "parse a list of list of dates correctly" in {
@@ -249,23 +250,25 @@ class NABUtilsSpec extends FlatSpec with Matchers {
       ]
       """ )
     //println( json2 )
-    val w2 = json2.extract[ List[ List[ java.util.Date ] ] ]
+    implicit val formats = DefaultFormats + StringToJDKInstant
+    val w2 = json2.extract[ List[ List[ java.time.Instant ] ] ]
     //println( w2.mkString( ";" ) )
     w2.size shouldBe 2
 
     w2( 0 ).size shouldBe 2
-    val d1 = makeData( year = 2014, month = 2, date = 19, hrs = 10, min = 50, sec = 0, milli = 0 )
-    val d2 = makeData( year = 2014, month = 2, date = 20, hrs = 3, min = 30, sec = 0, milli = 0 )
+    val d1 = makeInstance( year = 2014, month = 2, day = 19, hrs = 10, min = 50, sec = 0, nano = 0 )
+    val d2 = makeInstance( year = 2014, month = 2, day = 20, hrs = 3, min = 30, sec = 0, nano = 0 )
     w2( 0 )( 0 ).compareTo( d1 ) shouldBe 0
     w2( 0 )( 1 ).compareTo( d2 ) shouldBe 0
 
     w2( 1 ).size shouldBe 2
-    val d3 = makeData( year = 2014, month = 2, date = 23, hrs = 11, min = 45, sec = 0, milli = 0 )
-    val d4 = makeData( year = 2014, month = 2, date = 24, hrs = 4, min = 25, sec = 0, milli = 0 )
+    val d3 = makeInstance( year = 2014, month = 2, day = 23, hrs = 11, min = 45, sec = 0, nano = 0 )
+    val d4 = makeInstance( year = 2014, month = 2, day = 24, hrs = 4, min = 25, sec = 0, nano = 0 )
     w2( 1 )( 0 ).compareTo( d3 ) shouldBe 0
     w2( 1 )( 1 ).compareTo( d4 ) shouldBe 0
   }
 
+ 
   it should "map the data-sets windows to list of lists of dates correctly" in {
     val json3 = parse( """
             {
@@ -283,8 +286,9 @@ class NABUtilsSpec extends FlatSpec with Matchers {
             }
             """ )
     //println( json3 )
-    val w3 = json3.extract[ Map[ String, List[ List[ java.util.Date ] ] ] ]
-    //println( w3.mkString( ";\n" ) )
+    implicit val formats = DefaultFormats + StringToJDKInstant
+    val w3 = json3.extract[ Map[ String, List[ List[ java.time.Instant ] ] ] ]
+    println( w3.mkString( ";\n" ) )
 
     val d1 = w3( "artificialNoAnomaly/art_daily_no_noise.csv" )
     d1.size shouldBe 0
@@ -299,12 +303,13 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     val d6 = w3( "artificialWithAnomaly/art_daily_flatmiddle.csv" )
     d6.size shouldBe 1
     d6( 0 ).size shouldBe 2
-    val dt1 = makeData( year = 2014, month = 4, date = 10, hrs = 7, min = 15, sec = 0, milli = 0 )
-    val dt2 = makeData( year = 2014, month = 4, date = 11, hrs = 16, min = 45, sec = 0, milli = 0 )
+    val dt1 = makeInstance( year = 2014, month = 4, day = 10, hrs = 7, min = 15, sec = 0, nano = 0 )
+    val dt2 = makeInstance( year = 2014, month = 4, day = 11, hrs = 16, min = 45, sec = 0, nano = 0 )
     d6( 0 )( 0 ).compareTo( dt1 ) shouldBe 0
     d6( 0 )( 1 ).compareTo( dt2 ) shouldBe 0
   }
 
+/*
   import java.time.LocalDateTime
   import java.time.format.DateTimeFormatter
   import java.time.ZoneId
