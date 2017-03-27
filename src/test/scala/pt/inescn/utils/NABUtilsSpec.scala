@@ -140,9 +140,10 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     import org.json4s._
     import org.json4s.native.JsonMethods._
 
-    val datePattern = "yyyy-MM-dd HH:mm:ss.SSSSSS"
+    //val datePattern = "yyyy-MM-dd HH:mm:ss.SSSSSS"
     val s = """{"timestamp": "2016-09-29 11:31:13.247772", "domain": "d1", "filePath": "s3://..."}"""
 
+    /*
     object StringToJDKLocalDateTime extends CustomSerializer[ java.time.LocalDateTime ]( format => (
       { case JString( x ) => 
           val formatter = java.time.format.DateTimeFormatter.ofPattern( datePattern )
@@ -151,7 +152,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
       { case x: java.time.LocalDateTime => 
           val formatter = java.time.format.DateTimeFormatter.ofPattern( datePattern )
           JString( x.format(formatter) ) } ) )
-
+    */
     implicit val formats = DefaultFormats + StringToJDKLocalDateTime
 
     val event = parse( s ).extract[ Event1 ]

@@ -119,9 +119,6 @@ object NABUtils {
   import org.json4s._
   import org.json4s.jackson.JsonMethods._
   // import org.json4s.native.JsonMethods._
-  
-  //implicit val formats = DefaultFormats // Brings in default date formats etc
-  //implicit val formats = org.json4s.DefaultFormats ++ org.json4s.ext.JodaTimeSerializers.all
 
   // http://stackoverflow.com/questions/27408180/json4s-conversion-to-java-sql-timestamp-does-not-work
   // https://gist.github.com/djamelz/f963cab45933d05b2e10d8680e4213b6
@@ -130,17 +127,37 @@ object NABUtils {
   val dtFormatter = "yyyy-MM-dd HH:mm:ss.SSS"
 
   //implicit val formats = DefaultFormats // Brings in default date formats etc.
+  
+  // Create your own formatter that overrised's JSON4s formatters
+  // Note that this only works for java.util.Date that only has millisecond precision
+  // see StringToJDKLocalDateTime for a way to circumvent this
+  /*
   implicit val formats = new DefaultFormats {
     import java.text.SimpleDateFormat
     // https://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html
-    // import java.time.format.DateTimeFormatter
-    // DateTimeFormatter.ofPattern( dtFormatter )
     override def dateFormatter = {
       val f = new SimpleDateFormat( dtFormatter )
-      f.setTimeZone(DefaultFormats.UTC)
+      f.setTimeZone( DefaultFormats.UTC )
       f
     }
-  }
+  }*/
+
+  val datePattern = "yyyy-MM-dd HH:mm:ss.SSSSSS"
+
+  object StringToJDKLocalDateTime extends CustomSerializer[ java.time.LocalDateTime ]( format => (
+    {
+      case JString( x ) =>
+        val formatter = java.time.format.DateTimeFormatter.ofPattern( datePattern )
+        java.time.LocalDateTime.parse( x, formatter )
+    },
+    {
+      case x: java.time.LocalDateTime =>
+        val formatter = java.time.format.DateTimeFormatter.ofPattern( datePattern )
+        JString( x.format( formatter ) )
+    } ) )
+
+  // To use the above fiormatter you must add it implicitly to the context
+  // implicit val formats = DefaultFormats + StringToJDKLocalDateTime
 
   // https://www.mkyong.com/java8/java-8-how-to-convert-string-to-localdate/
   // http://www.threeten.org/threeten-extra/apidocs/org/threeten/extra/Interval.html
@@ -212,13 +229,13 @@ object NABUtils {
   def inInterval( d: java.util.Date, i: List[ Interval ] ): ( Double, List[ Interval ] ) = i match {
     case Nil => ( 0.0, i )
     case h :: t =>
-      println(s"d = $d")
-      println(s"d = ${d.getTime}")
+      println( s"d = $d" )
+      println( s"d = ${d.getTime}" )
       val t = h.getStart
-      println(s"h = ${t.getMillisOfDay}")
-      println(s"h = ${h.getStart.getMillis}")
-      println(s"h = ${h.getEnd.getMillis}")
-      println(s"(a) contains = ${h.contains( d.getTime )}")
+      println( s"h = ${t.getMillisOfDay}" )
+      println( s"h = ${h.getStart.getMillis}" )
+      println( s"h = ${h.getEnd.getMillis}" )
+      println( s"(a) contains = ${h.contains( d.getTime )}" )
       if ( h.contains( d.getTime ) )
         ( 1.0, i )
       else if ( h.isBefore( d.getTime ) )
@@ -243,7 +260,7 @@ object NABUtils {
     val timeStamps = t.dateColumn( 0 )
 
     val column1 = createDateTimeColumn( "datetime", null )
-    val tmp = column1.get(0)
+    val tmp = column1.get( 0 )
 
     val column = createDoubleColumn( "label", values )
     addColumn( t, column )
