@@ -116,7 +116,8 @@ object NABUtils {
   //import org.json4s.jackson.JsonMethods._
   import org.json4s.native.JsonMethods._
 
-  val dtFormatter = "yyyy-MM-dd HH:mm:ss.SSSSSS"
+  //val dtFormatter = "yyyy-MM-dd HH:mm:ss.SSSSSS"
+  val dtFormatter = "yyyy-MM-dd HH:mm:ss.SSS"
 
   //implicit val formats = DefaultFormats // Brings in default date formats etc.
   implicit val formats = new DefaultFormats {
@@ -201,6 +202,13 @@ object NABUtils {
   def inInterval( d: java.util.Date, i: List[ Interval ] ): ( Double, List[ Interval ] ) = i match {
     case Nil => ( 0.0, i )
     case h :: t =>
+      println(s"d = $d")
+      println(s"d = ${d.getTime}")
+      val t = h.getStart
+      println(s"h = ${t.getMillisOfDay}")
+      println(s"h = ${h.getStart.getMillis}")
+      println(s"h = ${h.getEnd.getMillis}")
+      println(s"(a) contains = ${h.contains( d.getTime )}")
       if ( h.contains( d.getTime ) )
         ( 1.0, i )
       else if ( h.isBefore( d.getTime ) )

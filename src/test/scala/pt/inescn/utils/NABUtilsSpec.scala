@@ -73,6 +73,27 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     w0.t1.compareTo( utilDate ) shouldBe 0
   }
 
+
+  it should "parse the date format with millisecond precision" in {
+
+    // "t1" : "2014-04-10 16:15:00.001000"
+    val json0 = parse( """{
+            "t1" : "2014-04-10 16:15:00.001"
+            }
+      """ )
+    val w0 = json0.extract[ OneDate ]
+    println( json0 )
+    println( w0 )
+    json0.toString shouldBe "JObject(List((t1,JString(2014-04-10 16:15:00.001))))"
+    println(w0.t1.getTime)
+    println(w0.t1.toInstant().getNano)
+    
+    val utilDate = makeData( year = 2014, month = 4, date = 10, hrs = 16, min = 15, sec = 0, milli = 1 ) // cal.getTime()
+    println(utilDate)
+    val t = OneDate( utilDate )
+    w0.t1.compareTo( utilDate ) shouldBe 0
+  }
+  /*
   it should "parse a list of dates correctly" in {
     val json1 = parse( """
         [
@@ -178,8 +199,8 @@ class NABUtilsSpec extends FlatSpec with Matchers {
                 "artificialNoAnomaly/art_noisy.csv": [],
                 "artificialWithAnomaly/art_daily_flatmiddle.csv": [
                     [
-                        "2014-04-10 07:15:00.000000",
-                        "2014-04-11 16:45:00.000000"
+                        "2014-04-10 07:15:00.010000",
+                        "2014-04-10 07:15:00.021000",
                     ]
                 ]
             }
@@ -192,7 +213,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     println( w4 )
     
     val formatter = DateTimeFormatter.ofPattern( "yyyy-MM-dd HH:mm:ss.SSSSSS")
-    val delta = 5000 // 5 ms 
+    val delta = 5 * 1000000 // 5 ms 
     val start = LocalDateTime.parse("2014-04-10 07:15:00.000000", formatter)
     val next = start.plusNanos(delta)
     println(s"Next = $next")
@@ -201,6 +222,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     // println( dates.mkString(","))
     println( dates.mkString(",\n") )
     
+    // Can only get millis precision
     val jdates = dates.toList map { d => 
        /*val zdt = d.atZone(ZoneId.systemDefault()) 
        java.util.Date.from( zdt.toInstant() )
@@ -213,7 +235,9 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     val labels = label( jdates, List[ Double ](), w4("artificialWithAnomaly/art_daily_flatmiddle.csv") )
     println( labels.mkString(",\n") )
   }
-
+  
+  */
+/*
   it should "map the data-sets windows to list of intervals correctly" in {
     val json3 = parse( """
             {
@@ -224,8 +248,8 @@ class NABUtilsSpec extends FlatSpec with Matchers {
                 "artificialNoAnomaly/art_noisy.csv": [],
                 "artificialWithAnomaly/art_daily_flatmiddle.csv": [
                     [
-                        "2014-04-10 07:15:00.000000",
-                        "2014-04-11 16:45:00.000000"
+                        "2014-04-10 07:15:00.000010",
+                        "2014-04-10 07:15:00.000021",
                     ]
                 ]
             }
@@ -243,7 +267,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     val next = start.plusNanos(delta)
     println(s"Next = $next")
     
-    val dates = 0 to (10 * delta ) by delta  map { n => start.plusNanos(n) }
+    val dates = 0 to (10 * delta ) by delta  map { n => start.plusNanos(n) } 
     // println( dates.mkString(","))
     println( dates.mkString(",\n") )
     
@@ -255,7 +279,12 @@ class NABUtilsSpec extends FlatSpec with Matchers {
        java.util.Date.from( ins3 )
       }
     println( jdates.mkString(",\n") )
+    
+    // def label( timeStamp: List[ java.util.Date ], labels: List[ Double ], wins: List[ Interval ] ): List[ Double ]
+   val labels = label( jdates.toList, List[ Double ](), w4("artificialWithAnomaly/art_daily_flatmiddle.csv") )
+    println( labels.mkString(",\n") )
+    
   }
-  
+*/  
   
 }
