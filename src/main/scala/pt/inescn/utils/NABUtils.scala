@@ -261,7 +261,7 @@ object NABUtils {
   @annotation.tailrec
   def label( timeStamp: List[ java.time.Instant ], labels: List[ Double ], wins: List[ org.threeten.extra.Interval ] ): List[ Double ] =
     timeStamp match {
-      case Nil => labels
+      case Nil => labels.reverse
       case h :: t =>
         // Check if h is in the a window in wins
         val ( isIn, winst ) = inInterval( h, wins )

@@ -329,8 +329,8 @@ class NABUtilsSpec extends FlatSpec with Matchers {
                 "artificialNoAnomaly/art_noisy.csv": [],
                 "artificialWithAnomaly/art_daily_flatmiddle.csv": [
                     [
-                        "2014-04-10 07:15:00.010000",
-                        "2014-04-10 07:15:00.021000",
+                        "2014-04-10 07:15:00.000010",
+                        "2014-04-10 07:15:00.000020",
                     ]
                 ]
             }
@@ -343,28 +343,13 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     val w4 = windowToIntervals( w3 )
     println( w4 )
     
-    val formatter = java.time.format.DateTimeFormatter.ofPattern( "yyyy-MM-dd HH:mm:ss.SSSSSS")
-    val delta = 5 * 1000000 // 5 ms 
-    val start = java.time.LocalDateTime.parse("2014-04-10 07:15:00.000000", formatter)
-    val next = start.plusNanos(delta)
-    println(s"Next = $next")
-    
-    val dates = 0 to (10 * delta ) by delta  map { n => start.plusNanos(n) }
-    // println( dates.mkString(","))
-    println( dates.mkString(",\n") )
-    
-    // Can only get millis precision
-    val jdates = dates.toList map { d => 
-       /*val zdt = d.atZone(ZoneId.systemDefault()) 
-       java.util.Date.from( zdt.toInstant() )
-       val ins4 = Instant.from(d.atZone(ZoneId.of("UTC"))) */
-       val ins3 = java.time.Instant.from(d.atOffset(java.time.ZoneOffset.UTC)) 
-       //java.util.Date.from( ins3 )
-       ins3
-      }
-    println( jdates.mkString(",\n") )
-    
-    val labels = label( jdates, List[ Double ](), w4("artificialWithAnomaly/art_daily_flatmiddle.csv") )
+    val delta = 5 * 1000 // 5 us 
+    val start = makeInstance(2014, 4, 10, 7, 15, 0, 0)
+    val dts = 0 to (10 * delta ) by delta  map { n => start.plusNanos(n) } 
+    val dates = dts.toList
+    println( dates.mkString(", ++.. \n") )
+        
+    val labels = label( dates, List[ Double ](), w4("artificialWithAnomaly/art_daily_flatmiddle.csv") )
     println( labels.mkString(",\n") )
   }
   
