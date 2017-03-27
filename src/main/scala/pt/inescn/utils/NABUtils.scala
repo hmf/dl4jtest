@@ -50,6 +50,10 @@ package pt.inescn.utils
  *
  * JSON
  * @see https://github.com/json4s/json4s
+ * @see http://blog.takipi.com/the-ultimate-json-library-json-simple-vs-gson-vs-jackson-vs-json/
+ * @see https://github.com/google/gson
+ * @see https://github.com/FasterXML/jackson
+ * @see https://jsonp.java.net/
  */
 object NABUtils {
 
@@ -113,8 +117,14 @@ object NABUtils {
   }
 
   import org.json4s._
-  //import org.json4s.jackson.JsonMethods._
-  import org.json4s.native.JsonMethods._
+  import org.json4s.jackson.JsonMethods._
+  // import org.json4s.native.JsonMethods._
+  
+  //implicit val formats = DefaultFormats // Brings in default date formats etc
+  //implicit val formats = org.json4s.DefaultFormats ++ org.json4s.ext.JodaTimeSerializers.all
+
+  // http://stackoverflow.com/questions/27408180/json4s-conversion-to-java-sql-timestamp-does-not-work
+  // https://gist.github.com/djamelz/f963cab45933d05b2e10d8680e4213b6
 
   //val dtFormatter = "yyyy-MM-dd HH:mm:ss.SSSSSS"
   val dtFormatter = "yyyy-MM-dd HH:mm:ss.SSS"

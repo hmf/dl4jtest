@@ -21,7 +21,10 @@ class NABUtilsSpec extends FlatSpec with Matchers {
   import pt.inescn.utils.NABUtils._
 
   // Cannot be defined in method body - JSON4S barfs complaining about this. 
-  case class OneDate( t1: java.util.Date )
+  //case class OneDate( t1: java.util.Date )
+  //case class OneDate( t1: org.joda.time.Instant )
+  //case class OneDate( t1: org.joda.time.LocalDateTime)
+  case class OneDate( t1: java.sql.Date )
 
   "Listing files" should "find the NAB data files" in {
     val dataFiles = allDataFiles()
@@ -49,6 +52,174 @@ class NABUtilsSpec extends FlatSpec with Matchers {
   import java.util.Calendar
   import pt.inescn.utils.Utils._
 
+  case class Event( domain: String, filePath: String, timestamp: Long )
+
+  "Example" should "work" in {
+    import org.joda.time.DateTime
+    import org.joda.time.format.DateTimeFormat
+    import org.json4s._
+    import org.json4s.native.JsonMethods._
+
+    val datePattern = "yyyy-MM-dd hh:mm:ss.SSSSSS"
+    val s = """{"timestamp": "2016-09-29 11:31:13.247772", "domain": "d1", "filePath": "s3://..."}"""
+
+    object StringToLong extends CustomSerializer[ Long ]( format => (
+      { case JString( x ) => DateTime.parse( x, DateTimeFormat.forPattern( datePattern ) ).getMillis },
+      { case x: Long => JInt( x ) } ) )
+
+    implicit val formats = DefaultFormats + StringToLong
+
+    val event = parse( s ).extract[ Event ]
+    println( event )
+  }
+
+  /**
+   * Important note: if we use the hh:mm instead of HH:mm we get a 
+   * `Unable to obtain LocalTime from TemporalAccessor: {NanoOfSecond=0, MinuteOfHour=31, 
+   * MicroOfSecond=0, MilliOfSecond=0, HourOfAmPm=11, SecondOfMinute=13},ISO resolved to 2017-09-29 of 
+   * type java.time.format.Parsed`
+   * 
+   * Problem is the parser does no know it is `am` or `pm` if this is  not indicated
+   */
+  "Basic date-time parsing" should "parse milliseconds" in {
+    val datePattern = "yyyy-MM-dd HH:mm:ss.SSS"
+
+    val str = "2017-09-29 11:31:13.123"
+    val formatter = java.time.format.DateTimeFormatter.ofPattern( datePattern )
+    val dateTime = java.time.LocalDateTime.parse( str, formatter )
+    println(dateTime)
+    val r = java.time.LocalDateTime.of(2017, 9, 29, 11, 31, 13, 123*1000000)
+    dateTime shouldBe r
+  }
+
+  it should "parse microseconds" in {
+    val datePattern = "yyyy-MM-dd HH:mm:ss.SSSSSS"
+
+    val str = "2017-09-29 11:31:13.123456"
+    val formatter = java.time.format.DateTimeFormatter.ofPattern( datePattern )
+    val dateTime = java.time.LocalDateTime.parse( str, formatter )
+    println(dateTime)
+    val r = java.time.LocalDateTime.of(2017, 9, 29, 11, 31, 13, 123456*1000)
+    dateTime shouldBe r
+  }
+
+  it should "parse nanoseconds" in {
+    val datePattern = "yyyy-MM-dd HH:mm:ss.SSSSSSSSS"
+
+    val str = "2017-09-29 11:31:13.123456789"
+    val formatter = java.time.format.DateTimeFormatter.ofPattern( datePattern )
+    val dateTime = java.time.LocalDateTime.parse( str, formatter )
+    println(dateTime)
+    val r = java.time.LocalDateTime.of(2017, 9, 29, 11, 31, 13, 123456789)
+    dateTime shouldBe r
+  }
+
+  
+  it should "parse nanoseconds (2)" in {
+    val datePattern = "yyyy-MM-dd HH:mm:ss.nnnnnnnnn"
+
+    val str = "2017-09-29 11:31:13.123456789"
+    val formatter = java.time.format.DateTimeFormatter.ofPattern( datePattern )
+    val dateTime = java.time.LocalDateTime.parse( str, formatter )
+    println(dateTime)
+    val r = java.time.LocalDateTime.of(2017, 9, 29, 11, 31, 13, 123456789)
+    dateTime shouldBe r
+  }
+
+  /*
+  case class Event2( domain: String, filePath: String, timestamp: java.time.Instant )
+  // https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html
+  // http://stackoverflow.com/questions/37672012/how-to-create-java-time-instant-from-pattern
+  // http://stackoverflow.com/questions/33477695/why-does-the-new-java-8-date-time-api-not-have-nanosecond-precision
+  // http://stackoverflow.com/questions/27454025/unable-to-obtain-localdatetime-from-temporalaccessor-when-parsing-localdatetime
+  
+  it should "work 2" in {
+    import org.joda.time.DateTime
+    import org.joda.time.format.DateTimeFormat
+    import org.json4s._
+    import org.json4s.native.JsonMethods._
+
+    val datePattern = "yyyy-MM-dd hh:mm:ss.SSSSSS"
+    val s = """{"timestamp": "2016-09-29 11:31:13.247772000", "domain": "d1", "filePath": "s3://..."}"""
+
+    object StringToLong extends CustomSerializer[ java.time.Instant ]( format => (
+      { case JString( x ) => 
+        println("?????? - " +  x)
+        //java.time.Instant.parse( x )
+        //val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm:ss.nnnnnnnnn") 
+        val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm:ss.SSSSSSSSS") 
+        //val formatter = java.time.format.DateTimeFormatter.ofPattern("uuuu-MM-dd hh:mm:ss.nnnnnn") 
+        try {
+          java.time.LocalDateTime.parse(x, formatter)
+        } catch {
+          case e => println(e)
+        }
+        val parsedDate = java.time.LocalDateTime.parse(x, formatter)
+        println("222222")
+        val off = java.time.ZoneId.of("UTC")
+        println(parsedDate)
+        val f = formatter.format(parsedDate)
+        println(f)
+        // parsedDate.atStartOfDay(off).toInstant() // for java.time.Local
+        parsedDate.atZone(off).toInstant()
+        },
+      { case x: java.time.Instant => JString( x.toString() ) } 
+        ) 
+      )
+
+    implicit val formats = DefaultFormats + StringToLong
+
+    val event = parse( s ).extract[ Event2 ]
+    //println(event)
+    println(event.timestamp)
+    println(event.timestamp.getNano)
+  }
+  */
+
+  /*
+  it should "work 3" in {
+    import org.joda.time.DateTime
+    import org.joda.time.format.DateTimeFormat
+    import org.json4s._
+    import org.json4s.native.JsonMethods._
+
+    val datePattern = "yyyy-MM-dd hh:mm:ss.SSSSSS"
+    val s = """{"timestamp": "2016-09-29 11:31:13.247772", "domain": "d1", "filePath": "s3://..."}"""
+
+    object StringToLong extends CustomSerializer[ java.time.Instant ]( format => (
+      { case JString( x ) => 
+        println("?????? - " +  x)
+        //java.time.Instant.parse( x )
+        val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm:ss.nnnnnn") 
+        //val formatter = java.time.format.DateTimeFormatter.ofPattern("uuuu-MM-dd hh:mm:ss.nnnnnn") 
+        try {
+          java.time.LocalDateTime.parse(x, formatter)
+        } catch {
+          case e => println(e)
+        }
+        val parsedDate = java.time.LocalDateTime.parse(x, formatter)
+        println("222222")
+        val off = java.time.ZoneId.of("UTC")
+        println(parsedDate)
+        val f = formatter.format(parsedDate)
+        println(f)
+        // parsedDate.atStartOfDay(off).toInstant() // for java.time.Local
+        parsedDate.atZone(off).toInstant()
+        },
+      { case x: java.time.Instant => JString( x.toString() ) } 
+        ) 
+      )
+
+    implicit val formats = DefaultFormats + StringToLong
+
+    val event = parse( s ).extract[ Event2 ]
+    //println(event)
+    println(event.timestamp)
+    println(event.timestamp.getNano)
+  }
+  */
+
+  /*
   "Parsing the JSON window file " should "parse the date format correctly" in {
 
     val json0 = parse( """{
@@ -60,6 +231,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     //println( w0 )
     json0.toString shouldBe "JObject(List((t1,JString(2014-04-10 16:15:00.000000))))"
 
+    /* TODO
     val utilDate = makeData( year = 2014, month = 4, date = 10, hrs = 16, min = 15, sec = 0, milli = 0 ) // cal.getTime()  
     val t = OneDate( utilDate )
     //println(w0.t1)
@@ -70,9 +242,8 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     //w0 should === (t)
     //w0 shouldBe  OneDate( new java.util.Date(year, month, date, hrs, min, sec) )
     //w0 shouldEqual(t)
-    w0.t1.compareTo( utilDate ) shouldBe 0
+    w0.t1.compareTo( utilDate ) shouldBe 0 */
   }
-
 
   it should "parse the date format with millisecond precision" in {
 
@@ -85,6 +256,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     println( json0 )
     println( w0 )
     json0.toString shouldBe "JObject(List((t1,JString(2014-04-10 16:15:00.001))))"
+    /*
     println(w0.t1.getTime)
     println(w0.t1.toInstant().getNano)
     
@@ -92,7 +264,10 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     println(utilDate)
     val t = OneDate( utilDate )
     w0.t1.compareTo( utilDate ) shouldBe 0
+    */
+
   }
+  */
   /*
   it should "parse a list of dates correctly" in {
     val json1 = parse( """
@@ -237,7 +412,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
   }
   
   */
-/*
+  /*
   it should "map the data-sets windows to list of intervals correctly" in {
     val json3 = parse( """
             {
@@ -285,6 +460,6 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     println( labels.mkString(",\n") )
     
   }
-*/  
-  
+*/
+
 }
