@@ -37,7 +37,7 @@ libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0"
 
 // Date and Time
 // http://www.time4j.net/tutorial/appendix.html
-//libraryDependencies += "org.threeten" % "threeten-extra" % "1.0"
+libraryDependencies += "org.threeten" % "threeten-extra" % "1.0"
 libraryDependencies += "org.json4s" %% "json4s-native" % "3.5.1"
 libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.5.1"
 libraryDependencies += "org.json4s" %% "json4s-ext" % "3.5.1"

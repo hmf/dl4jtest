@@ -127,7 +127,7 @@ object NABUtils {
   val dtFormatter = "yyyy-MM-dd HH:mm:ss.SSS"
 
   //implicit val formats = DefaultFormats // Brings in default date formats etc.
-  
+
   // Create your own formatter that overrised's JSON4s formatters
   // Note that this only works for java.util.Date that only has millisecond precision
   // see StringToJDKLocalDateTime for a way to circumvent this
@@ -143,22 +143,39 @@ object NABUtils {
   }*/
 
   val datePattern = "yyyy-MM-dd HH:mm:ss.SSSSSS"
+  val offset_UTC = java.time.ZoneId.of("UTC")
+  val NABformatter = java.time.format.DateTimeFormatter.ofPattern( datePattern )
 
   object StringToJDKLocalDateTime extends CustomSerializer[ java.time.LocalDateTime ]( format => (
     {
       case JString( x ) =>
-        val formatter = java.time.format.DateTimeFormatter.ofPattern( datePattern )
-        java.time.LocalDateTime.parse( x, formatter )
+        java.time.LocalDateTime.parse( x, NABformatter )
     },
     {
       case x: java.time.LocalDateTime =>
-        val formatter = java.time.format.DateTimeFormatter.ofPattern( datePattern )
-        JString( x.format( formatter ) )
+        JString( x.format( NABformatter ) )
     } ) )
 
-  // To use the above fiormatter you must add it implicitly to the context
+  // To use the above formatter you must add it implicitly to the context
   // implicit val formats = DefaultFormats + StringToJDKLocalDateTime
 
+
+  object StringToJDKInstant extends CustomSerializer[ java.time.Instant ]( format => (
+    {
+      case JString( x ) =>
+        val dt = java.time.LocalDateTime.parse( x, NABformatter )
+        // parsedDate.atStartOfDay(off).toInstant() // for java.time.Local
+        dt.atZone(offset_UTC).toInstant()
+    },
+    {
+      case x: java.time.Instant =>
+        val s = NABformatter.format(x)
+        JString( s )
+    } ) )
+    
+  // To use the above formatter you must add it implicitly to the context
+  // implicit val formats = DefaultFormats + StringToJDKInstant
+    
   // https://www.mkyong.com/java8/java-8-how-to-convert-string-to-localdate/
   // http://www.threeten.org/threeten-extra/apidocs/org/threeten/extra/Interval.html
   // https://www.playframework.com/documentation/2.4.x/ScalaJson
@@ -192,24 +209,24 @@ object NABUtils {
 
   /**
    * Convert two dates into an Interval
-   * @see org.joda.time.Interval
+   * @see org.threeten.extra.Interval
    */
-  def makeInterval( t1: java.util.Date, t2: java.util.Date ): Option[ Interval ] = {
-    val tn1 = t1.getTime
-    val tn2 = t2.getTime
-    if ( tn1 <= tn2 ) Some( new Interval( tn1, tn2 ) ) else None
+  def makeInterval( t1: java.time.Instant, t2: java.time.Instant ): Option[ org.threeten.extra.Interval ] = {
+    val i = org.threeten.extra.Interval.of( t1, t2 )
+    if ( t1.isBefore( t2 ) ) Some( i ) else None
   }
 
-  def makeOptionWindows( wins: List[ List[ java.util.Date ] ] ): Option[ List[ Option[ Interval ] ] ] = wins match {
-    case Nil => None
-    case _ =>
-      Some( wins.map { win => if ( win.length != 2 ) None else makeInterval( win( 0 ), win( 1 ) ) } )
-  }
+  def makeOptionWindows( wins: List[ List[ java.time.Instant ] ] ): Option[ List[ Option[ org.threeten.extra.Interval ] ] ] =
+    wins match {
+      case Nil => None
+      case _ =>
+        Some( wins.map { win => if ( win.length != 2 ) None else makeInterval( win( 0 ), win( 1 ) ) } )
+    }
 
   /**
    * This function reads
    */
-  def windowToIntervals( windows: Map[ String, List[ List[ java.util.Date ] ] ] ) = {
+  def windowToIntervals( windows: Map[ String, List[ List[ java.time.Instant ] ] ] ) = {
 
     val t0 = windows.map { case ( k, wins ) => ( k, makeOptionWindows( wins ) ) }
     val t1 = t0.collect { case ( k, Some( v ) ) => ( k, v.flatten ) }
@@ -226,30 +243,29 @@ object NABUtils {
   import com.github.lwhite1.tablesaw.api.FloatColumn
   import com.github.lwhite1.tablesaw.api.CategoryColumn*/
 
-  def inInterval( d: java.util.Date, i: List[ Interval ] ): ( Double, List[ Interval ] ) = i match {
+  @annotation.tailrec
+  def inInterval( d: java.time.Instant, i: List[ org.threeten.extra.Interval ] ): ( Double, List[ org.threeten.extra.Interval ] ) = i match {
     case Nil => ( 0.0, i )
     case h :: t =>
-      println( s"d = $d" )
-      println( s"d = ${d.getTime}" )
-      val t = h.getStart
-      println( s"h = ${t.getMillisOfDay}" )
-      println( s"h = ${h.getStart.getMillis}" )
-      println( s"h = ${h.getEnd.getMillis}" )
-      println( s"(a) contains = ${h.contains( d.getTime )}" )
-      if ( h.contains( d.getTime ) )
+      if ( h.contains( d ) )
+        // In the interval, so keep that interval active
         ( 1.0, i )
-      else if ( h.isBefore( d.getTime ) )
-        ( 0.0, i.tail )
+      else if ( h.isBefore( d ) )
+        // Instance past the interval, so test next interval
+        // If the instant has passed the first window check if it is in the next 
+        inInterval( d, t )
       else
         ( 0.0, i )
   }
 
   @annotation.tailrec
-  def label( timeStamp: List[ java.util.Date ], labels: List[ Double ], wins: List[ Interval ] ): List[ Double ] =
+  def label( timeStamp: List[ java.time.Instant ], labels: List[ Double ], wins: List[ org.threeten.extra.Interval ] ): List[ Double ] =
     timeStamp match {
       case Nil => labels
       case h :: t =>
+        // Check if h is in the a window in wins
         val ( isIn, winst ) = inInterval( h, wins )
+        // Record whether or not it is 
         label( t, isIn :: labels, winst )
     }
 
