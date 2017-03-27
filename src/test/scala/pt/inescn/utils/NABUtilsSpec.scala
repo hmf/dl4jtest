@@ -52,27 +52,6 @@ class NABUtilsSpec extends FlatSpec with Matchers {
   import java.util.Calendar
   import pt.inescn.utils.Utils._
 
-  case class Event( domain: String, filePath: String, timestamp: Long )
-
-  "Example" should "work" in {
-    import org.joda.time.DateTime
-    import org.joda.time.format.DateTimeFormat
-    import org.json4s._
-    import org.json4s.native.JsonMethods._
-
-    val datePattern = "yyyy-MM-dd hh:mm:ss.SSSSSS"
-    val s = """{"timestamp": "2016-09-29 11:31:13.247772", "domain": "d1", "filePath": "s3://..."}"""
-
-    object StringToLong extends CustomSerializer[ Long ]( format => (
-      { case JString( x ) => DateTime.parse( x, DateTimeFormat.forPattern( datePattern ) ).getMillis },
-      { case x: Long => JInt( x ) } ) )
-
-    implicit val formats = DefaultFormats + StringToLong
-
-    val event = parse( s ).extract[ Event ]
-    println( event )
-  }
-
   /**
    * Important note: if we use the hh:mm instead of HH:mm we get a 
    * `Unable to obtain LocalTime from TemporalAccessor: {NanoOfSecond=0, MinuteOfHour=31, 
@@ -87,7 +66,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     val str = "2017-09-29 11:31:13.123"
     val formatter = java.time.format.DateTimeFormatter.ofPattern( datePattern )
     val dateTime = java.time.LocalDateTime.parse( str, formatter )
-    println(dateTime)
+    //println(dateTime)
     val r = java.time.LocalDateTime.of(2017, 9, 29, 11, 31, 13, 123*1000000)
     dateTime shouldBe r
   }
@@ -98,7 +77,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     val str = "2017-09-29 11:31:13.123456"
     val formatter = java.time.format.DateTimeFormatter.ofPattern( datePattern )
     val dateTime = java.time.LocalDateTime.parse( str, formatter )
-    println(dateTime)
+    //println(dateTime)
     val r = java.time.LocalDateTime.of(2017, 9, 29, 11, 31, 13, 123456*1000)
     dateTime shouldBe r
   }
@@ -109,7 +88,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     val str = "2017-09-29 11:31:13.123456789"
     val formatter = java.time.format.DateTimeFormatter.ofPattern( datePattern )
     val dateTime = java.time.LocalDateTime.parse( str, formatter )
-    println(dateTime)
+    //println(dateTime)
     val r = java.time.LocalDateTime.of(2017, 9, 29, 11, 31, 13, 123456789)
     dateTime shouldBe r
   }
@@ -121,11 +100,66 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     val str = "2017-09-29 11:31:13.123456789"
     val formatter = java.time.format.DateTimeFormatter.ofPattern( datePattern )
     val dateTime = java.time.LocalDateTime.parse( str, formatter )
-    println(dateTime)
+    //println(dateTime)
     val r = java.time.LocalDateTime.of(2017, 9, 29, 11, 31, 13, 123456789)
     dateTime shouldBe r
   }
 
+
+  case class Event( domain: String, filePath: String, timestamp: Long )
+
+  /**
+   * From: https://gist.github.com/djamelz/f963cab45933d05b2e10d8680e4213b6
+   */
+  "JSON Custom serializer" should "parse dates with microseconds" in {
+    import org.joda.time.DateTime
+    import org.joda.time.format.DateTimeFormat
+    import org.json4s._
+    import org.json4s.native.JsonMethods._
+
+    val datePattern = "yyyy-MM-dd HH:mm:ss.SSSSSS"
+    val s = """{"timestamp": "2016-09-29 11:31:13.247772", "domain": "d1", "filePath": "s3://..."}"""
+
+    object StringToLong extends CustomSerializer[ Long ]( format => (
+      { case JString( x ) => DateTime.parse( x, DateTimeFormat.forPattern( datePattern ) ).getMillis },
+      { case x: Long => JInt( x ) } ) )
+
+    implicit val formats = DefaultFormats + StringToLong
+
+    val event = parse( s ).extract[ Event ]
+    //println( event )
+    event.timestamp shouldBe 1475145073247L
+  }
+  
+  case class Event1( domain: String, filePath: String, timestamp: java.time.LocalDateTime )
+
+  /**
+   * From: https://gist.github.com/djamelz/f963cab45933d05b2e10d8680e4213b6
+   */
+  it should "parse dates with microseconds to JDK's java.time.LocalDateTime" in {
+    import org.json4s._
+    import org.json4s.native.JsonMethods._
+
+    val datePattern = "yyyy-MM-dd HH:mm:ss.SSSSSS"
+    val s = """{"timestamp": "2016-09-29 11:31:13.247772", "domain": "d1", "filePath": "s3://..."}"""
+
+    object StringToJDKLocalDateTime extends CustomSerializer[ java.time.LocalDateTime ]( format => (
+      { case JString( x ) => 
+          val formatter = java.time.format.DateTimeFormatter.ofPattern( datePattern )
+          java.time.LocalDateTime.parse( x, formatter )
+        },
+      { case x: java.time.LocalDateTime => 
+          val formatter = java.time.format.DateTimeFormatter.ofPattern( datePattern )
+          JString( x.format(formatter) ) } ) )
+
+    implicit val formats = DefaultFormats + StringToJDKLocalDateTime
+
+    val event = parse( s ).extract[ Event1 ]
+    println( event )
+    val r = java.time.LocalDateTime.of(2016, 9, 29, 11, 31, 13, 247772*1000)
+    event.timestamp shouldBe r
+}
+  
   /*
   case class Event2( domain: String, filePath: String, timestamp: java.time.Instant )
   // https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html
