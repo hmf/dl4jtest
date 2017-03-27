@@ -317,7 +317,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
   import java.time.ZoneOffset
   import java.time.Instant
   import java.time.Clock
-  
+  */
   
   "Labelling the JSON Window file" should "generate the labels for a time-stamp list for a given data-set windows correctly" in {
     val json3 = parse( """
@@ -336,15 +336,16 @@ class NABUtilsSpec extends FlatSpec with Matchers {
             }
             """ )
     //println( json3 )
-    val w3 = json3.extract[ Map[ String, List[ List[ java.util.Date ] ] ] ]
+    implicit val formats = DefaultFormats + StringToJDKInstant
+    val w3 = json3.extract[ Map[ String, List[ List[ java.time.Instant ] ] ] ]
     //println( w3.mkString( ";\n" ) )
 
     val w4 = windowToIntervals( w3 )
     println( w4 )
     
-    val formatter = DateTimeFormatter.ofPattern( "yyyy-MM-dd HH:mm:ss.SSSSSS")
+    val formatter = java.time.format.DateTimeFormatter.ofPattern( "yyyy-MM-dd HH:mm:ss.SSSSSS")
     val delta = 5 * 1000000 // 5 ms 
-    val start = LocalDateTime.parse("2014-04-10 07:15:00.000000", formatter)
+    val start = java.time.LocalDateTime.parse("2014-04-10 07:15:00.000000", formatter)
     val next = start.plusNanos(delta)
     println(s"Next = $next")
     
@@ -357,8 +358,9 @@ class NABUtilsSpec extends FlatSpec with Matchers {
        /*val zdt = d.atZone(ZoneId.systemDefault()) 
        java.util.Date.from( zdt.toInstant() )
        val ins4 = Instant.from(d.atZone(ZoneId.of("UTC"))) */
-       val ins3 = Instant.from(d.atOffset(ZoneOffset.UTC)) 
-       java.util.Date.from( ins3 )
+       val ins3 = java.time.Instant.from(d.atOffset(java.time.ZoneOffset.UTC)) 
+       //java.util.Date.from( ins3 )
+       ins3
       }
     println( jdates.mkString(",\n") )
     
@@ -366,7 +368,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     println( labels.mkString(",\n") )
   }
   
-  */
+  
   /*
   it should "map the data-sets windows to list of intervals correctly" in {
     val json3 = parse( """

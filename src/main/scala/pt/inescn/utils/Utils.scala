@@ -14,7 +14,7 @@ object Utils {
     result
   }
 
-  val offset_UTC = java.time.ZoneId.of( "UTC" )
+  val zoneID_UTC = java.time.ZoneId.of( "UTC" )
 
   /**
    * Utility function to generate a `java.util.Date` used prior to JDK 8.
@@ -40,7 +40,7 @@ object Utils {
   def makeInstance( year: Short, month: Short, day: Short, hrs: Short, min: Short, sec: Short = 0, nano: Int = 0 ) = {
     val r1 = java.time.LocalDateTime.of( year, month, day, hrs, min, sec, nano )
     // parsedDate.atStartOfDay(off).toInstant() // for java.time.Local
-    r1.atZone( offset_UTC ).toInstant()
+    r1.atZone( zoneID_UTC ).toInstant()
   }
 
 }

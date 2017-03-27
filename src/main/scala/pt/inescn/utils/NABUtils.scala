@@ -158,14 +158,14 @@ object NABUtils {
   // To use the above formatter you must add it implicitly to the context
   // implicit val formats = DefaultFormats + StringToJDKLocalDateTime
 
-  import pt.inescn.utils.Utils.offset_UTC
+  import pt.inescn.utils.Utils.zoneID_UTC
  
   object StringToJDKInstant extends CustomSerializer[ java.time.Instant ]( format => (
     {
       case JString( x ) =>
         val dt = java.time.LocalDateTime.parse( x, NABformatter )
         // parsedDate.atStartOfDay(off).toInstant() // for java.time.Local
-        dt.atZone(offset_UTC).toInstant()
+        dt.atZone(zoneID_UTC).toInstant()
     },
     {
       case x: java.time.Instant =>
