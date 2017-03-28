@@ -164,7 +164,6 @@ class NABUtilsSpec extends FlatSpec with Matchers {
   }
 
   /*
-  case class Event2( domain: String, filePath: String, timestamp: java.time.Instant )
   // https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html
   // http://stackoverflow.com/questions/37672012/how-to-create-java-time-instant-from-pattern
   // http://stackoverflow.com/questions/33477695/why-does-the-new-java-8-date-time-api-not-have-nanosecond-precision
@@ -353,7 +352,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     //println( labels.mkString(",\n") )
     
     labels should have size 11
-    labels should be (List(0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)) 
+    labels should be (List(0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0)) 
   }
   
   it should "generate the labels for a time-stamp list for a given data-set windows (inclusive)" in {
@@ -390,7 +389,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     //println( labels.mkString(",\n") )
     
     labels should have size 11
-    labels should be (List(0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)) 
+    labels should be (List(0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0)) 
   }
   
   
@@ -432,9 +431,10 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     println( labels.mkString(",\n") )
     
     labels should have size 11
-    labels should be (List(0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0)) 
+    labels should be (List(0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0)) 
   }
   
+  // TODO
   "Labelling the DataFrame" should "generate the labels for a time-stamp list for a given data-set windows (inclusive)" in {
     val json3 = parse( """
             {
@@ -469,7 +469,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     //println( labels.mkString(",\n") )
     
     labels should have size 11
-    labels should be (List(0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)) 
+    labels should be (List(0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0)) 
   }
   
 }

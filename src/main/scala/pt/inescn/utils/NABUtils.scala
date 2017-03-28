@@ -67,10 +67,19 @@ object NABUtils {
   val combined_windows = "combined_windows.json"
   val combined_windows_tiny = "combined_windows_tiny.json"
 
+  val TIMESTAMP_H = "timestamp"
+  val VALUE_H = "value"
+  val ANOMALY_SCORE_H = "anomaly_score"
+  val LABEL_H = "label"
+  
+  
   //import scala.io.Source 
   import better.files._
   import java.io.{ File => JFile }
+  
+  import collection.JavaConverters._
 
+        
   /**
    * Get all files listed in the directory
    */
@@ -103,8 +112,8 @@ object NABUtils {
   */
 
   import java.time.LocalDate
-  //import org.threeten.extra.Interval
-  import org.joda.time.Interval
+  import org.threeten.extra.Interval
+  //import org.joda.time.Interval
 
   def runAlgo( data: File ) = ???
   def addDetection( data: File, detections: List[ Double ] ) = ???
@@ -209,23 +218,23 @@ object NABUtils {
 
   /**
    * Converts two dates into an Interval. We use an interval that has nanosecond precision
-   * 
+   *
    * @see org.threeten.extra.Interval
    */
-  def makeInterval( t1: java.time.Instant, t2: java.time.Instant ): Option[ org.threeten.extra.Interval ] = {
-    val i = org.threeten.extra.Interval.of( t1, t2 )
+  def makeInterval( t1: java.time.Instant, t2: java.time.Instant ): Option[ Interval ] = {
+    val i = Interval.of( t1, t2 )
     if ( t1.isBefore( t2 ) ) Some( i ) else None
   }
 
   /**
    * Takes a list of lists of instances and converts each sublist of instances into an `Interval`.
-   * We assume that each sublist has only 2 elements: the start and end time `Instant` that 
+   * We assume that each sublist has only 2 elements: the start and end time `Instant` that
    * are used to create the `Interval`. If it does not contain 2 elements, a `None` is generated.
    * If the file's window list is empty (no list of pairs of time `Instant`) then a `None` is returned.
-   * 
+   *
    * @see makeListWindows
    */
-  def makeOptionWindows( wins: List[ List[ java.time.Instant ] ] ): Option[ List[ Option[ org.threeten.extra.Interval ] ] ] =
+  def makeOptionWindows( wins: List[ List[ java.time.Instant ] ] ): Option[ List[ Option[ Interval ] ] ] =
     wins match {
       case Nil => None
       case _ =>
@@ -234,13 +243,13 @@ object NABUtils {
 
   /**
    * Takes a list of lists of instances and converts each sublist of instances into an `Interval`.
-   * We assume that each sublist has only 2 elements: the start and end time `Instant` that 
+   * We assume that each sublist has only 2 elements: the start and end time `Instant` that
    * are used to create the `Interval`. If it does not contain 2 elements, a `None` is generated.
    * If the file's window list is empty then an empty list is also returned.
-   * 
+   *
    * @see  makeOptionWindows
    */
-  def makeListWindows( wins: List[ List[ java.time.Instant ] ] ): List[ Option[ org.threeten.extra.Interval ] ] =
+  def makeListWindows( wins: List[ List[ java.time.Instant ] ] ): List[ Option[ Interval ] ] =
     wins match {
       case Nil => Nil
       case _ =>
@@ -252,7 +261,7 @@ object NABUtils {
    * contains only two elements: the start and end time-stamps of a anomaly window. Each pair is then
    * converted to an `Interval`. All `None`are filtered out and only the existing content of the `Some`
    * are returned.
-   * 
+   *
    * @see windowToIntervals
    */
   def windowToOptionIntervals( windows: Map[ String, List[ List[ java.time.Instant ] ] ] ) = {
@@ -268,7 +277,7 @@ object NABUtils {
    * contains only two elements: the start and end time-stamps of a anomaly window. Each pair is then
    * converted to an `Interval`. Any data files with no anomaly window labels are returned as empty lists
    * (we still have to generate labels for these)
-   * 
+   *
    * @see windowToOptionIntervals
    */
   def windowToIntervals( windows: Map[ String, List[ List[ java.time.Instant ] ] ] ) = {
@@ -288,67 +297,67 @@ object NABUtils {
 
   /**
    * Checks if `Instant` `d` is within the `Interval` `i`.
-   * Test is inclusive with the start and exclusive with the end. 
+   * Test is inclusive with the start and exclusive with the end.
    */
-  def checkExclusiveIn( i: org.threeten.extra.Interval, d: java.time.Instant ) = i.contains( d )
+  def checkExclusiveIn( i: Interval, d: java.time.Instant ) = i.contains( d )
   /**
    * Checks if `Instant` `d` is within the `Interval` `i`.
-   * Test is inclusive both with the start and the end. 
+   * Test is inclusive both with the start and the end.
    */
-  def checkInclusiveIn( i: org.threeten.extra.Interval, d: java.time.Instant ) = i.contains( d ) || ( i.getEnd.compareTo( d ) == 0 )
+  def checkInclusiveIn( i: Interval, d: java.time.Instant ) = i.contains( d ) || ( i.getEnd.compareTo( d ) == 0 )
+
+  type Label = Int
 
   /**
-   * This function checks if the `Instant` `d` is within any of the pending anomaly windows and if so labels 
+   * This function checks if the `Instant` `d` is within any of the pending anomaly windows and if so labels
    * it as 1 otherwise it is 0. If the `Instant` `d` occurs before the next pending anomaly window, then
    * it is labeled as not an anomaly (0). If the `Instant` `d` is within an window (`Interval`), it is labeled
    * as an anomaly (1). The current window is not removed from the pending windows list because other instances
    * may also occur in the current `Interval`. If however the current `Instance` occurs after the current
    * window, we remove it from the pending windows and search the available pending `Interval`.
-   * 
-   * Note that the function is parameterized with the interval checking function so that we can check for 
-   * either with an inclusive or exclusive end time. NAB uses an inclusive check. 
-   * 
-   * IMPORTANT: this algorithm assumes that the Interval windows are ordered chronologically. 
-   * 
+   *
+   * Note that the function is parameterized with the interval checking function so that we can check for
+   * either with an inclusive or exclusive end time. NAB uses an inclusive check.
+   *
+   * IMPORTANT: this algorithm assumes that the Interval windows are ordered chronologically.
+   *
    * @see checkExclusiveIn
    * @see checkInclusiveIn
    */
-  def isInInterval( chk: ( org.threeten.extra.Interval, java.time.Instant ) => Boolean )
-                          ( d: java.time.Instant, i: List[ org.threeten.extra.Interval ] ): ( Double, List[ org.threeten.extra.Interval ] ) = {
+  def isInInterval( chk: ( Interval, java.time.Instant ) => Boolean )( d: java.time.Instant, i: List[ Interval ] ): ( Label, List[ Interval ] ) = {
     @annotation.tailrec
-    def inInterval( d: java.time.Instant, i: List[ org.threeten.extra.Interval ] ): ( Double, List[ org.threeten.extra.Interval ] ) = i match {
-      case Nil => ( 0.0, i )
+    def inInterval( d: java.time.Instant, i: List[ Interval ] ): ( Label, List[ Interval ] ) = i match {
+      case Nil => ( 0, i )
       case h :: t =>
         if ( chk( h, d ) )
           // In the interval, so keep that interval active and label this `d` 1
-          ( 1.0, i )
+          ( 1, i )
         else if ( h.isBefore( d ) )
           // Instance past the interval, so test next interval
           // If the instant has passed the first window check if it is in the next 
           inInterval( d, t )
         else
           // Instance before any other window, so lable 0
-          ( 0.0, i )
+          ( 0, i )
     }
     inInterval( d, i )
   }
 
   /**
    * This function takes an ordered list of `Instant`s and labels these as being either within a anomaly
-   * window (1) or not (0). The windows consist of an ordered list of `Interval`. Both the `Instant` and 
+   * window (1) or not (0). The windows consist of an ordered list of `Interval`. Both the `Instant` and
    * the window lists **must** be ordered chronologically.  Both `Instant` and `Interval` have nanosecond
-   * precision.  
-   * 
-   * This function is parameterized by `inInterval` which allows us to select either an exclusive or 
-   * inclusive test on the `Interval`'s end time-stamp. **NAB** uses an **inclusive** check within the 
-   * anomaly windows 
-   * 
+   * precision.
+   *
+   * This function is parameterized by `inInterval` which allows us to select either an exclusive or
+   * inclusive test on the `Interval`'s end time-stamp. **NAB** uses an **inclusive** check within the
+   * anomaly windows
+   *
    * @see isInInterval
    */
-  def labelInstances( inInterval: ( java.time.Instant, List[ org.threeten.extra.Interval ] ) => ( Double, List[ org.threeten.extra.Interval ] ) )
-                              ( timeStamp: List[ java.time.Instant ], wins: List[ org.threeten.extra.Interval ] ): List[ Double ] = {
+  def labelInstances( inInterval: ( java.time.Instant, List[ Interval ] ) => ( Label, List[ Interval ] ) )( timeStamp: List[ java.time.Instant ], wins: List[ Interval ] ): List[ Label ] = {
     @annotation.tailrec
-    def label( timeStamp: List[ java.time.Instant ], labels: List[ Double ], wins: List[ org.threeten.extra.Interval ] ): List[ Double ] =
+    def label( timeStamp: List[ java.time.Instant ], labels: List[ Label ], wins: List[ Interval ] ): List[ Label ] =
       timeStamp match {
         case Nil => labels.reverse
         case h :: t =>
@@ -362,37 +371,37 @@ object NABUtils {
 
   /**
    * This function takes an ordered list of `Instant`s and labels these as being either within a anomaly
-   * window (1) or not (0). The windows consist of an ordered list of `Interval`. Both the `Instant` and 
+   * window (1) or not (0). The windows consist of an ordered list of `Interval`. Both the `Instant` and
    * the window lists **must** be ordered chronologically.  Both `Instant` and `Interval` have nanosecond
-   * precision.  It uses an exclusive check (final time-stamp) when labeling the anomalies. 
-   * 
+   * precision.  It uses an exclusive check (final time-stamp) when labeling the anomalies.
+   *
    * @see labelInstances
    */
-  def labelInstanceExclusive( timeStamp: List[ java.time.Instant ], wins: List[ org.threeten.extra.Interval ] ) = {
+  def labelInstanceExclusive( timeStamp: List[ java.time.Instant ], wins: List[ Interval ] ) = {
     val chk = isInInterval( checkExclusiveIn ) _
     labelInstances( chk )( timeStamp, wins )
   }
 
   /**
    * This function takes an ordered list of `Instant`s and labels these as being either within a anomaly
-   * window (1) or not (0). The windows consist of an ordered list of `Interval`. Both the `Instant` and 
+   * window (1) or not (0). The windows consist of an ordered list of `Interval`. Both the `Instant` and
    * the window lists **must** be ordered chronologically.  Both `Instant` and `Interval` have nanosecond
    * precision.  It uses an inclusive check (final time-stamp) when labeling the anomalies.
-   * 
+   *
    * @see labelInstances
    */
-  def labelInstanceInclusive( timeStamp: List[ java.time.Instant ], wins: List[ org.threeten.extra.Interval ] ) = {
+  def labelInstanceInclusive( timeStamp: List[ java.time.Instant ], wins: List[ Interval ] ) = {
     val chk = isInInterval( checkInclusiveIn ) _
     labelInstances( chk )( timeStamp, wins )
   }
-
-  def addLabels( labelInstances: ( List[ java.time.Instant ], List[ Interval ] ) => List[ Double ] )
-                       ( file: String, windows: Map[ String, List[ Interval ] ], t: Table ) = {
+  
+  
+  def addLabels( labelInstances: ( List[ java.time.Instant ], List[ Interval ] ) => List[ Label ] )( file: String, windows: Map[ String, List[ Interval ] ], t: Table ) = {
     import pt.inescn.utils.TableSawUtils._
 
     val values = List.fill( t.rowCount )( 0 )
 
-    val column = createDoubleColumn( "label", values )
+    val column = createDoubleColumn( LABEL_H, values )
     addColumn( t, column )
 
     /*
@@ -407,8 +416,59 @@ object NABUtils {
   */
   }
 
-  def evaluateAlgo() = {
-    
+  import scala.util.{ Try, Success, Failure }
+
+  def loadData( fileName: String ): Try[ Table ] = {
+    import com.github.lwhite1.tablesaw.api.Table
+    import com.github.lwhite1.tablesaw.io.csv.CsvReader
+
+    Try( Table.createFromCsv( fileName, true ) )
   }
-  
+
+  // TODO
+  def addLabelsX( labelInstances: ( List[ java.time.Instant ], List[ Interval ] ) => List[ Label ] )
+                          ( t: Table, wins: List[ Interval ] ): Table = {
+    import pt.inescn.utils.TableSawUtils._
+    wins match {
+      case Nil =>
+        val values = List.fill( t.rowCount )( 0 )
+        val column = createDoubleColumn( LABEL_H, values )
+        addColumn( t, column )
+        t
+      case h :: tl =>
+
+        val timeStamp = t.dateColumn(TIMESTAMP_H).data.asScala.toList
+        val values = labelInstanceInclusive( timeStamp, wins)
+        val column = createDoubleColumn( LABEL_H, values )
+        addColumn( t, column )
+        t
+    }
+  }
+
+  // TODO
+  def addDetectionX( t: Table, algo: Double => Double ) = {
+    //val timestamps = 
+  }
+
+  // TODO
+  def saveResultsX( t: Table ) = ???
+
+  /**
+   *
+   */
+  def evaluateAlgo( windows: Map[ String, List[ Interval ] ], algo: Double => Double ): Iterable[ Try[ Table ] ] = {
+    // TODO: par
+    windows.map {
+      case ( k, wins ) =>
+        val data = loadData( k )
+        data match {
+          case f @ Failure( _ ) => f
+          case Success( t ) => Try( addLabelsX( labelInstanceInclusive )( t, wins ) )
+            .flatMap { t => addDetectionX( t, algo ) }
+            .flatMap { t => saveResultsX( t ) }
+        }
+    }
+
+  }
+
 }
