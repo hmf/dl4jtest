@@ -159,23 +159,23 @@ object NABUtils {
   // implicit val formats = DefaultFormats + StringToJDKLocalDateTime
 
   import pt.inescn.utils.Utils.zoneID_UTC
- 
+
   object StringToJDKInstant extends CustomSerializer[ java.time.Instant ]( format => (
     {
       case JString( x ) =>
         val dt = java.time.LocalDateTime.parse( x, NABformatter )
         // parsedDate.atStartOfDay(off).toInstant() // for java.time.Local
-        dt.atZone(zoneID_UTC).toInstant()
+        dt.atZone( zoneID_UTC ).toInstant()
     },
     {
       case x: java.time.Instant =>
-        val s = NABformatter.format(x)
+        val s = NABformatter.format( x )
         JString( s )
     } ) )
-    
+
   // To use the above formatter you must add it implicitly to the context
   // implicit val formats = DefaultFormats + StringToJDKInstant
-    
+
   // https://www.mkyong.com/java8/java-8-how-to-convert-string-to-localdate/
   // http://www.threeten.org/threeten-extra/apidocs/org/threeten/extra/Interval.html
   // https://www.playframework.com/documentation/2.4.x/ScalaJson
@@ -243,10 +243,36 @@ object NABUtils {
   import com.github.lwhite1.tablesaw.api.FloatColumn
   import com.github.lwhite1.tablesaw.api.CategoryColumn*/
 
+  def checkExclusiveIn( i: org.threeten.extra.Interval, d: java.time.Instant ) = i.contains( d )
+  def checkInclusiveIn( i: org.threeten.extra.Interval, d: java.time.Instant ) = i.contains( d ) || ( i.getEnd.compareTo( d ) == 0 )
+
+  // (chk : (i: Interval, d: Instant) => Boolean)
+  def isInInterval( chk: ( org.threeten.extra.Interval, java.time.Instant ) => Boolean )
+                          ( d: java.time.Instant, i: List[ org.threeten.extra.Interval ] ): 
+                          ( Double, List[ org.threeten.extra.Interval ] ) = {
+    @annotation.tailrec
+    def inInterval( d: java.time.Instant, i: List[ org.threeten.extra.Interval ] ): ( Double, List[ org.threeten.extra.Interval ] ) = i match {
+      case Nil => ( 0.0, i )
+      case h :: t =>
+        if ( chk( h, d ) )
+          // In the interval, so keep that interval active
+          ( 1.0, i )
+        else if ( h.isBefore( d ) )
+          // Instance past the interval, so test next interval
+          // If the instant has passed the first window check if it is in the next 
+          inInterval( d, t )
+        else
+          ( 0.0, i )
+    }
+    inInterval( d, i )
+  }
+
+  /*
   @annotation.tailrec
   def inInterval( d: java.time.Instant, i: List[ org.threeten.extra.Interval ] ): ( Double, List[ org.threeten.extra.Interval ] ) = i match {
     case Nil => ( 0.0, i )
     case h :: t =>
+      val e = h.getEnd.compareTo( d ) == 0
       if ( h.contains( d ) )
         // In the interval, so keep that interval active
         ( 1.0, i )
@@ -257,18 +283,34 @@ object NABUtils {
       else
         ( 0.0, i )
   }
+*/
 
-  @annotation.tailrec
-  def label( timeStamp: List[ java.time.Instant ], labels: List[ Double ], wins: List[ org.threeten.extra.Interval ] ): List[ Double ] =
-    timeStamp match {
-      case Nil => labels.reverse
-      case h :: t =>
-        // Check if h is in the a window in wins
-        val ( isIn, winst ) = inInterval( h, wins )
-        // Record whether or not it is 
-        label( t, isIn :: labels, winst )
-    }
+  def labelInstances ( inInterval: ( java.time.Instant, List[ org.threeten.extra.Interval ] ) => ( Double, List[ org.threeten.extra.Interval ] ) )
+                               ( timeStamp: List[ java.time.Instant ], wins: List[ org.threeten.extra.Interval ] )
+                              : List[ Double ] = {
+    @annotation.tailrec
+    def label( timeStamp: List[ java.time.Instant ], labels: List[ Double ], wins: List[ org.threeten.extra.Interval ] ): List[ Double ] =
+      timeStamp match {
+        case Nil => labels.reverse
+        case h :: t =>
+          // Check if h is in the a window in wins
+          val ( isIn, winst ) = inInterval( h, wins )
+          // Record whether or not it is 
+          label( t, isIn :: labels, winst )
+      }
+    label(timeStamp, List(), wins)
+  }
 
+  def labelInstanceExclusive( timeStamp: List[ java.time.Instant ], wins: List[ org.threeten.extra.Interval ] ) = {
+    val chk = isInInterval( checkExclusiveIn ) _
+    labelInstances(chk)( timeStamp, wins)
+  }
+  
+  def labelInstanceInclusive( timeStamp: List[ java.time.Instant ], wins: List[ org.threeten.extra.Interval ] ) = {
+    val chk = isInInterval( checkInclusiveIn ) _
+    labelInstances(chk)( timeStamp, wins)
+  }
+  
   def addLabels( windows: List[ Interval ], t: Table ) = {
     import pt.inescn.utils.TableSawUtils._
 

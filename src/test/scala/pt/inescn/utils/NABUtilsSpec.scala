@@ -319,7 +319,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
   import java.time.Clock
   */
   
-  "Labelling the JSON Window file" should "generate the labels for a time-stamp list for a given data-set windows correctly" in {
+  "Labelling the JSON Window file" should "generate the labels for a time-stamp list for a given data-set windows (exclusive)" in {
     val json3 = parse( """
             {
                 "artificialNoAnomaly/art_daily_no_noise.csv": [],
@@ -349,13 +349,15 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     val dates = dts.toList
     println( dates.mkString(", ++.. \n") )
         
-    val labels = label( dates, List[ Double ](), w4("artificialWithAnomaly/art_daily_flatmiddle.csv") )
+    val labels = labelInstanceExclusive( dates, w4("artificialWithAnomaly/art_daily_flatmiddle.csv") )
     println( labels.mkString(",\n") )
+    
+    labels should have size 11
+    labels should be (List(0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)) 
   }
   
   
-  /*
-  it should "map the data-sets windows to list of intervals correctly" in {
+  "Labelling the JSON Window file" should "generate the labels for a time-stamp list for a given data-set windows (inclusive)" in {
     val json3 = parse( """
             {
                 "artificialNoAnomaly/art_daily_no_noise.csv": [],
@@ -366,42 +368,33 @@ class NABUtilsSpec extends FlatSpec with Matchers {
                 "artificialWithAnomaly/art_daily_flatmiddle.csv": [
                     [
                         "2014-04-10 07:15:00.000010",
-                        "2014-04-10 07:15:00.000021",
+                        "2014-04-10 07:15:00.000020",
                     ]
                 ]
             }
             """ )
     //println( json3 )
-    val w3 = json3.extract[ Map[ String, List[ List[ java.util.Date ] ] ] ]
+    implicit val formats = DefaultFormats + StringToJDKInstant
+    val w3 = json3.extract[ Map[ String, List[ List[ java.time.Instant ] ] ] ]
     //println( w3.mkString( ";\n" ) )
 
     val w4 = windowToIntervals( w3 )
     println( w4 )
     
-    val formatter = DateTimeFormatter.ofPattern( "yyyy-MM-dd HH:mm:ss.SSSSSS")
-    val delta = 5000 // 5 ms 
-    val start = LocalDateTime.parse("2014-04-10 07:15:00.000000", formatter)
-    val next = start.plusNanos(delta)
-    println(s"Next = $next")
-    
-    val dates = 0 to (10 * delta ) by delta  map { n => start.plusNanos(n) } 
-    // println( dates.mkString(","))
-    println( dates.mkString(",\n") )
-    
-    val jdates = dates map { d => 
-       /*val zdt = d.atZone(ZoneId.systemDefault()) 
-       java.util.Date.from( zdt.toInstant() )
-       val ins4 = Instant.from(d.atZone(ZoneId.of("UTC"))) */
-       val ins3 = Instant.from(d.atOffset(ZoneOffset.UTC)) 
-       java.util.Date.from( ins3 )
-      }
-    println( jdates.mkString(",\n") )
-    
-    // def label( timeStamp: List[ java.util.Date ], labels: List[ Double ], wins: List[ Interval ] ): List[ Double ]
-   val labels = label( jdates.toList, List[ Double ](), w4("artificialWithAnomaly/art_daily_flatmiddle.csv") )
+    val delta = 5 * 1000 // 5 us 
+    val start = makeInstance(2014, 4, 10, 7, 15, 0, 0)
+    val dts = 0 to (10 * delta ) by delta  map { n => start.plusNanos(n) } 
+    val dates = dts.toList
+    println( dates.mkString(", ++.. \n") )
+        
+    val labels = labelInstanceInclusive( dates, w4("artificialWithAnomaly/art_daily_flatmiddle.csv") )
     println( labels.mkString(",\n") )
     
+    labels should have size 11
+    labels should be (List(0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)) 
   }
-*/
-
+  
+  // TODO: check if we label correctly when next t is 2 windows ahead
+  // TODO: check addLabels to a table 
+  
 }
