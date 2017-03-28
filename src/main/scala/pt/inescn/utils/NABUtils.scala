@@ -418,6 +418,16 @@ object NABUtils {
 
   import scala.util.{ Try, Success, Failure }
 
+  type NABData = (java.time.LocalDateTime, Double, String, Option[String], Float)
+  type NABResult = (java.time.LocalDateTime, Double, Double, Int )
+
+  // https://github.com/uniVocity/csv-parsers-comparison
+  // http://stackoverflow.com/questions/17126365/strongly-typed-access-to-csv-in-scala
+  // https://github.com/nrinaudo/kantan.csv
+  // http://nrinaudo.github.io/kantan.csv/
+  // X https://github.com/FasterXML/jackson-dataformat-csv
+  // https://github.com/FasterXML/jackson-dataformats-text
+  // https://github.com/marklister/product-collections
   def loadData( fileName: String ): Try[ Table ] = {
     import com.github.lwhite1.tablesaw.api.Table
     import com.github.lwhite1.tablesaw.io.csv.CsvReader
@@ -425,7 +435,7 @@ object NABUtils {
     Try( Table.createFromCsv( fileName, true ) )
   }
 
-  // TODO
+  // TODO: Table saw may cause problems. Holds date/time as an integer !?!?!?
   def addLabelsX( labelInstances: ( List[ java.time.Instant ], List[ Interval ] ) => List[ Label ] )
                           ( t: Table, wins: List[ Interval ] ): Table = {
     import pt.inescn.utils.TableSawUtils._
@@ -436,8 +446,10 @@ object NABUtils {
         addColumn( t, column )
         t
       case h :: tl =>
-
+        import com.github.lwhite1.tablesaw.columns.packeddata.PackedLocalDateTime
         val timeStamp = t.dateColumn(TIMESTAMP_H).data.asScala.toList
+                                  .map { x => PackedLocalDateTime.asLocalDateTime(x.toLong) }
+                                  .map { x => x.atZone( zoneID_UTC ).toInstant() }
         val values = labelInstanceInclusive( timeStamp, wins)
         val column = createDoubleColumn( LABEL_H, values )
         addColumn( t, column )
