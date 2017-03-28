@@ -341,21 +341,20 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     //println( w3.mkString( ";\n" ) )
 
     val w4 = windowToIntervals( w3 )
-    println( w4 )
+    //println( w4 )
     
     val delta = 5 * 1000 // 5 us 
     val start = makeInstance(2014, 4, 10, 7, 15, 0, 0)
     val dts = 0 to (10 * delta ) by delta  map { n => start.plusNanos(n) } 
     val dates = dts.toList
-    println( dates.mkString(", ++.. \n") )
+    //println( dates.mkString(", ++.. \n") )
         
     val labels = labelInstanceExclusive( dates, w4("artificialWithAnomaly/art_daily_flatmiddle.csv") )
-    println( labels.mkString(",\n") )
+    //println( labels.mkString(",\n") )
     
     labels should have size 11
     labels should be (List(0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)) 
   }
-  
   
   "Labelling the JSON Window file" should "generate the labels for a time-stamp list for a given data-set windows (inclusive)" in {
     val json3 = parse( """
@@ -379,6 +378,48 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     //println( w3.mkString( ";\n" ) )
 
     val w4 = windowToIntervals( w3 )
+    //println( w4 )
+    
+    val delta = 5 * 1000 // 5 us 
+    val start = makeInstance(2014, 4, 10, 7, 15, 0, 0)
+    val dts = 0 to (10 * delta ) by delta  map { n => start.plusNanos(n) } 
+    val dates = dts.toList
+    //println( dates.mkString(", ++.. \n") )
+        
+    val labels = labelInstanceInclusive( dates, w4("artificialWithAnomaly/art_daily_flatmiddle.csv") )
+    //println( labels.mkString(",\n") )
+    
+    labels should have size 11
+    labels should be (List(0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)) 
+  }
+  
+  
+  "Labelling the JSON Window file" should "generate the labels for a time-stamp list for multiple windows (inclusive)" in {
+    val json3 = parse( """
+            {
+                "artificialNoAnomaly/art_daily_no_noise.csv": [],
+                "artificialNoAnomaly/art_daily_perfect_square_wave.csv": [],
+                "artificialNoAnomaly/art_daily_small_noise.csv": [],
+                "artificialNoAnomaly/art_flatline.csv": [],
+                "artificialNoAnomaly/art_noisy.csv": [],
+                "artificialWithAnomaly/art_daily_flatmiddle.csv": [
+                    [
+                        "2014-04-10 07:15:00.000010",
+                        "2014-04-10 07:15:00.000020",
+                    ]
+                    [
+                        "2014-04-10 07:15:00.000030",
+                        "2014-04-10 07:15:00.000040",
+                    ]
+                ]
+            }
+            """ )
+    //println( json3 )
+    implicit val formats = DefaultFormats + StringToJDKInstant
+    val w3 = json3.extract[ Map[ String, List[ List[ java.time.Instant ] ] ] ]
+    //println( w3.mkString( ";\n" ) )
+
+    val w4 = windowToIntervals( w3 )
     println( w4 )
     
     val delta = 5 * 1000 // 5 us 
@@ -391,7 +432,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     println( labels.mkString(",\n") )
     
     labels should have size 11
-    labels should be (List(0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)) 
+    labels should be (List(0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0)) 
   }
   
   // TODO: check if we label correctly when next t is 2 windows ahead
