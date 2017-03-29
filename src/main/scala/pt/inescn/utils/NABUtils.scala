@@ -71,15 +71,13 @@ object NABUtils {
   val VALUE_H = "value"
   val ANOMALY_SCORE_H = "anomaly_score"
   val LABEL_H = "label"
-  
-  
+
   //import scala.io.Source 
   import better.files._
   import java.io.{ File => JFile }
-  
+
   import collection.JavaConverters._
 
-        
   /**
    * Get all files listed in the directory
    */
@@ -133,7 +131,7 @@ object NABUtils {
   // https://gist.github.com/djamelz/f963cab45933d05b2e10d8680e4213b6
 
   //val dtFormatter = "yyyy-MM-dd HH:mm:ss.SSSSSS"
-  val dtFormatter = "yyyy-MM-dd HH:mm:ss.SSS"
+  //val dtFormatter = "yyyy-MM-dd HH:mm:ss.SSS"
 
   //implicit val formats = DefaultFormats // Brings in default date formats etc.
 
@@ -150,8 +148,20 @@ object NABUtils {
       f
     }
   }*/
+  
+  import java.time.Instant
+  import kantan.csv._
+  //import kantan.csv.ops._
+  import kantan.csv.java8._
+  import java.time.format.DateTimeFormatter
+  import java.time.ZoneOffset
+  
+  // Make sure we can parse the NAB dates in thre data files
+  val instantPattern = "yyyy-MM-dd HH:mm:ss" // Data files
+  val format = DateTimeFormatter.ofPattern( instantPattern ).withZone( ZoneOffset.UTC )
+  implicit val decoder: CellDecoder[ Instant ] = instantDecoder( format )
 
-  val datePattern = "yyyy-MM-dd HH:mm:ss.SSSSSS"
+  val datePattern = "yyyy-MM-dd HH:mm:ss.SSSSSS" // Labelling JSON files
   val NABformatter = java.time.format.DateTimeFormatter.ofPattern( datePattern )
 
   object StringToJDKLocalDateTime extends CustomSerializer[ java.time.LocalDateTime ]( format => (
@@ -394,8 +404,8 @@ object NABUtils {
     val chk = isInInterval( checkInclusiveIn ) _
     labelInstances( chk )( timeStamp, wins )
   }
-  
-  
+
+  /* TODO: remove
   def addLabels( labelInstances: ( List[ java.time.Instant ], List[ Interval ] ) => List[ Label ] )( file: String, windows: Map[ String, List[ Interval ] ], t: Table ) = {
     import pt.inescn.utils.TableSawUtils._
 
@@ -415,11 +425,22 @@ object NABUtils {
     addColumn( t, column )
   */
   }
-
+*/
   import scala.util.{ Try, Success, Failure }
+  import shapeless.{ :: => *::, HList, HNil }
+  import kantan.csv.ReadError
 
-  type NABData = (java.time.LocalDateTime, Double, String, Option[String], Float)
-  type NABResult = (java.time.LocalDateTime, Double, Double, Int )
+  type NABData = ( java.time.Instant, Double )
+  case class NABFrame( dt: List[ java.time.Instant ], value: List[ Double ] )
+  case class NABFrameCheck( dt: List[ java.time.Instant ], value: List[ Double ], anyFailed: Option[ ReadError ] )
+  case class NABFrameLabelled( dt: List[ java.time.Instant ], value: List[ Double ], label: List[ Int ] )
+  case class NABResult( dt: List[ java.time.Instant ], value: List[ Double ], anomaly_score: List[ Double ], label: List[ Int ] )
+  /* TODO: add helpers like these
+  {
+    def addTo(d : NABFrameLabelled, anomaly_score : List[Double]) = NABResult(d.dt, d.value, anomaly_score, d.label)
+  }*/
+
+  //class NABDataFrame( val dt: List[ java.time.Instant], val value: List[ Double ] )
 
   // https://github.com/uniVocity/csv-parsers-comparison
   // http://stackoverflow.com/questions/17126365/strongly-typed-access-to-csv-in-scala
@@ -428,59 +449,73 @@ object NABUtils {
   // X https://github.com/FasterXML/jackson-dataformat-csv
   // https://github.com/FasterXML/jackson-dataformats-text
   // https://github.com/marklister/product-collections
-  def loadData( fileName: String ): Try[ Table ] = {
-    import com.github.lwhite1.tablesaw.api.Table
-    import com.github.lwhite1.tablesaw.io.csv.CsvReader
+  def loadData( fileName: String ): Try[ NABFrame ] = {
+    import kantan.csv._
+    import kantan.csv.ops._
+    import kantan.csv.java8._
 
-    Try( Table.createFromCsv( fileName, true ) )
+    val data = Try {
+      //val rawData: java.net.URL = getClass.getResource( fileName )
+      val rawData = new JFile( fileName )
+      val reader = rawData.asCsvReader[ NABData ]( rfc.withHeader )
+      // No unzip available, one way to do it is:
+      // reader.map { case kantan.codecs.Result.Success(x) => (x._1, x._2) }.toList.unzip
+      // A little faster
+      val z = NABFrameCheck( List[ java.time.Instant ](), List[ Double ](), None )
+      reader.foldLeft( z ) {
+        case ( acc, kantan.codecs.Result.Success( e ) ) =>
+          NABFrameCheck( e._1 :: acc.dt, e._2 :: acc.value, acc.anyFailed )
+        case ( acc, kantan.codecs.Result.Failure( e ) ) =>
+          NABFrameCheck( acc.dt, acc.value, Some( e ) )
+      }
+    }
+    data match {
+      case scala.util.Success( d ) =>
+        d.anyFailed match {
+          case None      => scala.util.Success( NABFrame( d.dt.reverse, d.value.reverse ) )
+          case Some( e ) => scala.util.Failure( e )
+        }
+      case fl @ scala.util.Failure( e ) =>
+        scala.util.Failure( e )
+    }
   }
 
-  // TODO: Table saw may cause problems. Holds date/time as an integer !?!?!?
-  def addLabelsX( labelInstances: ( List[ java.time.Instant ], List[ Interval ] ) => List[ Label ] )
-                          ( t: Table, wins: List[ Interval ] ): Table = {
-    import pt.inescn.utils.TableSawUtils._
+  def addLabels( labelInstances: ( List[ java.time.Instant ], List[ Interval ] ) => List[ Label ] )( t: NABFrame, wins: List[ Interval ] ): NABFrameLabelled = {
     wins match {
       case Nil =>
-        val values = List.fill( t.rowCount )( 0 )
-        val column = createDoubleColumn( LABEL_H, values )
-        addColumn( t, column )
-        t
+        val values = List.fill( t.dt.length )( 0 )
+        NABFrameLabelled( t.dt, t.value, values )
       case h :: tl =>
-        import com.github.lwhite1.tablesaw.columns.packeddata.PackedLocalDateTime
-        val timeStamp = t.dateColumn(TIMESTAMP_H).data.asScala.toList
-                                  .map { x => PackedLocalDateTime.asLocalDateTime(x.toLong) }
-                                  .map { x => x.atZone( zoneID_UTC ).toInstant() }
-        val values = labelInstanceInclusive( timeStamp, wins)
-        val column = createDoubleColumn( LABEL_H, values )
-        addColumn( t, column )
-        t
+        val values = labelInstanceInclusive( t.dt, wins: List[ Interval ] )
+        NABFrameLabelled( t.dt, t.value, values )
     }
   }
 
   // TODO
-  def addDetectionX( t: Table, algo: Double => Double ) = {
-    //val timestamps = 
+  def addDetection( t: NABFrameLabelled, algo: Double => Double ): Try[ NABResult ] = Try {
+    val anomaly_score = t.value.map { x => algo( x ) }
+    NABResult( t.dt, t.value, anomaly_score, t.label )
   }
 
   // TODO
-  def saveResultsX( t: Table ) = ???
+  def saveResults( fileName: String, t: NABResult ): Try[ String ] = ???
 
   /**
    *
    */
-  def evaluateAlgo( windows: Map[ String, List[ Interval ] ], algo: Double => Double ): Iterable[ Try[ Table ] ] = {
+  def evaluateAlgo( labelledData: Map[ String, List[ Interval ] ], algo: Double => Double ) = {
     // TODO: par
-    windows.map {
+    labelledData.map {
       case ( k, wins ) =>
         val data = loadData( k )
         data match {
-          case f @ Failure( _ ) => f
-          case Success( t ) => Try( addLabelsX( labelInstanceInclusive )( t, wins ) )
-            .flatMap { t => addDetectionX( t, algo ) }
-            .flatMap { t => saveResultsX( t ) }
+          case Failure( e ) => Failure( e )
+          case Success( t ) =>
+            Try( addLabels( labelInstanceInclusive )( t, wins ) )
+              .flatMap { t => addDetection( t, algo ) }
+              .flatMap { t => saveResults( k, t ) }
         }
     }
-
   }
 
 }

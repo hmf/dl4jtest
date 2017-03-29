@@ -56,6 +56,17 @@ libraryDependencies += "com.googlecode.matrix-toolkits-java" % "mtj" % "1.0.4"
     
 // SCala I/O
 libraryDependencies += "com.github.pathikrit" %% "better-files" % "2.17.1"
+
+// CSV
+// Core library, included automatically if any other module is imported.
+libraryDependencies += "com.nrinaudo" %% "kantan.csv" % "0.1.18"
+// Java 8 date and time instances.
+libraryDependencies += "com.nrinaudo" %% "kantan.csv-java8" % "0.1.18"
+// Automatic type class instances derivation.
+libraryDependencies += "com.nrinaudo" %% "kantan.csv-generic" % "0.1.18"
+// jackson-csv engine.
+libraryDependencies += "com.nrinaudo" %% "kantan.csv-jackson" % "0.1.18"
+
     
 // ML
 libraryDependencies += "com.github.haifengl" % "smile-core" % "1.2.2"

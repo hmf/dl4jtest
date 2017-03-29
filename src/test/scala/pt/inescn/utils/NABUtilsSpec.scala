@@ -144,7 +144,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
   }
 
   case class Event2( domain: String, filePath: String, timestamp: java.time.Instant )
-  
+
   it should "parse dates with microseconds to JDK's Instant" in {
     import org.json4s._
     import org.json4s.native.JsonMethods._
@@ -157,9 +157,9 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     val event = parse( s ).extract[ Event2 ]
     //println( event )
     val r = java.time.LocalDateTime.of( 2016, 9, 29, 11, 31, 13, 247772 * 1000 )
-    val off = java.time.ZoneId.of("UTC")
+    val off = java.time.ZoneId.of( "UTC" )
     // parsedDate.atStartOfDay(off).toInstant() // for java.time.Local
-    val r1 = r.atZone(off).toInstant()
+    val r1 = r.atZone( off ).toInstant()
     event.timestamp shouldBe r1
   }
 
@@ -168,8 +168,8 @@ class NABUtilsSpec extends FlatSpec with Matchers {
   // http://stackoverflow.com/questions/37672012/how-to-create-java-time-instant-from-pattern
   // http://stackoverflow.com/questions/33477695/why-does-the-new-java-8-date-time-api-not-have-nanosecond-precision
   // http://stackoverflow.com/questions/27454025/unable-to-obtain-localdatetime-from-temporalaccessor-when-parsing-localdatetime
-  */  
-  
+  */
+
   // Cannot be defined in method body - JSON4S barfs complaining about this. 
   case class OneDate( t1: java.time.Instant )
 
@@ -179,7 +179,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
             "t1" : "2014-04-10 16:15:00.000001"
             }
       """ )
-      
+
     implicit val formats = DefaultFormats + StringToJDKInstant
     val w0 = json0.extract[ OneDate ]
     //println( json0 )
@@ -187,10 +187,10 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     json0.toString shouldBe "JObject(List((t1,JString(2014-04-10 16:15:00.000001))))"
 
     val r = java.time.LocalDateTime.of( 2014, 4, 10, 16, 15, 0, 1 * 1000 )
-    val off = java.time.ZoneId.of("UTC")
+    val off = java.time.ZoneId.of( "UTC" )
     // parsedDate.atStartOfDay(off).toInstant() // for java.time.Local
-    val r1 = r.atZone(off).toInstant()
-    w0.t1.compareTo( r1 ) shouldBe 0 
+    val r1 = r.atZone( off ).toInstant()
+    w0.t1.compareTo( r1 ) shouldBe 0
   }
 
   it should "parse the date format with millisecond precision" in {
@@ -206,12 +206,12 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     json0.toString shouldBe "JObject(List((t1,JString(2014-04-10 16:15:00.001000))))"
 
     val r = java.time.LocalDateTime.of( 2014, 4, 10, 16, 15, 0, 1 * 1000000 )
-    val off = java.time.ZoneId.of("UTC")
+    val off = java.time.ZoneId.of( "UTC" )
     // parsedDate.atStartOfDay(off).toInstant() // for java.time.Local
-    val r1 = r.atZone(off).toInstant()
-    w0.t1.compareTo( r1 ) shouldBe 0 
+    val r1 = r.atZone( off ).toInstant()
+    w0.t1.compareTo( r1 ) shouldBe 0
   }
-  
+
   it should "parse a list of dates correctly" in {
     val json1 = parse( """
         [
@@ -221,19 +221,19 @@ class NABUtilsSpec extends FlatSpec with Matchers {
       """ )
     implicit val formats = DefaultFormats + StringToJDKInstant
     //println( json1 )
-    val w1 = json1.extract[ List[ java.time.Instant] ]
+    val w1 = json1.extract[ List[ java.time.Instant ] ]
     //println( w1.mkString( "," ) )
     w1.size shouldBe 2
     val r1 = java.time.LocalDateTime.of( 2014, 4, 10, 16, 15, 0, 2 * 1000 )
     val r2 = java.time.LocalDateTime.of( 2014, 4, 12, 1, 45, 0, 3 * 1000 )
-    val off = java.time.ZoneId.of("UTC")
+    val off = java.time.ZoneId.of( "UTC" )
     // parsedDate.atStartOfDay(off).toInstant() // for java.time.Local
-    val ri1 = r1.atZone(off).toInstant()
-    val ri2 = r2.atZone(off).toInstant()
+    val ri1 = r1.atZone( off ).toInstant()
+    val ri2 = r2.atZone( off ).toInstant()
     //println(ri1)
     //println(ri2)
-    w1(0).compareTo( ri1 ) shouldBe 0 
-    w1(1).compareTo( ri2 ) shouldBe 0 
+    w1( 0 ).compareTo( ri1 ) shouldBe 0
+    w1( 1 ).compareTo( ri2 ) shouldBe 0
   }
 
   it should "parse a list of list of dates correctly" in {
@@ -267,7 +267,6 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     w2( 1 )( 1 ).compareTo( d4 ) shouldBe 0
   }
 
- 
   it should "map the data-sets windows to list of lists of dates correctly" in {
     val json3 = parse( """
             {
@@ -308,7 +307,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     d6( 0 )( 1 ).compareTo( dt2 ) shouldBe 0
   }
 
-/*
+  /*
   import java.time.LocalDateTime
   import java.time.format.DateTimeFormatter
   import java.time.ZoneId
@@ -317,7 +316,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
   import java.time.Instant
   import java.time.Clock
   */
-  
+
   "Labelling the JSON Window file" should "generate the labels for a time-stamp list for a given data-set windows (exclusive)" in {
     val json3 = parse( """
             {
@@ -341,20 +340,20 @@ class NABUtilsSpec extends FlatSpec with Matchers {
 
     val w4 = windowToIntervals( w3 )
     //println( w4 )
-    
+
     val delta = 5 * 1000 // 5 us 
-    val start = makeInstance(2014, 4, 10, 7, 15, 0, 0)
-    val dts = 0 to (10 * delta ) by delta  map { n => start.plusNanos(n) } 
+    val start = makeInstance( 2014, 4, 10, 7, 15, 0, 0 )
+    val dts = 0 to ( 10 * delta ) by delta map { n => start.plusNanos( n ) }
     val dates = dts.toList
     //println( dates.mkString(", ++.. \n") )
-        
-    val labels = labelInstanceExclusive( dates, w4("artificialWithAnomaly/art_daily_flatmiddle.csv") )
+
+    val labels = labelInstanceExclusive( dates, w4( "artificialWithAnomaly/art_daily_flatmiddle.csv" ) )
     //println( labels.mkString(",\n") )
-    
+
     labels should have size 11
-    labels should be (List(0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0)) 
+    labels should be ( List( 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0 ) )
   }
-  
+
   it should "generate the labels for a time-stamp list for a given data-set windows (inclusive)" in {
     val json3 = parse( """
             {
@@ -378,21 +377,20 @@ class NABUtilsSpec extends FlatSpec with Matchers {
 
     val w4 = windowToIntervals( w3 )
     //println( w4 )
-    
+
     val delta = 5 * 1000 // 5 us 
-    val start = makeInstance(2014, 4, 10, 7, 15, 0, 0)
-    val dts = 0 to (10 * delta ) by delta  map { n => start.plusNanos(n) } 
+    val start = makeInstance( 2014, 4, 10, 7, 15, 0, 0 )
+    val dts = 0 to ( 10 * delta ) by delta map { n => start.plusNanos( n ) }
     val dates = dts.toList
     //println( dates.mkString(", ++.. \n") )
-        
-    val labels = labelInstanceInclusive( dates, w4("artificialWithAnomaly/art_daily_flatmiddle.csv") )
+
+    val labels = labelInstanceInclusive( dates, w4( "artificialWithAnomaly/art_daily_flatmiddle.csv" ) )
     //println( labels.mkString(",\n") )
-    
+
     labels should have size 11
-    labels should be (List(0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0)) 
+    labels should be ( List( 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0 ) )
   }
-  
-  
+
   it should "generate the labels for a time-stamp list for multiple windows (inclusive)" in {
     val json3 = parse( """
             {
@@ -419,23 +417,66 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     //println( w3.mkString( ";\n" ) )
 
     val w4 = windowToIntervals( w3 )
-    println( w4 )
-    
+    //println( w4 )
+
     val delta = 5 * 1000 // 5 us 
-    val start = makeInstance(2014, 4, 10, 7, 15, 0, 0)
-    val dts = 0 to (10 * delta ) by delta  map { n => start.plusNanos(n) } 
+    val start = makeInstance( 2014, 4, 10, 7, 15, 0, 0 )
+    val dts = 0 to ( 10 * delta ) by delta map { n => start.plusNanos( n ) }
     val dates = dts.toList
-    println( dates.mkString(", ++.. \n") )
-        
-    val labels = labelInstanceInclusive( dates, w4("artificialWithAnomaly/art_daily_flatmiddle.csv") )
-    println( labels.mkString(",\n") )
-    
+    //println( dates.mkString(", ++.. \n") )
+
+    val labels = labelInstanceInclusive( dates, w4( "artificialWithAnomaly/art_daily_flatmiddle.csv" ) )
+    //println( labels.mkString(",\n") )
+
     labels should have size 11
-    labels should be (List(0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0)) 
+    labels should be ( List( 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0 ) )
   }
+
+  def parseInstantUTC(date: String) = {   
+    import java.time.Instant
+    import kantan.csv._
+    import kantan.csv.ops._
+    import kantan.csv.java8._
+    // Import the NAB data file parser implicitly
+    import pt.inescn.utils.NABUtils._
+    val instant = date.unsafeReadCsv[ List, Instant ]( rfc )
+    instant(0)
+  }
+
   
   // TODO
+  // http://stackoverflow.com/questions/27227331/check-for-unexpected-exceptions-using-scalatest-scalacheck
   "Labelling the DataFrame" should "generate the labels for a time-stamp list for a given data-set windows (inclusive)" in {
+    import better.files._
+    import better.files.Cmds._
+
+    import java.time.Instant
+    import kantan.csv._
+    import kantan.csv.ops._
+    import kantan.csv.java8._
+
+    // Import the NAB data file parser implicitly
+    import pt.inescn.utils.NABUtils._
+    val input = "2014-04-14 23:55:00"
+    val res = input.unsafeReadCsv[ List, Instant ]( rfc )
+    //println(res.mkString(","))
+
+    // Data file t process
+    val fileName = "art_increase_spike_density.csv"
+    //println( pwd )
+    val data = cwd / "data/nab/artificialWithAnomaly" / fileName  // cwd = pwd
+    val r = loadData( data.path.toString )
+    r.isSuccess should be ( true )
+
+    val d0 = r.getOrElse(NABUtils.NABFrame(List[ java.time.Instant ](), List[ Double ]() ))
+    d0.dt(0) should be  ( parseInstantUTC("2014-04-01 00:00:00") )
+    d0.value(0) should be  ( 20.0 )
+    
+    d0.dt(108) should be  ( parseInstantUTC("2014-04-01 09:00:00") )
+    println(d0.value(108))
+    println(d0.value.mkString(",\n"))
+    d0.value(108) should be  ( 20.0 )
+    /*
     val json3 = parse( """
             {
                 "artificialNoAnomaly/art_daily_no_noise.csv": [],
@@ -470,6 +511,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     
     labels should have size 11
     labels should be (List(0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0)) 
+    */
   }
-  
+
 }
