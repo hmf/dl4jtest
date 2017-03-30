@@ -462,8 +462,11 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     val fileName = "art_increase_spike_density.csv"
     //println( pwd )
     val data = cwd / "data/nab/data/artificialWithAnomaly" / fileName // cwd = pwd
-    val r = loadData( data.path.toString )
-    r.isSuccess should be ( true )
+    //val r = loadData( data.path.toString )
+    //r.isSuccess should be ( true )
+    val r = loadDataX( fileName )
+    //println(r)
+    r.isRight should be ( true )
 
     val d0 = r.getOrElse( NABUtils.NABFrame( List[ java.time.Instant ](), List[ Double ]() ) )
     d0.dt( 0 ) should be ( parseInstantUTC( "2014-04-01 00:00:00" ) )
@@ -492,8 +495,11 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     labels.isEmpty should be (false)
 
     val datap = cwd / "data/nab/data/artificialWithAnomaly" / dataFileName
-    val data = loadData( datap.path.toString )
-    data.isSuccess should be ( true )
+    //val data = loadData( datap.path.toString )
+    // data.isSuccess should be ( true )
+    val data = loadDataX( dataFileName )
+    //println(data)
+    data.isRight should be ( true )
     
     val labelledp = cwd / "data/nab/results/numentaTM/artificialWithAnomaly" / ("numenta" + dataFileName ) 
     

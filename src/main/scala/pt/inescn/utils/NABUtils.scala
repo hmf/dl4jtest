@@ -510,7 +510,7 @@ object NABUtils {
 
   def conv[ B ]( x: Throwable ): Either[ List[ Throwable ], B ] = Left( List( x ) )
 
-  def loadX[ A, B, C ]( f: File )( toColumns: kantan.csv.CsvReader[ kantan.csv.ReadResult[ A ] ] => Either[ List[Throwable], B ] )( finishColumns: B => B )( implicit dt: RowDecoder[ A ] ): Either[ List[Throwable], B ] = {
+  def loadX[ A, B, C ]( f: File )( toColumns: kantan.csv.CsvReader[ kantan.csv.ReadResult[ A ] ] => Either[ List[ Throwable ], B ] )( finishColumns: B => B )( implicit dt: RowDecoder[ A ] ): Either[ List[ Throwable ], B ] = {
     import kantan.csv._
     import kantan.csv.ops._
 
@@ -524,7 +524,7 @@ object NABUtils {
     //val tt = reader.fold( { x => conv( x ) : Either[List[Throwable],B] }, { x => toColumns( x ) } )
     val tt = reader.fold( { x => conv( x ) }, { x => toColumns( x ) } )
     val tt1 = tt.map { x => finishColumns( x ) }
-      
+
     val t0 = t.flatMap { x => Left[ List[ Int ], CsvReader[ ReadResult[ A ] ] ]( List( 1 ) ) /*toColumns(x)*/ }
     val t00 = t.flatMap { x => toColumns( x ) }
     val t1 = t.map { x => toColumns( x ) }
@@ -546,13 +546,21 @@ object NABUtils {
     tmp
   }
 
-  def toNABFrameColumnsX( reader: kantan.csv.CsvReader[ kantan.csv.ReadResult[ NABData ] ] ): NABFrameCheck = {
+  def toNABFrameColumnsX( reader: kantan.csv.CsvReader[ kantan.csv.ReadResult[ NABData ] ] ): Either[ List[ Throwable ], NABFrame ] = {
     val z = ( List[ java.time.Instant ](), List[ Double ](), List[ Throwable ]() )
     val tmp = reader.foldLeft( z ) {
       case ( acc, kantan.codecs.Result.Success( e ) ) => ( e._1 :: acc._1, e._2 :: acc._2, acc._3 )
       case ( acc, kantan.codecs.Result.Failure( e ) ) => ( acc._1, acc._2, e :: acc._3 )
     }
-    if ( tmp._3.isEmpty ) Failure( tmp._3( 0 ) ) else Succes()
+    // TODO: we can reverse here 
+    if ( ! tmp._3.isEmpty ) Left( tmp._3.reverse ) else Right( NABFrame( tmp._1, tmp._2 ) )
+  }
+
+  def loadDataX( fileName: String ): Either[ List[ Throwable ], NABFrame ] = {
+    import better.files._
+    import better.files.Cmds._
+    val rawData = cwd / "data/nab/data/artificialWithAnomaly" / fileName
+    loadX( rawData )( toNABFrameColumnsX )( x => x )
   }
 
   def addLabels( labelInstances: ( List[ java.time.Instant ], List[ Interval ] ) => List[ Label ] )( t: NABFrame, wins: List[ Interval ] ): NABFrameLabelled = {
