@@ -148,14 +148,14 @@ object NABUtils {
       f
     }
   }*/
-  
+
   import java.time.Instant
   import kantan.csv._
   //import kantan.csv.ops._
   import kantan.csv.java8._
   import java.time.format.DateTimeFormatter
   import java.time.ZoneOffset
-  
+
   // Make sure we can parse the NAB dates in thre data files
   val instantPattern = "yyyy-MM-dd HH:mm:ss" // Data files
   val format = DateTimeFormatter.ofPattern( instantPattern ).withZone( ZoneOffset.UTC )
@@ -480,6 +480,81 @@ object NABUtils {
     }
   }
 
+  // TODO
+  /*def loadResults( fileName: String ): Try[ NABResult ] = {
+  }*/
+
+  /* TODO: how to solve this?
+    //def conv[C, B](x : Throwable) : Either[C, B] = Left( List(x) ) 
+    def conv[B](x : Throwable) : Either[List[Throwable], B] = Left( List(x) ) 
+
+    def doX1[A,B,C](a: A, g: A => Try[A], f : A => Either[C,B], conv:Throwable  => Either[C,B] ) : Either[C,B] = {
+      val t0 = g(a)
+      val tt  = t0.fold( { x => conv(x) } , { x => f(x) } )
+      tt
+    }
+    
+    def doX2[A,B,C](a: A, g: A => Try[A], f : A => Either[C,B]) : Either[C,B] = {
+      def conv(x : Throwable) : Either[C, B] = Left( List(x) ) 
+      val t0 = g(a)
+      val tt  = t0.fold( { x => conv(x) } , { x => f(x) } )
+      tt
+    }
+    
+    def doX3[A,B,C](a: A, g: A => Try[A], f : A => Either[C,B]) : Either[C,B] = {
+      val t0 = g(a)
+      val tt  = t0.fold( { x => conv(x) } , { x => f(x) } )
+      tt
+    }
+    */
+
+  def conv[ B ]( x: Throwable ): Either[ List[ Throwable ], B ] = Left( List( x ) )
+
+  def loadX[ A, B, C ]( f: File )( toColumns: kantan.csv.CsvReader[ kantan.csv.ReadResult[ A ] ] => Either[ List[Throwable], B ] )( finishColumns: B => B )( implicit dt: RowDecoder[ A ] ): Either[ List[Throwable], B ] = {
+    import kantan.csv._
+    import kantan.csv.ops._
+
+    val reader = Try {
+      val rawData = f.toJava
+      rawData.asCsvReader[ A ]( rfc.withHeader )
+    }
+    val t = reader.toEither
+    //val tt : Either[C, B] = reader.fold( { x => Left(List(x)) } , { x => toColumns(x) } )
+    //val tt : Either[C, B] = reader.fold( { x => conv(x) } , { x => toColumns(x) } )
+    //val tt = reader.fold( { x => conv( x ) : Either[List[Throwable],B] }, { x => toColumns( x ) } )
+    val tt = reader.fold( { x => conv( x ) }, { x => toColumns( x ) } )
+    val tt1 = tt.map { x => finishColumns( x ) }
+      
+    val t0 = t.flatMap { x => Left[ List[ Int ], CsvReader[ ReadResult[ A ] ] ]( List( 1 ) ) /*toColumns(x)*/ }
+    val t00 = t.flatMap { x => toColumns( x ) }
+    val t1 = t.map { x => toColumns( x ) }
+    val t2 = t1.map { x => x.map { x => finishColumns( x ) } }
+    /*
+   reader.map { x => toColumns(x) }
+             .map { x => finishColumns( x ) }*/
+    tt1
+  }
+
+  def toNABFrameColumns( reader: kantan.csv.CsvReader[ kantan.csv.ReadResult[ NABData ] ] ): NABFrameCheck = {
+    val z = NABFrameCheck( List[ java.time.Instant ](), List[ Double ](), None )
+    val tmp = reader.foldLeft( z ) {
+      case ( acc, kantan.codecs.Result.Success( e ) ) =>
+        NABFrameCheck( e._1 :: acc.dt, e._2 :: acc.value, acc.anyFailed )
+      case ( acc, kantan.codecs.Result.Failure( e ) ) =>
+        NABFrameCheck( acc.dt, acc.value, Some( e ) )
+    }
+    tmp
+  }
+
+  def toNABFrameColumnsX( reader: kantan.csv.CsvReader[ kantan.csv.ReadResult[ NABData ] ] ): NABFrameCheck = {
+    val z = ( List[ java.time.Instant ](), List[ Double ](), List[ Throwable ]() )
+    val tmp = reader.foldLeft( z ) {
+      case ( acc, kantan.codecs.Result.Success( e ) ) => ( e._1 :: acc._1, e._2 :: acc._2, acc._3 )
+      case ( acc, kantan.codecs.Result.Failure( e ) ) => ( acc._1, acc._2, e :: acc._3 )
+    }
+    if ( tmp._3.isEmpty ) Failure( tmp._3( 0 ) ) else Succes()
+  }
+
   def addLabels( labelInstances: ( List[ java.time.Instant ], List[ Interval ] ) => List[ Label ] )( t: NABFrame, wins: List[ Interval ] ): NABFrameLabelled = {
     wins match {
       case Nil =>
@@ -516,6 +591,20 @@ object NABUtils {
               .flatMap { t => saveResults( k, t ) }
         }
     }
+  }
+
+  def loadJSONLabels( fileName: String ) = {
+    // JSON parsing
+    import org.json4s._
+    import org.json4s.native.JsonMethods._
+
+    implicit val formats = DefaultFormats + StringToJDKInstant
+
+    val file = io.Source.fromFile( fileName )
+    val json = parse( file.mkString )
+
+    val raw = json.extract[ Map[ String, List[ List[ java.time.Instant ] ] ] ]
+    windowToIntervals( raw )
   }
 
 }

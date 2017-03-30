@@ -286,7 +286,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     //println( json3 )
     implicit val formats = DefaultFormats + StringToJDKInstant
     val w3 = json3.extract[ Map[ String, List[ List[ java.time.Instant ] ] ] ]
-    println( w3.mkString( ";\n" ) )
+    //println( w3.mkString( ";\n" ) )
 
     val d1 = w3( "artificialNoAnomaly/art_daily_no_noise.csv" )
     d1.size shouldBe 0
@@ -432,7 +432,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     labels should be ( List( 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0 ) )
   }
 
-  def parseInstantUTC(date: String) = {   
+  def parseInstantUTC( date: String ) = {
     import java.time.Instant
     import kantan.csv._
     import kantan.csv.ops._
@@ -440,13 +440,10 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     // Import the NAB data file parser implicitly
     import pt.inescn.utils.NABUtils._
     val instant = date.unsafeReadCsv[ List, Instant ]( rfc )
-    instant(0)
+    instant( 0 )
   }
 
-  
-  // TODO
-  // http://stackoverflow.com/questions/27227331/check-for-unexpected-exceptions-using-scalatest-scalacheck
-  "Labelling the DataFrame" should "generate the labels for a time-stamp list for a given data-set windows (inclusive)" in {
+  "Labelling the DataFrame" should "load and parse the NAB data file correctly" in {
     import better.files._
     import better.files.Cmds._
 
@@ -461,57 +458,47 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     val res = input.unsafeReadCsv[ List, Instant ]( rfc )
     //println(res.mkString(","))
 
-    // Data file t process
+    // Data file to process
     val fileName = "art_increase_spike_density.csv"
     //println( pwd )
-    val data = cwd / "data/nab/artificialWithAnomaly" / fileName  // cwd = pwd
+    val data = cwd / "data/nab/data/artificialWithAnomaly" / fileName // cwd = pwd
     val r = loadData( data.path.toString )
     r.isSuccess should be ( true )
 
-    val d0 = r.getOrElse(NABUtils.NABFrame(List[ java.time.Instant ](), List[ Double ]() ))
-    d0.dt(0) should be  ( parseInstantUTC("2014-04-01 00:00:00") )
-    d0.value(0) should be  ( 20.0 )
-    
-    d0.dt(108) should be  ( parseInstantUTC("2014-04-01 09:00:00") )
-    println(d0.value(108))
-    println(d0.value.mkString(",\n"))
-    d0.value(108) should be  ( 20.0 )
-    /*
-    val json3 = parse( """
-            {
-                "artificialNoAnomaly/art_daily_no_noise.csv": [],
-                "artificialNoAnomaly/art_daily_perfect_square_wave.csv": [],
-                "artificialNoAnomaly/art_daily_small_noise.csv": [],
-                "artificialNoAnomaly/art_flatline.csv": [],
-                "artificialNoAnomaly/art_noisy.csv": [],
-                "artificialWithAnomaly/art_daily_flatmiddle.csv": [
-                    [
-                        "2014-04-10 07:15:00.000010",
-                        "2014-04-10 07:15:00.000020",
-                    ]
-                ]
-            }
-            """ )
-    //println( json3 )
-    implicit val formats = DefaultFormats + StringToJDKInstant
-    val w3 = json3.extract[ Map[ String, List[ List[ java.time.Instant ] ] ] ]
-    //println( w3.mkString( ";\n" ) )
+    val d0 = r.getOrElse( NABUtils.NABFrame( List[ java.time.Instant ](), List[ Double ]() ) )
+    d0.dt( 0 ) should be ( parseInstantUTC( "2014-04-01 00:00:00" ) )
+    d0.value( 0 ) should be ( 20.0 )
 
-    val w4 = windowToIntervals( w3 )
-    //println( w4 )
-    
-    val delta = 5 * 1000 // 5 us 
-    val start = makeInstance(2014, 4, 10, 7, 15, 0, 0)
-    val dts = 0 to (10 * delta ) by delta  map { n => start.plusNanos(n) } 
-    val dates = dts.toList
-    //println( dates.mkString(", ++.. \n") )
-        
-    val labels = labelInstanceExclusive( dates, w4("artificialWithAnomaly/art_daily_flatmiddle.csv") )
-    //println( labels.mkString(",\n") )
-    
-    labels should have size 11
-    labels should be (List(0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0)) 
-    */
+    d0.dt( 1 ) should be ( parseInstantUTC( "2014-04-01 00:05:00" ) )
+    d0.value( 1 ) should be ( 0.0 )
+
+    d0.dt( 108 ) should be ( parseInstantUTC( "2014-04-01 09:00:00" ) )
+    d0.value( 108 ) should be ( 0.0 )
+
+    d0.dt( 4031 ) should be ( parseInstantUTC( "2014-04-14 23:55:00" ) )
+    d0.value( 4031 ) should be ( 0.0 )
   }
 
+  it should "generate the labels for a time-stamp list for a given data-set windows (inclusive)" in {
+    import better.files._
+    import better.files.Cmds._
+
+    // Files to process
+    val dataFileName = "art_increase_spike_density.csv"
+    val labelsFileName = "combined_windows.json"
+
+    val labelsp = cwd / "data/nab/labels" / labelsFileName
+    val labels = loadJSONLabels( labelsp.path.toString )
+    labels.isEmpty should be (false)
+
+    val datap = cwd / "data/nab/data/artificialWithAnomaly" / dataFileName
+    val data = loadData( datap.path.toString )
+    data.isSuccess should be ( true )
+    
+    val labelledp = cwd / "data/nab/results/numentaTM/artificialWithAnomaly" / ("numenta" + dataFileName ) 
+    
+  }
+
+  it should "X generate the labels for a time-stamp list for a given data-set windows (inclusive)" in {
+  }
 }
