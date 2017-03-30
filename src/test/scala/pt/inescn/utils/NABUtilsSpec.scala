@@ -458,6 +458,12 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     val res = input.unsafeReadCsv[ List, Instant ]( rfc )
     //println(res.mkString(","))
 
+    // We need to bring in shapeless "compile time reflection"
+    // https://nrinaudo.github.io/kantan.csv/tut/shapeless.html
+    import kantan.csv._
+    import kantan.csv.ops._
+    import kantan.csv.generic._
+
     // Data file to process
     val fileName = "art_increase_spike_density.csv"
     //println( pwd )
@@ -492,19 +498,20 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     val labels = loadJSONLabels( labelsp )
     labels.isEmpty should be ( false )
 
-    val datap = cwd / "data/nab/data/artificialWithAnomaly" / dataFileName
-    val data = loadData( datap )
-    //println(data)
-    data.isRight should be ( true )
-
     // We need to bring in shapeless "compile time reflection"
     // https://nrinaudo.github.io/kantan.csv/tut/shapeless.html
     import kantan.csv._
     import kantan.csv.ops._
     import kantan.csv.generic._
 
+    val datap = cwd / "data/nab/data/artificialWithAnomaly" / dataFileName
+    val data = loadData( datap )
+    //println(data)
+    data.isRight should be ( true )
+
     val labelledp = cwd / "data/nab/results/numentaTM/artificialWithAnomaly" / ( "numentaTM_" + dataFileName )
-    val expected : Either[List[Throwable],  NABUtils.NABResultAll] = loadResults( labelledp )
+    //val expected : Either[List[Throwable],  NABUtils.NABResultAll] = loadResults( labelledp )
+    val expected = loadResults( labelledp )
     //println(expected)
     expected.isRight should be (true)
     // val d0 = expected.getOrElse( NABUtils.NABResultAll( List[ java.time.Instant ](), List[ Double ]() ) )

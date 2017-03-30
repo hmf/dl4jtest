@@ -431,8 +431,8 @@ object NABUtils {
   import kantan.csv.ReadError
 
   // TODO: change to case class
-  type NABData = ( java.time.Instant, Double )
-  final case class NABFinalResult( dt: java.time.Instant, value: Double, anomaly_score:  Double, raw_score: Double, label: Int, reward_low_FP_rate	: Double,  reward_low_FN_rate: Double, 	standard: Double )
+  case class NABData( dt: java.time.Instant, value : Double )
+  case class NABFinalResult( dt: java.time.Instant, value: Double, anomaly_score:  Double, raw_score: Double, label: Int, reward_low_FP_rate	: Double,  reward_low_FN_rate: Double, 	standard: Double )
   case class NABFrame( dt: List[ java.time.Instant ], value: List[ Double ] )
   // TODO: remove case class NABFrameCheck( dt: List[ java.time.Instant ], value: List[ Double ], anyFailed: Option[ ReadError ] )
   case class NABFrameLabelled( dt: List[ java.time.Instant ], value: List[ Double ], label: List[ Int ] )
@@ -498,15 +498,15 @@ object NABUtils {
 
   def toNABFrameColumns( reader: kantan.csv.CsvReader[ kantan.csv.ReadResult[ NABData ] ] ): Either[ List[ Throwable ], NABFrame ] = {
     // TODO: use NABFrame class
-    val z = ( List[ java.time.Instant ](), List[ Double ](), List[ Throwable ]() )
+    val z = ( NABFrame( List[ java.time.Instant ](), List[ Double ]()), List[ Throwable ]() )
     val tmp = reader.foldLeft( z ) {
-      case ( acc, kantan.codecs.Result.Success( e ) ) => ( e._1 :: acc._1, e._2 :: acc._2, acc._3 )
-      case ( acc, kantan.codecs.Result.Failure( e ) ) => ( acc._1, acc._2, e :: acc._3 )
+      case ( (acc,el), kantan.codecs.Result.Success( e ) ) => ( NABFrame(e.dt :: acc.dt, e.value :: acc.value), el )
+      case ( (acc,el), kantan.codecs.Result.Failure( e ) ) => ( acc, e :: el )
     }
-    if ( ! tmp._3.isEmpty ) Left( tmp._3.reverse ) else Right( NABFrame( tmp._1.reverse, tmp._2.reverse ) )
+    if ( ! tmp._2.isEmpty ) Left( tmp._2.reverse ) else Right( NABFrame( tmp._1.dt.reverse, tmp._1.value.reverse ) )
   }
 
-  def loadData( file: File): Either[ List[ Throwable ], NABFrame ] = {
+  def loadData( file: File)( implicit dt: RowDecoder[ NABData ] ): Either[ List[ Throwable ], NABFrame ] = {
     load( file )( toNABFrameColumns )( x => x )
   }
   
@@ -552,7 +552,7 @@ object NABUtils {
    *
    */
   // TODO: incorrect return type
-  def evaluateAlgo( labelledData: Map[ String, List[ Interval ] ], algo: Double => Double ) = {
+  def evaluateAlgo( labelledData: Map[ String, List[ Interval ] ], algo: Double => Double )( implicit dt: RowDecoder[ NABData ] ) = {
     import better.files._
     import better.files.Cmds._
     // TODO: par
