@@ -462,9 +462,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     val fileName = "art_increase_spike_density.csv"
     //println( pwd )
     val data = cwd / "data/nab/data/artificialWithAnomaly" / fileName // cwd = pwd
-    //val r = loadData( data.path.toString )
-    //r.isSuccess should be ( true )
-    val r = loadDataX( fileName )
+    val r = loadData( data )
     //println(r)
     r.isRight should be ( true )
 
@@ -491,18 +489,27 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     val labelsFileName = "combined_windows.json"
 
     val labelsp = cwd / "data/nab/labels" / labelsFileName
-    val labels = loadJSONLabels( labelsp.path.toString )
-    labels.isEmpty should be (false)
+    val labels = loadJSONLabels( labelsp )
+    labels.isEmpty should be ( false )
 
     val datap = cwd / "data/nab/data/artificialWithAnomaly" / dataFileName
-    //val data = loadData( datap.path.toString )
-    // data.isSuccess should be ( true )
-    val data = loadDataX( dataFileName )
+    val data = loadData( datap )
     //println(data)
     data.isRight should be ( true )
-    
-    val labelledp = cwd / "data/nab/results/numentaTM/artificialWithAnomaly" / ("numenta" + dataFileName ) 
-    
+
+    // We need to bring in shapeless "compile time reflection"
+    // https://nrinaudo.github.io/kantan.csv/tut/shapeless.html
+    import kantan.csv._
+    import kantan.csv.ops._
+    import kantan.csv.generic._
+
+    val labelledp = cwd / "data/nab/results/numentaTM/artificialWithAnomaly" / ( "numentaTM_" + dataFileName )
+    val expected : Either[List[Throwable],  NABUtils.NABResultAll] = loadResults( labelledp )
+    //println(expected)
+    expected.isRight should be (true)
+    // val d0 = expected.getOrElse( NABUtils.NABResultAll( List[ java.time.Instant ](), List[ Double ]() ) )
+   
+
   }
 
   it should "X generate the labels for a time-stamp list for a given data-set windows (inclusive)" in {

@@ -430,11 +430,15 @@ object NABUtils {
   import shapeless.{ :: => *::, HList, HNil }
   import kantan.csv.ReadError
 
+  // TODO: change to case class
   type NABData = ( java.time.Instant, Double )
+  final case class NABFinalResult( dt: java.time.Instant, value: Double, anomaly_score:  Double, raw_score: Double, label: Int, reward_low_FP_rate	: Double,  reward_low_FN_rate: Double, 	standard: Double )
   case class NABFrame( dt: List[ java.time.Instant ], value: List[ Double ] )
-  case class NABFrameCheck( dt: List[ java.time.Instant ], value: List[ Double ], anyFailed: Option[ ReadError ] )
+  // TODO: remove case class NABFrameCheck( dt: List[ java.time.Instant ], value: List[ Double ], anyFailed: Option[ ReadError ] )
   case class NABFrameLabelled( dt: List[ java.time.Instant ], value: List[ Double ], label: List[ Int ] )
   case class NABResult( dt: List[ java.time.Instant ], value: List[ Double ], anomaly_score: List[ Double ], label: List[ Int ] )
+  case class NABResultAll( dt: List[ java.time.Instant ], value: List[ Double ], anomaly_score: List[ Double ], raw_score: List[ Double ], label: List[ Int ],
+      reward_low_FP_rate	: List[Double],  reward_low_FN_rate: List[Double], 	standard: List[Double])
   /* TODO: add helpers like these
   {
     def addTo(d : NABFrameLabelled, anomaly_score : List[Double]) = NABResult(d.dt, d.value, anomaly_score, d.label)
@@ -449,36 +453,6 @@ object NABUtils {
   // X https://github.com/FasterXML/jackson-dataformat-csv
   // https://github.com/FasterXML/jackson-dataformats-text
   // https://github.com/marklister/product-collections
-  def loadData( fileName: String ): Try[ NABFrame ] = {
-    import kantan.csv._
-    import kantan.csv.ops._
-    import kantan.csv.java8._
-
-    val data = Try {
-      //val rawData: java.net.URL = getClass.getResource( fileName )
-      val rawData = new JFile( fileName )
-      val reader = rawData.asCsvReader[ NABData ]( rfc.withHeader )
-      // No unzip available, one way to do it is:
-      // reader.map { case kantan.codecs.Result.Success(x) => (x._1, x._2) }.toList.unzip
-      // A little faster
-      val z = NABFrameCheck( List[ java.time.Instant ](), List[ Double ](), None )
-      reader.foldLeft( z ) {
-        case ( acc, kantan.codecs.Result.Success( e ) ) =>
-          NABFrameCheck( e._1 :: acc.dt, e._2 :: acc.value, acc.anyFailed )
-        case ( acc, kantan.codecs.Result.Failure( e ) ) =>
-          NABFrameCheck( acc.dt, acc.value, Some( e ) )
-      }
-    }
-    data match {
-      case scala.util.Success( d ) =>
-        d.anyFailed match {
-          case None      => scala.util.Success( NABFrame( d.dt.reverse, d.value.reverse ) )
-          case Some( e ) => scala.util.Failure( e )
-        }
-      case fl @ scala.util.Failure( e ) =>
-        scala.util.Failure( e )
-    }
-  }
 
   // TODO
   /*def loadResults( fileName: String ): Try[ NABResult ] = {
@@ -510,7 +484,7 @@ object NABUtils {
 
   def conv[ B ]( x: Throwable ): Either[ List[ Throwable ], B ] = Left( List( x ) )
 
-  def loadX[ A, B, C ]( f: File )( toColumns: kantan.csv.CsvReader[ kantan.csv.ReadResult[ A ] ] => Either[ List[ Throwable ], B ] )( finishColumns: B => B )( implicit dt: RowDecoder[ A ] ): Either[ List[ Throwable ], B ] = {
+  def load[ A, B, C ]( f: File )( toColumns: kantan.csv.CsvReader[ kantan.csv.ReadResult[ A ] ] => Either[ List[ Throwable ], B ] )( finishColumns: B => B )( implicit dt: RowDecoder[ A ] ): Either[ List[ Throwable ], B ] = {
     import kantan.csv._
     import kantan.csv.ops._
 
@@ -518,49 +492,40 @@ object NABUtils {
       val rawData = f.toJava
       rawData.asCsvReader[ A ]( rfc.withHeader )
     }
-    val t = reader.toEither
-    //val tt : Either[C, B] = reader.fold( { x => Left(List(x)) } , { x => toColumns(x) } )
-    //val tt : Either[C, B] = reader.fold( { x => conv(x) } , { x => toColumns(x) } )
-    //val tt = reader.fold( { x => conv( x ) : Either[List[Throwable],B] }, { x => toColumns( x ) } )
-    val tt = reader.fold( { x => conv( x ) }, { x => toColumns( x ) } )
-    val tt1 = tt.map { x => finishColumns( x ) }
-
-    val t0 = t.flatMap { x => Left[ List[ Int ], CsvReader[ ReadResult[ A ] ] ]( List( 1 ) ) /*toColumns(x)*/ }
-    val t00 = t.flatMap { x => toColumns( x ) }
-    val t1 = t.map { x => toColumns( x ) }
-    val t2 = t1.map { x => x.map { x => finishColumns( x ) } }
-    /*
-   reader.map { x => toColumns(x) }
-             .map { x => finishColumns( x ) }*/
-    tt1
+    reader.fold( { x => conv( x ) }, { x => toColumns( x ) } )
+              .map { x => finishColumns( x ) }
   }
 
-  def toNABFrameColumns( reader: kantan.csv.CsvReader[ kantan.csv.ReadResult[ NABData ] ] ): NABFrameCheck = {
-    val z = NABFrameCheck( List[ java.time.Instant ](), List[ Double ](), None )
-    val tmp = reader.foldLeft( z ) {
-      case ( acc, kantan.codecs.Result.Success( e ) ) =>
-        NABFrameCheck( e._1 :: acc.dt, e._2 :: acc.value, acc.anyFailed )
-      case ( acc, kantan.codecs.Result.Failure( e ) ) =>
-        NABFrameCheck( acc.dt, acc.value, Some( e ) )
-    }
-    tmp
-  }
-
-  def toNABFrameColumnsX( reader: kantan.csv.CsvReader[ kantan.csv.ReadResult[ NABData ] ] ): Either[ List[ Throwable ], NABFrame ] = {
+  def toNABFrameColumns( reader: kantan.csv.CsvReader[ kantan.csv.ReadResult[ NABData ] ] ): Either[ List[ Throwable ], NABFrame ] = {
+    // TODO: use NABFrame class
     val z = ( List[ java.time.Instant ](), List[ Double ](), List[ Throwable ]() )
     val tmp = reader.foldLeft( z ) {
       case ( acc, kantan.codecs.Result.Success( e ) ) => ( e._1 :: acc._1, e._2 :: acc._2, acc._3 )
       case ( acc, kantan.codecs.Result.Failure( e ) ) => ( acc._1, acc._2, e :: acc._3 )
     }
-    // TODO: we can reverse here 
-    if ( ! tmp._3.isEmpty ) Left( tmp._3.reverse ) else Right( NABFrame( tmp._1, tmp._2 ) )
+    if ( ! tmp._3.isEmpty ) Left( tmp._3.reverse ) else Right( NABFrame( tmp._1.reverse, tmp._2.reverse ) )
   }
 
-  def loadDataX( fileName: String ): Either[ List[ Throwable ], NABFrame ] = {
-    import better.files._
-    import better.files.Cmds._
-    val rawData = cwd / "data/nab/data/artificialWithAnomaly" / fileName
-    loadX( rawData )( toNABFrameColumnsX )( x => x )
+  def loadData( file: File): Either[ List[ Throwable ], NABFrame ] = {
+    load( file )( toNABFrameColumns )( x => x )
+  }
+  
+  def toNABResultAllColumns( reader: kantan.csv.CsvReader[ kantan.csv.ReadResult[ NABFinalResult ] ] ): Either[ List[ Throwable ], NABResultAll ] = {
+    val z = ( NABResultAll( List[ java.time.Instant ](), List[ Double ](), List[ Double ](), List[ Double ](), List[ Int ](), List[Double](),  
+        List[Double](), 	List[Double]() ), List[ Throwable ]() )
+    val tmp = reader.foldLeft( z ) {
+      case ( (acc, es), kantan.codecs.Result.Success( e ) ) => 
+        (NABResultAll( e.dt:: acc.dt, e.value :: acc.value, e.anomaly_score :: acc.anomaly_score,  e.raw_score :: acc.raw_score, e.label :: acc.label, e.reward_low_FP_rate :: acc.reward_low_FP_rate, e.reward_low_FN_rate :: acc.reward_low_FN_rate, e.standard :: acc.standard), es)
+      case (( acc, es), kantan.codecs.Result.Failure( e ) ) => 
+        (acc, e :: es)
+    }
+    val r = tmp._1
+    if ( ! tmp._2.isEmpty ) Left( tmp._2.reverse ) else Right(  NABResultAll( r.dt.reverse, r.value.reverse, r.anomaly_score.reverse, r.raw_score.reverse, r.label.reverse,
+      r.reward_low_FP_rate.reverse,  r.reward_low_FN_rate.reverse, 	r.standard.reverse) )
+  }
+
+  def loadResults( file: File)( implicit dt: RowDecoder[ NABFinalResult ] ): Either[ List[ Throwable ], NABResultAll ] = {
+    load( file )( toNABResultAllColumns )( x => x )(dt)
   }
 
   def addLabels( labelInstances: ( List[ java.time.Instant ], List[ Interval ] ) => List[ Label ] )( t: NABFrame, wins: List[ Interval ] ): NABFrameLabelled = {
@@ -586,14 +551,18 @@ object NABUtils {
   /**
    *
    */
+  // TODO: incorrect return type
   def evaluateAlgo( labelledData: Map[ String, List[ Interval ] ], algo: Double => Double ) = {
+    import better.files._
+    import better.files.Cmds._
     // TODO: par
     labelledData.map {
       case ( k, wins ) =>
-        val data = loadData( k )
+        val rawData = cwd / "data/nab/data/artificialWithAnomaly" / k
+        val data = loadData( rawData )
         data match {
-          case Failure( e ) => Failure( e )
-          case Success( t ) =>
+          case Left( e ) => Left( e )
+          case Right( t ) =>
             Try( addLabels( labelInstanceInclusive )( t, wins ) )
               .flatMap { t => addDetection( t, algo ) }
               .flatMap { t => saveResults( k, t ) }
@@ -601,15 +570,15 @@ object NABUtils {
     }
   }
 
-  def loadJSONLabels( fileName: String ) = {
+  def loadJSONLabels( file: File) = {
     // JSON parsing
     import org.json4s._
     import org.json4s.native.JsonMethods._
 
     implicit val formats = DefaultFormats + StringToJDKInstant
 
-    val file = io.Source.fromFile( fileName )
-    val json = parse( file.mkString )
+    //val file = io.Source.fromFile( fileName )
+    val json = parse( file.contentAsString)
 
     val raw = json.extract[ Map[ String, List[ List[ java.time.Instant ] ] ] ]
     windowToIntervals( raw )
