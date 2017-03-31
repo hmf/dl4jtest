@@ -561,6 +561,39 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     val wins = loadJSONLabels( labels )
     println(wins.size)
     wins.size should be (58)
+    
+    val file1 = "artificialNoAnomaly/art_daily_no_noise.csv"
+    wins.contains(file1) should be (true)
+    val empty1 = wins(file1)
+    empty1.length should be (0) 
+    
+    val file2 = "artificialNoAnomaly/art_daily_perfect_square_wave.csv"
+    wins.contains(file2) should be (true)
+    val empty2 = wins(file2)
+    empty2.length should be (0) 
+    
+    val file3 = "artificialNoAnomaly/art_daily_small_noise.csv"
+    wins.contains(file3) should be (true)
+    val empty3 = wins(file3)
+    empty3.length should be (0) 
+    
+    val file4 = "artificialNoAnomaly/art_flatline.csv"
+    wins.contains(file4) should be (true)
+    val empty4 = wins(file4)
+    empty4.length should be (0) 
+    
+    val file5 = "artificialNoAnomaly/art_noisy.csv" 
+    wins.contains(file5) should be (true)
+    val empty5 = wins(file5)
+    empty5.length should be (0) 
+    
+    val file6 = "artificialWithAnomaly/art_daily_flatmiddle.csv" 
+    wins.contains(file6) should be (true)
+    val wins6 = wins(file6)
+    wins6.length should be (1) 
+    val i6 = makeInterval(  parseInstantUTC( "2014-04-10 07:15:00.000000" ) ,  parseInstantUTC( "2014-04-11 16:45:00.000000" ) )
+    wins6(0) should be (i6.get)
+    
   }
 
   

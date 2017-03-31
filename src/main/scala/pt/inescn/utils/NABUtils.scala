@@ -156,12 +156,23 @@ object NABUtils {
   import java.time.format.DateTimeFormatter
   import java.time.ZoneOffset
 
-  // Make sure we can parse the NAB dates in thre data files
+  // Implicit date parser for Kantan CSV library 
+  
+  // Make sure we can parser the NAB dates in thre data files
   val instantPattern = "yyyy-MM-dd HH:mm:ss" // Data files
-  val format = DateTimeFormatter.ofPattern( instantPattern ).withZone( ZoneOffset.UTC )
+  //val format = DateTimeFormatter.ofPattern( instantPattern ).withZone( ZoneOffset.UTC )
+  //implicit val decoder: CellDecoder[ Instant ] = instantDecoder( format )
+  // http://stackoverflow.com/questions/30103167/jsr-310-parsing-seconds-fraction-with-variable-length
+  val format = new java.time.format.DateTimeFormatterBuilder()
+                                            .appendPattern( instantPattern )
+                                            .appendFraction(java.time.temporal.ChronoField.MICRO_OF_SECOND, 0, 6, true)
+                                            .toFormatter()
+                                            .withZone( ZoneOffset.UTC )
   implicit val decoder: CellDecoder[ Instant ] = instantDecoder( format )
 
-  val datePattern = "yyyy-MM-dd HH:mm:ss.SSSSSS" // Labelling JSON files
+  // Implicit date parser for JSON4s
+  
+  val datePattern = "yyyy-MM-dd HH:mm:ss.SSSSSS" // Labeling JSON files
   val NABformatter = java.time.format.DateTimeFormatter.ofPattern( datePattern )
 
   object StringToJDKLocalDateTime extends CustomSerializer[ java.time.LocalDateTime ]( format => (
