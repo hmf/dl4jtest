@@ -223,7 +223,20 @@ object NABUtils {
   // https://github.com/julienrf/play-json-derived-codecs
   // https://github.com/mandubian/play-json-zipper
   // https://github.com/rjmac/rojoma-json
-  def readWindows( file: File ): Map[ String, List[ Interval ] ] = ???
+
+  def loadJSONLabels( file: File) = {
+    // JSON parsing
+    import org.json4s._
+    import org.json4s.native.JsonMethods._
+
+    implicit val formats = DefaultFormats + StringToJDKInstant
+
+    //val file = io.Source.fromFile( fileName )
+    val json = parse( file.contentAsString)
+
+    val raw = json.extract[ Map[ String, List[ List[ java.time.Instant ] ] ] ]
+    windowToIntervals( raw )
+  }
 
   // https://docs.oracle.com/javase/8/docs/api/java/time/package-summary.html
   // java.time
@@ -573,20 +586,6 @@ object NABUtils {
               .flatMap { t => saveResults( k, t ) }
         }
     }
-  }
-
-  def loadJSONLabels( file: File) = {
-    // JSON parsing
-    import org.json4s._
-    import org.json4s.native.JsonMethods._
-
-    implicit val formats = DefaultFormats + StringToJDKInstant
-
-    //val file = io.Source.fromFile( fileName )
-    val json = parse( file.contentAsString)
-
-    val raw = json.extract[ Map[ String, List[ List[ java.time.Instant ] ] ] ]
-    windowToIntervals( raw )
   }
 
 }
