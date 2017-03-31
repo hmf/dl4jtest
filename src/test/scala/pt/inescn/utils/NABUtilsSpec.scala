@@ -486,10 +486,91 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     d0.value( 4031 ) should be ( 0.0 )
   }
 
+  it should "should be able to load the result file (for testing)" in {
+    import better.files._
+    import better.files.Cmds._
+
+    import NABUtils._
+    import NABUtils.NABData._
+
+    // We need to bring in shapeless "compile time reflection"
+    // https://nrinaudo.github.io/kantan.csv/tut/shapeless.html
+    import kantan.csv._
+    import kantan.csv.ops._
+    import kantan.csv.generic._
+    
+    val dataDirectory = "data/nab/results/numentaTM/artificialWithAnomaly"
+    val dataFileName = "art_increase_spike_density.csv"
+    val algorithm_name = "numentaTM"
+
+    val labelledp = cwd / dataDirectory / ( "numentaTM" + "_" + dataFileName )
+    //val expected = loadResults( labelledp )
+    val expected : Either[ List[ Throwable ], NABResultAll ] = loadResults( labelledp )
+    //println(expected)
+    expected.isRight should be (true)
+    val d0 = expected.getOrElse( emptyNABResultAll )
+    val line0 = 0
+    //println( d0.dt( line0) )   
+    d0.dt( line0 ) should be ( parseInstantUTC( "2014-04-01 00:00:00" ) )
+    //d0.value( line0 ) should be (20.0 +- 0.0)
+    d0.value( line0 ) should be (20.0)
+    d0.anomaly_score( line0 ) should be (0.0301029996659)
+    d0.raw_score( line0 ) should be (1.0)
+    d0.label( line0 ) should be (0)
+    d0.reward_low_FP_rate( line0 ) should be (0.0)
+    d0.reward_low_FN_rate( line0 )  should be (0.0)
+    
+    val line1 = 1422
+    d0.dt( line1 ) should be ( parseInstantUTC( "2014-04-05 22:30:00" ) )
+    d0.value( line1 ) should be (0.0)
+    d0.anomaly_score( line1 ) should be (0.0034982625592)
+    d0.raw_score( line1 ) should be (0.0250000003725)
+    d0.label( line1 ) should be (0)
+    d0.reward_low_FP_rate( line1 ) should be (0.0)
+    d0.reward_low_FN_rate( line1 )  should be (0.0)
+    
+    val line2 = 4031
+    d0.dt( line2 ) should be ( parseInstantUTC( "2014-04-14 23:55:00" ) )
+    d0.value( line2 ) should be (0.0)
+    d0.anomaly_score( line2 ) should be (0.0115668894529)
+    d0.raw_score( line2 ) should be (0.0)
+    d0.label( line2 ) should be (0)
+    d0.reward_low_FP_rate( line2 ) should be (0.0)
+    d0.reward_low_FN_rate( line2 )  should be (0.0)
+
+  }
+
+  it should "should be able to load the failure labels (windows)" in {
+    import better.files._
+    import better.files.Cmds._
+
+    import NABUtils._
+    import NABUtils.NABData._
+
+    // We need to bring in shapeless "compile time reflection"
+    // https://nrinaudo.github.io/kantan.csv/tut/shapeless.html
+    import kantan.csv._
+    import kantan.csv.ops._
+    import kantan.csv.generic._
+    
+    val labelsDirectory = "data/nab/labels"
+    val labelsFileName = "combined_windows.json"
+    val algorithm_name = "numentaTM"
+
+    val labels = cwd / labelsDirectory / labelsFileName
+    val wins = loadJSONLabels( labels )
+    println(wins.size)
+    wins.size should be (58)
+  }
+
+  
   it should "generate the labels for a time-stamp list for a given data-set windows (inclusive)" in {
     import better.files._
     import better.files.Cmds._
 
+    import NABUtils._
+    import NABUtils.NABData._
+    
     // Files to process
     val dataFileName = "art_increase_spike_density.csv"
     val labelsFileName = "combined_windows.json"
@@ -510,12 +591,10 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     data.isRight should be ( true )
 
     val labelledp = cwd / "data/nab/results/numentaTM/artificialWithAnomaly" / ( "numentaTM_" + dataFileName )
-    //val expected : Either[List[Throwable],  NABUtils.NABResultAll] = loadResults( labelledp )
-    val expected = loadResults( labelledp )
+    //val expected = loadResults( labelledp )
+    val expected : Either[ List[ Throwable ], NABResultAll ] = loadResults( labelledp )
     //println(expected)
     expected.isRight should be (true)
-    // val d0 = expected.getOrElse( NABUtils.NABResultAll( List[ java.time.Instant ](), List[ Double ]() ) )
-   
 
   }
 

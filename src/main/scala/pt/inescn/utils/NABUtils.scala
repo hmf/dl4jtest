@@ -405,27 +405,6 @@ object NABUtils {
     labelInstances( chk )( timeStamp, wins )
   }
 
-  /* TODO: remove
-  def addLabels( labelInstances: ( List[ java.time.Instant ], List[ Interval ] ) => List[ Label ] )( file: String, windows: Map[ String, List[ Interval ] ], t: Table ) = {
-    import pt.inescn.utils.TableSawUtils._
-
-    val values = List.fill( t.rowCount )( 0 )
-
-    val column = createDoubleColumn( LABEL_H, values )
-    addColumn( t, column )
-
-    /*
-    val values = List.fill( t.rowCount )( 0 )
-    val timeStamps = t.dateColumn( 0 )
-
-    val column1 = createDateTimeColumn( "datetime", null )
-    val tmp = column1.get( 0 )
-
-    val column = createDoubleColumn( "label", values )
-    addColumn( t, column )
-  */
-  }
-*/
   import scala.util.{ Try, Success, Failure }
   import shapeless.{ :: => *::, HList, HNil }
   import kantan.csv.ReadError
@@ -439,11 +418,30 @@ object NABUtils {
   case class NABResult( dt: List[ java.time.Instant ], value: List[ Double ], anomaly_score: List[ Double ], label: List[ Int ] )
   case class NABResultAll( dt: List[ java.time.Instant ], value: List[ Double ], anomaly_score: List[ Double ], raw_score: List[ Double ], label: List[ Int ],
       reward_low_FP_rate	: List[Double],  reward_low_FN_rate: List[Double], 	standard: List[Double])
-  /* TODO: add helpers like these
-  {
-    def addTo(d : NABFrameLabelled, anomaly_score : List[Double]) = NABResult(d.dt, d.value, anomaly_score, d.label)
-  }*/
+      
+  object NABData {
+    val emptyNABFrame = NABFrame( List[ java.time.Instant ](), List[ Double ]())
+    val emptyNABResultAll = NABResultAll( List[ java.time.Instant ](), List[ Double ](), List[ Double ](), 
+                                                                 List[ Double ](), List[ Int ](), List[Double](),  
+                                                                 List[Double](), 	List[Double]() )
+        
+    def addTo(  nabf : NABFrame, e : NABData ) = NABFrame(e.dt :: nabf.dt, e.value :: nabf.value)
+    def addTo( acc: NABResultAll, e : NABFinalResult ) = 
+      NABResultAll( e.dt :: acc.dt, e.value :: acc.value, e.anomaly_score :: acc.anomaly_score,  
+                            e.raw_score :: acc.raw_score, e.label :: acc.label, 
+                            e.reward_low_FP_rate :: acc.reward_low_FP_rate, 
+                            e.reward_low_FN_rate :: acc.reward_low_FN_rate, e.standard :: acc.standard)
+    
+    def reverse( nabf : NABFrame ) =  NABFrame( nabf.dt.reverse, nabf.value.reverse ) 
+    def reverse( nabf : NABResultAll ) =  
+      NABResultAll( nabf.dt.reverse, nabf.value.reverse, nabf.anomaly_score.reverse,
+                            nabf.raw_score.reverse, nabf.label.reverse,
+                            nabf.reward_low_FP_rate.reverse, 
+                            nabf.reward_low_FN_rate.reverse, nabf.standard.reverse) 
+  }
 
+  import NABData._ 
+  
   //class NABDataFrame( val dt: List[ java.time.Instant], val value: List[ Double ] )
 
   // https://github.com/uniVocity/csv-parsers-comparison
@@ -497,13 +495,12 @@ object NABUtils {
   }
 
   def toNABFrameColumns( reader: kantan.csv.CsvReader[ kantan.csv.ReadResult[ NABData ] ] ): Either[ List[ Throwable ], NABFrame ] = {
-    // TODO: use NABFrame class
-    val z = ( NABFrame( List[ java.time.Instant ](), List[ Double ]()), List[ Throwable ]() )
+    val z = ( emptyNABFrame, List[ Throwable ]() )
     val tmp = reader.foldLeft( z ) {
-      case ( (acc,el), kantan.codecs.Result.Success( e ) ) => ( NABFrame(e.dt :: acc.dt, e.value :: acc.value), el )
+      case ( (acc,el), kantan.codecs.Result.Success( e ) ) => ( addTo(acc, e), el )
       case ( (acc,el), kantan.codecs.Result.Failure( e ) ) => ( acc, e :: el )
     }
-    if ( ! tmp._2.isEmpty ) Left( tmp._2.reverse ) else Right( NABFrame( tmp._1.dt.reverse, tmp._1.value.reverse ) )
+    if ( ! tmp._2.isEmpty ) Left( tmp._2.reverse ) else Right( reverse( tmp._1 ) )
   }
 
   def loadData( file: File)( implicit dt: RowDecoder[ NABData ] ): Either[ List[ Throwable ], NABFrame ] = {
@@ -511,13 +508,10 @@ object NABUtils {
   }
   
   def toNABResultAllColumns( reader: kantan.csv.CsvReader[ kantan.csv.ReadResult[ NABFinalResult ] ] ): Either[ List[ Throwable ], NABResultAll ] = {
-    val z = ( NABResultAll( List[ java.time.Instant ](), List[ Double ](), List[ Double ](), List[ Double ](), List[ Int ](), List[Double](),  
-        List[Double](), 	List[Double]() ), List[ Throwable ]() )
+    val z = ( emptyNABResultAll, List[ Throwable ]() )
     val tmp = reader.foldLeft( z ) {
-      case ( (acc, es), kantan.codecs.Result.Success( e ) ) => 
-        (NABResultAll( e.dt:: acc.dt, e.value :: acc.value, e.anomaly_score :: acc.anomaly_score,  e.raw_score :: acc.raw_score, e.label :: acc.label, e.reward_low_FP_rate :: acc.reward_low_FP_rate, e.reward_low_FN_rate :: acc.reward_low_FN_rate, e.standard :: acc.standard), es)
-      case (( acc, es), kantan.codecs.Result.Failure( e ) ) => 
-        (acc, e :: es)
+      case ( (acc, es), kantan.codecs.Result.Success( e ) ) => (addTo( acc, e), es)
+      case (( acc, es), kantan.codecs.Result.Failure( e ) ) => (acc, e :: es)
     }
     val r = tmp._1
     if ( ! tmp._2.isEmpty ) Left( tmp._2.reverse ) else Right(  NABResultAll( r.dt.reverse, r.value.reverse, r.anomaly_score.reverse, r.raw_score.reverse, r.label.reverse,
