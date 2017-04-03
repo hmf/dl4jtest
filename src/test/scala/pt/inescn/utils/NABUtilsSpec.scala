@@ -491,7 +491,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     import better.files.Cmds._
 
     import NABUtils._
-    import NABUtils.NABData._
+    import NABUtils.NABDataRow._
 
     // We need to bring in shapeless "compile time reflection"
     // https://nrinaudo.github.io/kantan.csv/tut/shapeless.html
@@ -545,7 +545,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     import better.files.Cmds._
 
     import NABUtils._
-    import NABUtils.NABData._
+    import NABUtils.NABDataRow._
 
     // We need to bring in shapeless "compile time reflection"
     // https://nrinaudo.github.io/kantan.csv/tut/shapeless.html
@@ -559,7 +559,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
 
     val labels = cwd / labelsDirectory / labelsFileName
     val wins = loadJSONLabels( labels )
-    println(wins.size)
+    //println(wins.size)
     wins.size should be (58)
     
     val file1 = "artificialNoAnomaly/art_daily_no_noise.csv"
@@ -619,7 +619,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     import better.files.Cmds._
 
     import NABUtils._
-    import NABUtils.NABData._
+    import NABUtils.NABDataRow._
     
     // Files to process
     val datasetId = "artificialWithAnomaly"
@@ -654,20 +654,16 @@ class NABUtilsSpec extends FlatSpec with Matchers {
 
     // We now label the original data
     val wins = labels.getOrElse(dataset, List[org.threeten.extra.Interval]())
-    println("?????????")
     //println(data.getOrElse(emptyNABFrame).dt)
-    println(wins.mkString("\n"))
+    //println(wins.mkString("\n"))
     val new_labels = addLabels( labelInstanceInclusive )( data.getOrElse(emptyNABFrame), wins )
     // And check that it is the same as the result data labels
     val old_labels = expected.getOrElse(emptyNABResultAll)
     new_labels.dt should contain theSameElementsInOrderAs old_labels.dt
     new_labels.dt should be (sorted) 
     new_labels.label should contain theSameElementsInOrderAs old_labels.label
-    
-    val t = new_labels.label zip old_labels.label
-    println( t.mkString("\n") )
   }
 
-  it should "X generate the labels for a time-stamp list for a given data-set windows (inclusive)" in {
+  it should "should add the detection correctly (assumes a perfect detector here for easy checking)" in {
   }
 }
