@@ -668,6 +668,13 @@ object NABUtils {
     if ( !tmp._2.isEmpty ) Left( tmp._2.reverse ) else Right( reverse( tmp._1 ) )
   }
 
+  /**
+   * Loads the NAB data as rows (`NABDataRow`) and converts it to column major format (`NABFrame`)
+   * 
+   * @see [[load]]
+   * @see [[NABDataRow]]
+   * @see [[NABFrame]]
+   */
   def loadData( file: File )( implicit dt: RowDecoder[ NABDataRow ] ): Either[ List[ Throwable ], NABFrame ] = {
     load( file )( toNABFrameColumns )( x => x )
   }
@@ -690,10 +697,25 @@ object NABUtils {
       r.reward_low_FP_rate.reverse, r.reward_low_FN_rate.reverse, r.standard.reverse ) )
   }
 
+  /**
+   * Loads the NAB results as rows (`NABResultRow`) and converts it to column major format (`NABResultAll`)
+   * 
+   * @see [[load]]
+   * @see [[NABDataRow]]
+   * @see [[NABFrame]]
+   */
   def loadResults( file: File )( implicit dt: RowDecoder[ NABResultRow ] ): Either[ List[ Throwable ], NABResultAll ] = {
     load( file )( toNABResultAllColumns )( x => x )( dt )
   }
 
+  /**
+   * This function takes in a column major `NABFrame` that is not labeled and a list anomaly windows 
+   * (`Interval`).  It then uses the `labelInstances` function parameter to label each  `Instant` time-stamp 
+   * in the  NABFrame as 1 if it is in one of the anomaly windows or 0 if it s not. 
+   * 
+   * @see [[NABFrame]]
+   * @see [[NABFrameLabelled]]
+   */
   def addLabels( labelInstances: ( List[ java.time.Instant ], List[ Interval ] ) => List[ Label ] )( t: NABFrame, wins: List[ Interval ] ): NABFrameLabelled = {
     wins match {
       case Nil =>
