@@ -551,7 +551,7 @@ object NABUtils {
      * Create an empty column major NAB data container
      */
     val emptyNABFrame = NABFrame( List[ java.time.Instant ](), List[ Double ]() )
-    
+
     /**
      * Create an empty column major NAB results container (NAB final output)
      */
@@ -563,7 +563,7 @@ object NABUtils {
      * Add a `NABDataRow`to the `NABFrame` in column major form.
      */
     def addTo( nabf: NABFrame, e: NABDataRow ) = NABFrame( e.dt :: nabf.dt, e.value :: nabf.value )
-    
+
     /**
      * Add a `NABResultRow`to the `NABResultAll` in column major form.
      */
@@ -572,16 +572,16 @@ object NABUtils {
         e.raw_score :: acc.raw_score, e.label :: acc.label,
         e.reward_low_FP_rate :: acc.reward_low_FP_rate,
         e.reward_low_FN_rate :: acc.reward_low_FN_rate, e.standard :: acc.standard )
-        
+
     /**
-     * When converting the rows to columns we stack the `NABDataRow` data in reverse order. 
-     * This reverses those columns to get the correct order back. 
+     * When converting the rows to columns we stack the `NABDataRow` data in reverse order.
+     * This reverses those columns to get the correct order back.
      */
     def reverse( nabf: NABFrame ) = NABFrame( nabf.dt.reverse, nabf.value.reverse )
-    
+
     /**
-     * When converting the rows to columns we stack the `NABResultAll` data in reverse order. 
-     * This reverses those columns to get the correct order back. 
+     * When converting the rows to columns we stack the `NABResultAll` data in reverse order.
+     * This reverses those columns to get the correct order back.
      */
     def reverse( nabf: NABResultAll ) =
       NABResultAll( nabf.dt.reverse, nabf.value.reverse, nabf.anomaly_score.reverse,
@@ -617,26 +617,25 @@ object NABUtils {
     */
 
   /**
-   * This is a helper function that converts the `kantan.csv.ReadResult`(Success or Failure) to 
+   * This is a helper function that converts the `kantan.csv.ReadResult`(Success or Failure) to
    * a `Either[ List[ Throwable ], B ]`. This allows us to collect the Kantan read failures that
    * store an Exception and report those at the end. Specialized function will also be provided to
-   * deal with the case of `Success`. 
+   * deal with the case of `Success`.
    */
   def conv[ B ]( x: Throwable ): Either[ List[ Throwable ], B ] = Left( List( x ) )
 
-  
   /**
    * This s a generic (polymorphic) function that allows us read a [[better.files.File]], parse its contents
    * using the Kasntan CSV parser. The parser uses the `RowDecoder[ A ]` that is implicitly passed onto it.
-   * The parser returns a list of roes that were either successfully (contain data) or unsuccessfully read 
+   * The parser returns a list of roes that were either successfully (contain data) or unsuccessfully read
    * (contains a Throwable).  If the data row was unsuccessfully read then we collect these as a list of
-   * `Left[ List[ Throwable ]]`. If the data is successfully read then it is collected as a `Right[ B ]` 
-   * where be can be for example a `NABFrame` or a `NABResultAll`. These conversions to columns 
-   * are done by the `toColumns` function parameter. 
-   * 
-   * Note that is the CSV file cannot be read and parsed then the Exception is converted (via 
-   * `conv` utility function) to a  `Left[ List[ Throwable ]]` type. 
-   * 
+   * `Left[ List[ Throwable ]]`. If the data is successfully read then it is collected as a `Right[ B ]`
+   * where be can be for example a `NABFrame` or a `NABResultAll`. These conversions to columns
+   * are done by the `toColumns` function parameter.
+   *
+   * Note that is the CSV file cannot be read and parsed then the Exception is converted (via
+   * `conv` utility function) to a  `Left[ List[ Throwable ]]` type.
+   *
    * @see toNABFrameColumns
    * @see toNABResultAllColumns
    */
@@ -654,9 +653,9 @@ object NABUtils {
 
   /**
    * This is a specific implementation of `load`s `toColumns` function parameter. It reads in `NABDataRow`s
-   * and collects these into columns major data as a `NABFrame`. If any error occurred during the parsing of 
-   * a row, then only the failures are returned. 
-   * 
+   * and collects these into columns major data as a `NABFrame`. If any error occurred during the parsing of
+   * a row, then only the failures are returned.
+   *
    * @see load
    */
   def toNABFrameColumns( reader: kantan.csv.CsvReader[ kantan.csv.ReadResult[ NABDataRow ] ] ): Either[ List[ Throwable ], NABFrame ] = {
@@ -670,7 +669,7 @@ object NABUtils {
 
   /**
    * Loads the NAB data as rows (`NABDataRow`) and converts it to column major format (`NABFrame`)
-   * 
+   *
    * @see [[load]]
    * @see [[NABDataRow]]
    * @see [[NABFrame]]
@@ -681,9 +680,9 @@ object NABUtils {
 
   /**
    * This is a specific implementation of `load`s `toColumns` function parameter. It reads in `NABResultRow`s
-   * and collects these into columns major data as a `NABResultAll`. If any error occurred during the parsing of 
-   * a row, then only the failures are returned. 
-   * 
+   * and collects these into columns major data as a `NABResultAll`. If any error occurred during the parsing of
+   * a row, then only the failures are returned.
+   *
    * @see load
    */
   def toNABResultAllColumns( reader: kantan.csv.CsvReader[ kantan.csv.ReadResult[ NABResultRow ] ] ): Either[ List[ Throwable ], NABResultAll ] = {
@@ -699,7 +698,7 @@ object NABUtils {
 
   /**
    * Loads the NAB results as rows (`NABResultRow`) and converts it to column major format (`NABResultAll`)
-   * 
+   *
    * @see [[load]]
    * @see [[NABDataRow]]
    * @see [[NABFrame]]
@@ -709,10 +708,10 @@ object NABUtils {
   }
 
   /**
-   * This function takes in a column major `NABFrame` that is not labeled and a list anomaly windows 
-   * (`Interval`).  It then uses the `labelInstances` function parameter to label each  `Instant` time-stamp 
-   * in the  NABFrame as 1 if it is in one of the anomaly windows or 0 if it s not. 
-   * 
+   * This function takes in a column major `NABFrame` that is not labeled and a list anomaly windows
+   * (`Interval`).  It then uses the `labelInstances` function parameter to label each  `Instant` time-stamp
+   * in the  NABFrame as 1 if it is in one of the anomaly windows or 0 if it s not.
+   *
    * @see [[NABFrame]]
    * @see [[NABFrameLabelled]]
    */
@@ -725,6 +724,93 @@ object NABUtils {
         val values = labelInstanceInclusive( t.dt, wins: List[ Interval ] )
         NABFrameLabelled( t.dt, t.value, values )
     }
+  }
+
+  /**
+   * Converts a [[java.time.Instant]] to bytes. We do this by converting the time-stamp to
+   * its string representation and then convert that string to an [[Array[Byte]]].
+   */
+  def toBytes( i: Instant ) = i.toString.getBytes( "UTF-8" )
+
+  import java.nio.ByteBuffer
+  import java.lang.{ Double => JDouble }
+  //import java.lang.{ Byte => JByte }
+
+  val doubleSize = JDouble.BYTES 
+
+  /**
+   * Converts a Double to an [[Array[Byte]]]. Care is take to set the buffer size using
+   * JDK 8's primitive `SIZE` value. We also `flip()` the array so that we can reset the
+   * pointers for reading (output).
+   *
+   * @see http://stackoverflow.com/questions/9810010/scala-library-to-convert-numbers-int-long-double-to-from-arraybyte
+   */
+  def toBytes( v: Double ) = {
+    val bf = java.nio.ByteBuffer.allocate( doubleSize )
+    bf.putDouble( v )
+    bf.flip()
+    //bf.order(java.nio.ByteOrder.nativeOrder)
+    bf.array()
+  }
+
+  import java.security.MessageDigest
+
+  /**
+   * This function converts the time-stamp an array bytes and then updates the digest
+   * (passed on implicitly) with his data.
+   *
+   * @see  [[toBytes(i: Instant)]]
+   */
+  def updateHash( dt: Instant )( implicit digest: MessageDigest ) = digest.update( toBytes( dt ) )
+
+  /**
+   * This function converts the time-stamp an array bytes and then updates the digest
+   * (passed on implicitly) with his data.
+   *
+   * @see  [[toBytes(value : Double)]]
+   */
+  def updateHash( value: Double )( implicit digest: MessageDigest ) = digest.update( toBytes( value ) )
+
+  /**
+   * This function reads the NAB result file (contains [[NABResultRow]]) and uses the first
+   * `sample_size` (fraction of the total number of lines, default set to 0.15). It then generates the
+   * hash  of first all of these initial time-stamps and then all of the initial values. It calculates the
+   * has using the `digest` that is passed in as an implicit.
+   *
+   * Note: we need to bring in the Kantan shapeless decoders/encoders using in order to have the
+   * case reading implicit available:
+   * {{{
+   * // https://nrinaudo.github.io/kantan.csv/tut/shapeless.html
+   * import kantan.csv._
+   * import kantan.csv.ops._
+   * import kantan.csv.generic._
+   * }}}
+   * 
+   * @see updateHash(dt : Instant)
+   * @see updateHash(value : Double)
+   * @see https://softwarecave.org/2014/02/26/calculating-cryptographic-hash-functions-in-java/
+   * @see https://docs.oracle.com/javase/8/docs/api/java/security/MessageDigest.html
+   * @see https://www.mkyong.com/java/java-sha-hashing-example/
+   * @see https://github.com/alphazero/Blake2b
+   */
+  def tagData( f: File, sample_size: Double = 0.15 )( implicit dt: RowDecoder[ NABResultRow ], digest: MessageDigest ): Either[ List[ Throwable ], Array[ Byte ] ] = {
+    val results = loadResults( f )
+    //implicit val digest = MessageDigest.getInstance("SHA-256");
+    results.flatMap { x =>
+      val size = x.dt.length
+      val sample_len = ( size * sample_size ).toInt
+      x.dt.take( sample_len ).map { x => updateHash( x ) }
+      x.value.take( sample_len ).map { x => updateHash( x ) }
+      Right( digest.digest )
+    }
+  }
+
+  object Hex {
+    def valueOf( buf: Array[ Byte ] ): String = buf.map( "%02X" format _ ).mkString
+  }
+  
+  def tagFiles() {
+
   }
 
   // TODO

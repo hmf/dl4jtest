@@ -498,45 +498,45 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     import kantan.csv._
     import kantan.csv.ops._
     import kantan.csv.generic._
-    
+
     val dataDirectory = "data/nab/results/numentaTM/artificialWithAnomaly"
     val dataFileName = "art_increase_spike_density.csv"
     val algorithm_name = "numentaTM"
 
     val labelledp = cwd / dataDirectory / ( "numentaTM" + "_" + dataFileName )
     //val expected = loadResults( labelledp )
-    val expected : Either[ List[ Throwable ], NABResultAll ] = loadResults( labelledp )
+    val expected: Either[ List[ Throwable ], NABResultAll ] = loadResults( labelledp )
     //println(expected)
-    expected.isRight should be (true)
+    expected.isRight should be ( true )
     val d0 = expected.getOrElse( emptyNABResultAll )
     val line0 = 0
     //println( d0.dt( line0) )   
     d0.dt( line0 ) should be ( parseInstantUTC( "2014-04-01 00:00:00" ) )
     //d0.value( line0 ) should be (20.0 +- 0.0)
-    d0.value( line0 ) should be (20.0)
-    d0.anomaly_score( line0 ) should be (0.0301029996659)
-    d0.raw_score( line0 ) should be (1.0)
-    d0.label( line0 ) should be (0)
-    d0.reward_low_FP_rate( line0 ) should be (0.0)
-    d0.reward_low_FN_rate( line0 )  should be (0.0)
-    
+    d0.value( line0 ) should be ( 20.0 )
+    d0.anomaly_score( line0 ) should be ( 0.0301029996659 )
+    d0.raw_score( line0 ) should be ( 1.0 )
+    d0.label( line0 ) should be ( 0 )
+    d0.reward_low_FP_rate( line0 ) should be ( 0.0 )
+    d0.reward_low_FN_rate( line0 ) should be ( 0.0 )
+
     val line1 = 1422
     d0.dt( line1 ) should be ( parseInstantUTC( "2014-04-05 22:30:00" ) )
-    d0.value( line1 ) should be (0.0)
-    d0.anomaly_score( line1 ) should be (0.0034982625592)
-    d0.raw_score( line1 ) should be (0.0250000003725)
-    d0.label( line1 ) should be (0)
-    d0.reward_low_FP_rate( line1 ) should be (0.0)
-    d0.reward_low_FN_rate( line1 )  should be (0.0)
-    
+    d0.value( line1 ) should be ( 0.0 )
+    d0.anomaly_score( line1 ) should be ( 0.0034982625592 )
+    d0.raw_score( line1 ) should be ( 0.0250000003725 )
+    d0.label( line1 ) should be ( 0 )
+    d0.reward_low_FP_rate( line1 ) should be ( 0.0 )
+    d0.reward_low_FN_rate( line1 ) should be ( 0.0 )
+
     val line2 = 4031
     d0.dt( line2 ) should be ( parseInstantUTC( "2014-04-14 23:55:00" ) )
-    d0.value( line2 ) should be (0.0)
-    d0.anomaly_score( line2 ) should be (0.0115668894529)
-    d0.raw_score( line2 ) should be (0.0)
-    d0.label( line2 ) should be (0)
-    d0.reward_low_FP_rate( line2 ) should be (0.0)
-    d0.reward_low_FN_rate( line2 )  should be (0.0)
+    d0.value( line2 ) should be ( 0.0 )
+    d0.anomaly_score( line2 ) should be ( 0.0115668894529 )
+    d0.raw_score( line2 ) should be ( 0.0 )
+    d0.label( line2 ) should be ( 0 )
+    d0.reward_low_FP_rate( line2 ) should be ( 0.0 )
+    d0.reward_low_FN_rate( line2 ) should be ( 0.0 )
 
   }
 
@@ -552,7 +552,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     import kantan.csv._
     import kantan.csv.ops._
     import kantan.csv.generic._
-    
+
     val labelsDirectory = "data/nab/labels"
     val labelsFileName = "combined_windows.json"
     val algorithm_name = "numentaTM"
@@ -560,58 +560,58 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     val labels = cwd / labelsDirectory / labelsFileName
     val wins = loadJSONLabels( labels )
     //println(wins.size)
-    wins.size should be (58)
-    
+    wins.size should be ( 58 )
+
     val file1 = "artificialNoAnomaly/art_daily_no_noise.csv"
-    wins.contains(file1) should be (true)
-    val empty1 = wins(file1)
-    empty1.length should be (0) 
-    
+    wins.contains( file1 ) should be ( true )
+    val empty1 = wins( file1 )
+    empty1.length should be ( 0 )
+
     val file2 = "artificialNoAnomaly/art_daily_perfect_square_wave.csv"
-    wins.contains(file2) should be (true)
-    val empty2 = wins(file2)
-    empty2.length should be (0) 
-    
+    wins.contains( file2 ) should be ( true )
+    val empty2 = wins( file2 )
+    empty2.length should be ( 0 )
+
     val file3 = "artificialNoAnomaly/art_daily_small_noise.csv"
-    wins.contains(file3) should be (true)
-    val empty3 = wins(file3)
-    empty3.length should be (0) 
-    
+    wins.contains( file3 ) should be ( true )
+    val empty3 = wins( file3 )
+    empty3.length should be ( 0 )
+
     val file4 = "artificialNoAnomaly/art_flatline.csv"
-    wins.contains(file4) should be (true)
-    val empty4 = wins(file4)
-    empty4.length should be (0) 
-    
-    val file5 = "artificialNoAnomaly/art_noisy.csv" 
-    wins.contains(file5) should be (true)
-    val empty5 = wins(file5)
-    empty5.length should be (0) 
-    
-    val file6 = "artificialWithAnomaly/art_daily_flatmiddle.csv" 
-    wins.contains(file6) should be (true)
-    val wins6 = wins(file6)
-    wins6.length should be (1) 
-    val i6 = makeInterval(  parseInstantUTC( "2014-04-10 07:15:00.000000" ) ,  parseInstantUTC( "2014-04-11 16:45:00.000000" ) )
-    wins6(0) should be (i6.get)
-    
-    val file7 = "realAWSCloudwatch/ec2_network_in_5abac7.csv" 
-    wins.contains(file7) should be (true)
-    val wins7 = wins(file7)
-    wins7.length should be (2) 
-    val i71 = makeInterval(  parseInstantUTC( "2014-03-10 09:06:00.000000" ) ,  parseInstantUTC(  "2014-03-11 04:46:00.000000" ) )
-    wins7(0) should be (i71.get)
-    val i72 = makeInterval(  parseInstantUTC(  "2014-03-12 11:11:00.000000" ) ,  parseInstantUTC( "2014-03-13 06:51:00.000000" ) )
-    wins7(1) should be (i72.get)
-    
-    val file8 = "realTweets/Twitter_volume_UPS.csv" 
-    wins.contains(file8) should be (true)
-    val wins8 = wins(file8)
-    wins8.length should be (5) 
-    val i81 = makeInterval(  parseInstantUTC( "2015-03-02 11:17:53.000000" ) ,  parseInstantUTC(  "2015-03-03 13:37:53.000000" ) )
-    wins8(0) should be (i81.get)
-    val i85 = makeInterval(  parseInstantUTC( "2015-03-29 03:17:53.000000" ) ,  parseInstantUTC( "2015-03-30 05:37:53.000000" ) )
-    wins8(4) should be (i85.get)
-            
+    wins.contains( file4 ) should be ( true )
+    val empty4 = wins( file4 )
+    empty4.length should be ( 0 )
+
+    val file5 = "artificialNoAnomaly/art_noisy.csv"
+    wins.contains( file5 ) should be ( true )
+    val empty5 = wins( file5 )
+    empty5.length should be ( 0 )
+
+    val file6 = "artificialWithAnomaly/art_daily_flatmiddle.csv"
+    wins.contains( file6 ) should be ( true )
+    val wins6 = wins( file6 )
+    wins6.length should be ( 1 )
+    val i6 = makeInterval( parseInstantUTC( "2014-04-10 07:15:00.000000" ), parseInstantUTC( "2014-04-11 16:45:00.000000" ) )
+    wins6( 0 ) should be ( i6.get )
+
+    val file7 = "realAWSCloudwatch/ec2_network_in_5abac7.csv"
+    wins.contains( file7 ) should be ( true )
+    val wins7 = wins( file7 )
+    wins7.length should be ( 2 )
+    val i71 = makeInterval( parseInstantUTC( "2014-03-10 09:06:00.000000" ), parseInstantUTC( "2014-03-11 04:46:00.000000" ) )
+    wins7( 0 ) should be ( i71.get )
+    val i72 = makeInterval( parseInstantUTC( "2014-03-12 11:11:00.000000" ), parseInstantUTC( "2014-03-13 06:51:00.000000" ) )
+    wins7( 1 ) should be ( i72.get )
+
+    val file8 = "realTweets/Twitter_volume_UPS.csv"
+    wins.contains( file8 ) should be ( true )
+    val wins8 = wins( file8 )
+    wins8.length should be ( 5 )
+    val i81 = makeInterval( parseInstantUTC( "2015-03-02 11:17:53.000000" ), parseInstantUTC( "2015-03-03 13:37:53.000000" ) )
+    wins8( 0 ) should be ( i81.get )
+    val i85 = makeInterval( parseInstantUTC( "2015-03-29 03:17:53.000000" ), parseInstantUTC( "2015-03-30 05:37:53.000000" ) )
+    wins8( 4 ) should be ( i85.get )
+
   }
 
   it should "generate the labels for a time-stamp list for a given data-set windows (inclusive)" in {
@@ -620,7 +620,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
 
     import NABUtils._
     import NABUtils.NABDataRow._
-    
+
     // Files to process
     val datasetId = "artificialWithAnomaly"
     val dataFileName = "art_increase_spike_density.csv"
@@ -640,7 +640,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     import kantan.csv.generic._
 
     // This is the original data
-    val datap = cwd / "data/nab/data" / datasetId  / dataFileName
+    val datap = cwd / "data/nab/data" / datasetId / dataFileName
     val data = loadData( datap )
     //println(data)
     data.isRight should be ( true )
@@ -648,22 +648,93 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     // This is the result data that has already been labeled and scored
     val labelledp = cwd / "data/nab/results/numentaTM" / datasetId / ( "numentaTM_" + dataFileName )
     //val expected = loadResults( labelledp )
-    val expected : Either[ List[ Throwable ], NABResultAll ] = loadResults( labelledp )
+    val expected: Either[ List[ Throwable ], NABResultAll ] = loadResults( labelledp )
     //println(expected)
-    expected.isRight should be (true)
+    expected.isRight should be ( true )
 
     // We now label the original data
-    val wins = labels.getOrElse(dataset, List[org.threeten.extra.Interval]())
+    val wins = labels.getOrElse( dataset, List[ org.threeten.extra.Interval ]() )
     //println(data.getOrElse(emptyNABFrame).dt)
     //println(wins.mkString("\n"))
-    val new_labels = addLabels( labelInstanceInclusive )( data.getOrElse(emptyNABFrame), wins )
+    val new_labels = addLabels( labelInstanceInclusive )( data.getOrElse( emptyNABFrame ), wins )
     // And check that it is the same as the result data labels
-    val old_labels = expected.getOrElse(emptyNABResultAll)
+    val old_labels = expected.getOrElse( emptyNABResultAll )
     new_labels.dt should contain theSameElementsInOrderAs old_labels.dt
-    new_labels.dt should be (sorted) 
+    new_labels.dt should be ( sorted )
     new_labels.label should contain theSameElementsInOrderAs old_labels.label
   }
 
   it should "should add the detection correctly (assumes a perfect detector here for easy checking)" in {
+
+    val ts1 = parseInstantUTC( "2014-04-05 22:30:00" )
+    val bytes1 = toBytes( ts1 )
+    val hex1 = Hex.valueOf( bytes1 )
+    //println( bytes1.size )
+    //println( hex1 )
+    //println( hex1.size )
+    bytes1.size shouldBe (20) 
+    hex1.size shouldBe (2*bytes1.size) 
+    hex1 shouldBe ("323031342D30342D30355432323A33303A30305A") 
+
+    import java.security.MessageDigest
+    val digest1 = MessageDigest.getInstance( "SHA-256" )
+    updateHash( ts1 )( digest1 )
+    val hash1 = digest1.digest
+    val hexh1 = Hex.valueOf( hash1 )
+    //println(hex2)
+    // 256 bits -> / 8 bytes -> * 2 Hex digits (4 bits)
+    hexh1.size shouldBe ((256 / 8) * 2 )
+    
+    val bytes2 = toBytes( 20.00001)
+    val hex2 = Hex.valueOf( bytes2 )
+    //println( bytes2.size )
+    //println( hex2 )
+    //println( hex2.size )
+    bytes2.size shouldBe ( 8 ) 
+    hex2.size shouldBe (2*bytes2.size) 
+
+    val digest2 = MessageDigest.getInstance( "SHA-256" )
+    updateHash( 20.00001 )( digest2 )
+    val hash2 = digest2.digest
+    val hexh2 = Hex.valueOf( hash2 )
+    //println(hexh2)
+    // 256 bits -> / 8 bytes -> * 2 Hex digits (4 bits)
+    hexh2.size shouldBe ((256 / 8) * 2 )
+
+
+    val digest3 = MessageDigest.getInstance( "SHA-256" )
+    updateHash( 20.000000000000001 )( digest3 )
+    val hash3 = digest3.digest
+    val hexh3 = Hex.valueOf( hash3 )
+    //println(hexh3)
+    // 256 bits -> / 8 bytes -> * 2 Hex digits (4 bits)
+    hexh3.size shouldBe ((256 / 8) * 2 )
+    hexh2 should not equal (hexh3)
+    
+    import better.files._
+    import better.files.Cmds._
+
+    import NABUtils._
+    import NABUtils.NABDataRow._
+
+    // Files to process
+    val datasetId = "artificialWithAnomaly"
+    val dataFileName = "art_increase_spike_density.csv"
+    val dataset = datasetId + "/" + dataFileName
+
+    // This is the result data that has already been labeled and scored
+    val labelledp = cwd / "data/nab/results/numentaTM" / datasetId / ( "numentaTM_" + dataFileName )
+
+    // We need to bring in shapeless "compile time reflection"
+    // https://nrinaudo.github.io/kantan.csv/tut/shapeless.html
+    import kantan.csv._
+    import kantan.csv.ops._
+    import kantan.csv.generic._
+
+    //import java.security.MessageDigest
+    implicit val digest = MessageDigest.getInstance( "SHA-256" )
+    val hash = tagData( labelledp, sample_size = 0.15 )
+
   }
+
 }
