@@ -81,7 +81,7 @@ object NABUtils {
   /**
    * Get all files listed in the directory
    */
-  def allFiles( dirName: String ): Option[ Seq[ File ] ] = {
+  def allFiles( dirName: String ): Option[ List[ File ] ] = {
     val dir = File( dirName )
     if ( !dir.isDirectory )
       None
@@ -95,13 +95,13 @@ object NABUtils {
   /**
    *  Get all the data files
    */
-  def allDataFiles( ext: String = "csv" ): Option[ Seq[ File ] ] =
+  def allDataFiles( dataDir : String = data_dir, ext: String = "csv" ): Option[ List[ File ] ] =
     allFiles( data_dir ).map { _.filter { _.extension( includeDot = false ).exists { e => e.equals( ext ) } } }
 
   /**
    *  Get all the label files
    */
-  def allLabelFiles( ext: String = "json" ): Option[ Seq[ File ] ] =
+  def allLabelFiles( labelDir : String = label_dir, ext: String = "json" ): Option[ List[ File ] ] =
     allFiles( label_dir ).map { _.filter { _.extension( includeDot = false ).exists { e => e.equals( ext ) } } }
 
   /*
@@ -810,8 +810,21 @@ object NABUtils {
     def valueOf( buf: Array[ Byte ] ): String = buf.map( "%02X" format _ ).mkString
   }
   
-  def tagFiles() {
-
+  /**
+   * 
+   * @see http://stackoverflow.com/questions/6489584/best-way-to-turn-a-lists-of-eithers-into-an-either-of-lists
+   */
+  def tagFiles(files : List[File])( implicit dt: RowDecoder[ NABResultRow ], digest: MessageDigest ) 
+  :  Either[List[Throwable], Map[Array[Byte], String]] = {
+    val t = files.map { file => 
+      val keys = tagData(file, 0.1) 
+      keys.map(hash => (hash, file.nameWithoutExtension) )
+      }
+    val t3 = t.partition(_.isLeft)
+    t3 match {
+      case (Nil, right) => Right( right.flatMap { x => List( x.right.get ) } .toMap )
+      case (left, _) => Left( left.flatMap( { x => x.left.get } ) )
+    }
   }
 
   // TODO

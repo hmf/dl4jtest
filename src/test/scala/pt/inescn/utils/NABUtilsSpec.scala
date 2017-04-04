@@ -664,7 +664,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     new_labels.label should contain theSameElementsInOrderAs old_labels.label
   }
 
-  it should "should add the detection correctly (assumes a perfect detector here for easy checking)" in {
+  "The perfect detector" should "be able to record the expected scores from the NAB result data" in {
 
     val ts1 = parseInstantUTC( "2014-04-05 22:30:00" )
     val bytes1 = toBytes( ts1 )
@@ -740,19 +740,35 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     val hashf1e : Either[List[Throwable], Array[Byte]] = tagData(labelledp1, sample_size = 0.15 )
     hashf1e.isRight should be ( true )
     val hashf1 = hashf1e.right.get
-    println( Hex.valueOf( hashf1 ) )
+    //println( Hex.valueOf( hashf1 ) )
     val hexf1 = Hex.valueOf( hashf1 )
     hexf1.size shouldBe ( hashlen_256 )
     
     digest.reset
     val hashf2e : Either[List[Throwable], Array[Byte]] = tagData( labelledp2, sample_size = 0.15 )
-    println(hashf2e)
+    //println(hashf2e)
     hashf2e.isRight should be ( true )
     val hashf2 = hashf2e.right.get
-    println( Hex.valueOf( hashf2 ) )
+    //println( Hex.valueOf( hashf2 ) )
     val hexf2 = Hex.valueOf( hashf2 )
     hexf2.size shouldBe ( hashlen_256 )
-
   }
 
+  it should "be able to generate the hashes for NAB result files based on theire time-stamp and values" in {
+    
+    import better.files._
+    import better.files.Cmds._
+
+    import NABUtils._
+    import NABUtils.NABDataRow._
+    
+    val data = cwd / "data/nab/results"
+    val dataFiles = allDataFiles()
+    dataFiles shouldBe 'defined
+    println( dataFiles.mkString(",") )
+        
+  }
+
+  it should "should add the detection correctly" in {
+  }
 }
