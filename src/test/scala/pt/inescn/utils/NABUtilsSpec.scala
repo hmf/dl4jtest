@@ -722,9 +722,12 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     val datasetId = "artificialWithAnomaly"
     val dataFileName1 = "art_increase_spike_density.csv"
     val dataset1 = datasetId + "/" + dataFileName1
+    val dataFileName2 = "art_daily_jumpsdown.csv"
+    val dataset2 = datasetId + "/" + dataFileName1
 
     // This is the result data that has already been labeled and scored
     val labelledp1 = cwd / "data/nab/results/numentaTM" / datasetId / ( "numentaTM_" + dataFileName1 )
+    val labelledp2 = cwd / "data/nab/results/numentaTM" / datasetId / ( "numentaTM_" + dataFileName2 )
 
     // We need to bring in shapeless "compile time reflection"
     // https://nrinaudo.github.io/kantan.csv/tut/shapeless.html
@@ -734,12 +737,21 @@ class NABUtilsSpec extends FlatSpec with Matchers {
 
     //import java.security.MessageDigest
     implicit val digest = MessageDigest.getInstance( "SHA-256" )
-    val hashf1e : Either[List[Throwable], Array[Byte]] = tagData( labelledp1, sample_size = 0.15 )
+    val hashf1e : Either[List[Throwable], Array[Byte]] = tagData(labelledp1, sample_size = 0.15 )
     hashf1e.isRight should be ( true )
     val hashf1 = hashf1e.right.get
     println( Hex.valueOf( hashf1 ) )
-    val hexf1 = Hex.valueOf( hash3 )
+    val hexf1 = Hex.valueOf( hashf1 )
     hexf1.size shouldBe ( hashlen_256 )
+    
+    digest.reset
+    val hashf2e : Either[List[Throwable], Array[Byte]] = tagData( labelledp2, sample_size = 0.15 )
+    println(hashf2e)
+    hashf2e.isRight should be ( true )
+    val hashf2 = hashf2e.right.get
+    println( Hex.valueOf( hashf2 ) )
+    val hexf2 = Hex.valueOf( hashf2 )
+    hexf2.size shouldBe ( hashlen_256 )
 
   }
 
