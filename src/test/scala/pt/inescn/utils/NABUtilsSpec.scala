@@ -708,7 +708,8 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     val hexh3 = Hex.valueOf( hash3 )
     //println(hexh3)
     // 256 bits -> / 8 bytes -> * 2 Hex digits (4 bits)
-    hexh3.size shouldBe ((256 / 8) * 2 )
+    val hashlen_256 = (256 / 8) * 2
+    hexh3.size shouldBe ( hashlen_256 )
     hexh2 should not equal (hexh3)
     
     import better.files._
@@ -719,11 +720,11 @@ class NABUtilsSpec extends FlatSpec with Matchers {
 
     // Files to process
     val datasetId = "artificialWithAnomaly"
-    val dataFileName = "art_increase_spike_density.csv"
-    val dataset = datasetId + "/" + dataFileName
+    val dataFileName1 = "art_increase_spike_density.csv"
+    val dataset1 = datasetId + "/" + dataFileName1
 
     // This is the result data that has already been labeled and scored
-    val labelledp = cwd / "data/nab/results/numentaTM" / datasetId / ( "numentaTM_" + dataFileName )
+    val labelledp1 = cwd / "data/nab/results/numentaTM" / datasetId / ( "numentaTM_" + dataFileName1 )
 
     // We need to bring in shapeless "compile time reflection"
     // https://nrinaudo.github.io/kantan.csv/tut/shapeless.html
@@ -733,7 +734,12 @@ class NABUtilsSpec extends FlatSpec with Matchers {
 
     //import java.security.MessageDigest
     implicit val digest = MessageDigest.getInstance( "SHA-256" )
-    val hash = tagData( labelledp, sample_size = 0.15 )
+    val hashf1e : Either[List[Throwable], Array[Byte]] = tagData( labelledp1, sample_size = 0.15 )
+    hashf1e.isRight should be ( true )
+    val hashf1 = hashf1e.right.get
+    println( Hex.valueOf( hashf1 ) )
+    val hexf1 = Hex.valueOf( hash3 )
+    hexf1.size shouldBe ( hashlen_256 )
 
   }
 

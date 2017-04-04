@@ -795,7 +795,8 @@ object NABUtils {
    */
   def tagData( f: File, sample_size: Double = 0.15 )( implicit dt: RowDecoder[ NABResultRow ], digest: MessageDigest ): Either[ List[ Throwable ], Array[ Byte ] ] = {
     val results = loadResults( f )
-    //implicit val digest = MessageDigest.getInstance("SHA-256");
+    //implicit val digest = MessageDigest.getInstance("SHA-256")
+    //println(digest.getAlgorithm)
     results.flatMap { x =>
       val size = x.dt.length
       val sample_len = ( size * sample_size ).toInt
