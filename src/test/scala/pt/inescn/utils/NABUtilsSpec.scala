@@ -763,9 +763,22 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     import NABUtils.NABDataRow._
     
     val data = cwd / "data/nab/results"
-    val dataFiles = allDataFiles()
+    // TODO: use File directly
+    println(data.path.toString)
+    val dataFiles = allDataFiles(data.path.toString)
     dataFiles shouldBe 'defined
     println( dataFiles.mkString(",") )
+
+    // We need to bring in shapeless "compile time reflection"
+    // https://nrinaudo.github.io/kantan.csv/tut/shapeless.html
+    import kantan.csv._
+    import kantan.csv.ops._
+    import kantan.csv.generic._
+    
+    import java.security.MessageDigest
+    implicit val digest = MessageDigest.getInstance( "SHA-256" )
+    
+    val fileHash = dataFiles.map{ x => tagFiles( x, sample_size = 0.1 ) }
         
   }
 

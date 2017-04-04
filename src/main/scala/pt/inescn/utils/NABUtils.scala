@@ -96,13 +96,13 @@ object NABUtils {
    *  Get all the data files
    */
   def allDataFiles( dataDir : String = data_dir, ext: String = "csv" ): Option[ List[ File ] ] =
-    allFiles( data_dir ).map { _.filter { _.extension( includeDot = false ).exists { e => e.equals( ext ) } } }
+    allFiles( dataDir ).map { _.filter { _.extension( includeDot = false ).exists { e => e.equals( ext ) } } }
 
   /**
    *  Get all the label files
    */
   def allLabelFiles( labelDir : String = label_dir, ext: String = "json" ): Option[ List[ File ] ] =
-    allFiles( label_dir ).map { _.filter { _.extension( includeDot = false ).exists { e => e.equals( ext ) } } }
+    allFiles( labelDir ).map { _.filter { _.extension( includeDot = false ).exists { e => e.equals( ext ) } } }
 
   /*
 (root/"tmp"/"diary.txt")
@@ -811,13 +811,19 @@ object NABUtils {
   }
   
   /**
+   * This function takes in a list of `better.files.File`s reads the start of these files 
+   * (only the `sample_size` fraction of lines are used) and uses that data to generate a hash
+   * value. This hash value will act as a key that maps to the fileName. This will allow a 
+   * *perfect* detector to read the data, find the NAB result file and use that to generate the 
+   * perfect score output based on the anomaly window labels. 
    * 
    * @see http://stackoverflow.com/questions/6489584/best-way-to-turn-a-lists-of-eithers-into-an-either-of-lists
    */
-  def tagFiles(files : List[File])( implicit dt: RowDecoder[ NABResultRow ], digest: MessageDigest ) 
+  def tagFiles(files : List[File], sample_size: Double = 0.15 )( implicit dt: RowDecoder[ NABResultRow ], digest: MessageDigest ) 
   :  Either[List[Throwable], Map[Array[Byte], String]] = {
     val t = files.map { file => 
-      val keys = tagData(file, 0.1) 
+      val keys = tagData(file, sample_size) 
+      //println(keys)
       keys.map(hash => (hash, file.nameWithoutExtension) )
       }
     val t3 = t.partition(_.isLeft)
