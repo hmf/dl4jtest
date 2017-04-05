@@ -754,6 +754,41 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     hexf2.size shouldBe ( hashlen_256 )
   }
 
+  it should "deal with the NAB result files with non raw scores" in {
+    import better.files._
+    import better.files.Cmds._
+
+    import NABUtils._
+    import NABUtils.NABDataRow._
+
+    // Files to process
+    val datasetId = "realAWSCloudwatch"
+    val dataFileName1 = "iio_us-east-1_i-a2eb1cd9_NetworkIn.csv"
+    val dataset1 = datasetId + "/" + dataFileName1
+
+    // This is the result data that has already been labeled and scored
+    val labelledp1 = cwd / "data/nab/results/windowedGaussian" / datasetId / ( "windowedGaussian_" + dataFileName1 )
+
+    // We need to bring in shapeless "compile time reflection"
+    // https://nrinaudo.github.io/kantan.csv/tut/shapeless.html
+    import kantan.csv._
+    import kantan.csv.ops._
+    import kantan.csv.generic._
+
+    import java.security.MessageDigest
+    implicit val digest = MessageDigest.getInstance( "SHA-256" )
+    
+    // 256 bits -> / 8 bytes -> * 2 Hex digits (4 bits)
+    val hashlen_256 = (256 / 8) * 2
+    
+    val hashf1e : Either[List[Throwable], Array[Byte]] = tagData(labelledp1, sample_size = 0.15 )
+    hashf1e.isRight should be ( true )
+    val hashf1 = hashf1e.right.get
+    //println( Hex.valueOf( hashf1 ) )
+    val hexf1 = Hex.valueOf( hashf1 )
+    hexf1.size shouldBe ( hashlen_256 )
+  }
+  
   it should "be able to generate the hashes for NAB result files based on theire time-stamp and values" in {
     
     import better.files._
@@ -765,7 +800,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     val data = cwd / "data/nab/results"
     // TODO: use File directly
     println(data.path.toString)
-    val dataFiles = allDataFiles(data.path.toString)
+    val dataFiles = allDataFiles(data)
     dataFiles shouldBe 'defined
     println( dataFiles.mkString(",") )
 
@@ -778,7 +813,11 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     import java.security.MessageDigest
     implicit val digest = MessageDigest.getInstance( "SHA-256" )
     
-    val fileHash = dataFiles.map{ x => tagFiles( x, sample_size = 0.1 ) }
+    val fileHash = dataFiles.map{ x => 
+      println(x.take(1)(0).path.toString)
+      tagFiles( x.take(1), sample_size = 0.1 ) 
+      }
+    println(fileHash)
         
   }
 
