@@ -92,22 +92,23 @@ object NABUtils {
     }
   }
 
+  def isData(f: File, ext: String) = {
+    val r1 = { f.extension(includeDot = false).exists { e => e.equalsIgnoreCase(ext) } }
+    r1 && (!f.name.toLowerCase.contains("scores"))
+  }
+
   /**
    *  Get all the data files
    */
   def allDataFiles(dataDir: File = File(data_dir), ext: String = "csv"): Option[List[File]] =
-    allFiles(dataDir).map { _.filter { _.extension(includeDot = false).exists { e => e.equals(ext) } } }
+    // allFiles(dataDir).map { _.filter { _.extension(includeDot = false).exists { e => e.equals(ext) } } }
+    allFiles(dataDir).map { _.filter { isData(_, ext) } }
 
   /**
    *  Get all the label files
    */
   def allLabelFiles(labelDir: File = File(label_dir), ext: String = "json"): Option[List[File]] =
     allFiles(labelDir).map { _.filter { _.extension(includeDot = false).exists { e => e.equals(ext) } } }
-
-  /*
-(root/"tmp"/"diary.txt")
-  .createIfNotExists()  
-  */
 
   import org.threeten.extra.Interval
 
@@ -513,8 +514,8 @@ object NABUtils {
    * @param reward_low_FP_rate: Double - score when we assign greater weight to the low FPs
    * @param reward_low_FN_rate: Double - score when we assign greater weight to the low FNs
    * @param standard: Double - score when we assign the same weight to the low FNs and FPs
-   * 
-   * Note that some files have an extra `raw_score`. 
+   *
+   * Note that some files have an extra `raw_score`.
    */
   case class NABXtraResultRow(dt: java.time.Instant, value: Double, anomaly_score: Double, raw_score: Double, label: Int, reward_low_FP_rate: Double, reward_low_FN_rate: Double, standard: Double)
   case class NABResultRow(dt: java.time.Instant, value: Double, anomaly_score: Double, label: Int, reward_low_FP_rate: Double, reward_low_FN_rate: Double, standard: Double)
@@ -569,7 +570,7 @@ object NABUtils {
 
     /**
      * Add a `NABResultRow`to the `NABResultAll` in column major form. Note that the some
-     * result files have an additional raw score. In this case we simple place use an empty 
+     * result files have an additional raw score. In this case we simple place use an empty
      * column as a place holder.
      */
     def addTo(acc: NABResultAll, e: NABResultRow) =
@@ -580,14 +581,14 @@ object NABUtils {
 
     /**
      * Add a `NABXtraResultRow`to the `NABResultAll` in column major form. Note that the some
-     * result files have an additional raw score. In this case we store this data.  
+     * result files have an additional raw score. In this case we store this data.
      */
     def addTo(acc: NABResultAll, e: NABXtraResultRow) =
       NABResultAll(e.dt :: acc.dt, e.value :: acc.value, e.anomaly_score :: acc.anomaly_score,
         e.raw_score :: acc.raw_score, e.label :: acc.label,
         e.reward_low_FP_rate :: acc.reward_low_FP_rate,
         e.reward_low_FN_rate :: acc.reward_low_FN_rate, e.standard :: acc.standard)
-        
+
     /**
      * When converting the rows to columns we stack the `NABDataRow` data in reverse order.
      * This reverses those columns to get the correct order back.
@@ -710,7 +711,7 @@ object NABUtils {
     if (!tmp._2.isEmpty) Left(tmp._2.reverse) else Right(NABResultAll(r.dt.reverse, r.value.reverse, r.anomaly_score.reverse, r.raw_score.reverse, r.label.reverse,
       r.reward_low_FP_rate.reverse, r.reward_low_FN_rate.reverse, r.standard.reverse))
   }
-  
+
   def toNABResultXtraAllColumns(reader: kantan.csv.CsvReader[kantan.csv.ReadResult[NABXtraResultRow]]): Either[List[Throwable], NABResultAll] = {
     val z = (emptyNABResultAll, List[Throwable]())
     val tmp = reader.foldLeft(z) {
@@ -812,6 +813,8 @@ object NABUtils {
     updateHash(t); updateHash(v)
   }
 
+  import scala.collection.mutable.ArrayBuffer
+  
   /**
    * This function reads the NAB result file (contains [[NABResultRow]]) and uses the first
    * `sample_size` (fraction of the total number of lines, default set to 0.15). It then generates the
@@ -827,6 +830,10 @@ object NABUtils {
    * import kantan.csv.generic._
    * }}}
    *
+   * Note: We have to use an ArrayByffer because Java's Array "equals" only compares
+   * the object references and not the object's contents. This does not allow the use of 
+   * collections such as Map.
+   *
    * @see updateHash(dt : Instant)
    * @see updateHash(value : Double)
    * @see https://softwarecave.org/2014/02/26/calculating-cryptographic-hash-functions-in-java/
@@ -834,7 +841,7 @@ object NABUtils {
    * @see https://www.mkyong.com/java/java-sha-hashing-example/
    * @see https://github.com/alphazero/Blake2b
    */
-  def tagData(f: File, sample_size: Double = 0.15)(implicit dt1: RowDecoder[NABResultRow], dt2: RowDecoder[NABXtraResultRow], digest: MessageDigest): Either[List[Throwable], Array[Byte]] = {
+  def tagData(f: File, sample_size: Double = 0.15)(implicit dt1: RowDecoder[NABResultRow], dt2: RowDecoder[NABXtraResultRow], digest: MessageDigest): Either[List[Throwable], ArrayBuffer[Byte]] = {
     val results = loadResults(f)
     //implicit val digest = MessageDigest.getInstance("SHA-256")
     //println(digest.getAlgorithm)
@@ -846,13 +853,16 @@ object NABUtils {
       val values = x.value.take(sample_len)
       val r = dts.zip(values)
       r.map { case (t, v) => hashDataPair(t, v) }
-      Right(digest.digest)
+      Right( ArrayBuffer(digest.digest: _*) )
     }
   }
 
   object Hex {
     def valueOf(buf: Array[Byte]): String = buf.map("%02X" format _).mkString
+    def valueOf(buf: ArrayBuffer[Byte]): String = buf.map("%02X" format _).mkString
   }
+
+  //import collection.JavaConverters._
 
   /**
    * This function takes in a list of `better.files.File`s reads the start of these files
@@ -862,17 +872,23 @@ object NABUtils {
    * perfect score output based on the anomaly window labels.
    *
    * Note: we truncate the list of parsing errors in `Left[List[Throwable]]` otherwise if
-   * parsing errors occur in many files, the exception data will accumulate causing an 
-   * out-of-memory error. 
+   * parsing errors occur in many files, the exception data will accumulate causing an
+   * out-of-memory error.
+   *
+   * Note: We have to use an ArrayByffer because Java's Array "equals" only compares
+   * the object references and not the object's contents. This does not allow the use of 
+   * collections such as Map.
    * 
    * @see http://stackoverflow.com/questions/6489584/best-way-to-turn-a-lists-of-eithers-into-an-either-of-lists
    */
-  def tagFiles(files: List[File], sample_size: Double = 0.15)(implicit dt1: RowDecoder[NABResultRow], dt2: RowDecoder[NABXtraResultRow], digest: MessageDigest): Either[List[Throwable], Map[Array[Byte], String]] = {
+  def tagFiles(files: List[File], sample_size: Double = 0.15)(implicit dt1: RowDecoder[NABResultRow], dt2: RowDecoder[NABXtraResultRow], digest: MessageDigest): //Either[List[Throwable], Map[Array[Byte], String]] = {
+  Either[List[Throwable], Map[ArrayBuffer[Byte], String]] = {
     val t = files.map { file =>
       val keys = tagData(file, sample_size)
       // We don't do a simple map otherwise we would collect all parsng errors
       //keys.map(hash => (hash, file.nameWithoutExtension))
-      keys.fold( {err => Left(err.take(10))}, {hash => Right((hash, file.nameWithoutExtension))})
+      keys.fold({ err => Left(List(new Throwable(file.name)) ++ err.take(10)) },
+        { hash => Right((hash, file.path.toString)) })
     }
     val t3 = t.partition(_.isLeft)
     t3 match {

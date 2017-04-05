@@ -735,9 +735,10 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     import kantan.csv.ops._
     import kantan.csv.generic._
 
+    import scala.collection.mutable.ArrayBuffer
     //import java.security.MessageDigest
     implicit val digest = MessageDigest.getInstance( "SHA-256" )
-    val hashf1e : Either[List[Throwable], Array[Byte]] = tagData(labelledp1, sample_size = 0.15 )
+    val hashf1e : Either[List[Throwable], ArrayBuffer[Byte]] = tagData(labelledp1, sample_size = 0.15 )
     hashf1e.isRight should be ( true )
     val hashf1 = hashf1e.right.get
     //println( Hex.valueOf( hashf1 ) )
@@ -745,7 +746,7 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     hexf1.size shouldBe ( hashlen_256 )
     
     digest.reset
-    val hashf2e : Either[List[Throwable], Array[Byte]] = tagData( labelledp2, sample_size = 0.15 )
+    val hashf2e : Either[List[Throwable], ArrayBuffer[Byte]] = tagData( labelledp2, sample_size = 0.15 )
     //println(hashf2e)
     hashf2e.isRight should be ( true )
     val hashf2 = hashf2e.right.get
@@ -781,7 +782,8 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     // 256 bits -> / 8 bytes -> * 2 Hex digits (4 bits)
     val hashlen_256 = (256 / 8) * 2
     
-    val hashf1e : Either[List[Throwable], Array[Byte]] = tagData(labelledp1, sample_size = 0.15 )
+    import scala.collection.mutable.ArrayBuffer
+    val hashf1e : Either[List[Throwable], ArrayBuffer[Byte]] = tagData(labelledp1, sample_size = 0.15 )
     hashf1e.isRight should be ( true )
     val hashf1 = hashf1e.right.get
     //println( Hex.valueOf( hashf1 ) )
@@ -798,11 +800,9 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     import NABUtils.NABDataRow._
     
     val data = cwd / "data/nab/results"
-    // TODO: use File directly
-    println(data.path.toString)
     val dataFiles = allDataFiles(data)
     dataFiles shouldBe 'defined
-    println( dataFiles.mkString(",") )
+    //println( dataFiles.mkString(",") )
 
     // We need to bring in shapeless "compile time reflection"
     // https://nrinaudo.github.io/kantan.csv/tut/shapeless.html
@@ -813,12 +813,59 @@ class NABUtilsSpec extends FlatSpec with Matchers {
     import java.security.MessageDigest
     implicit val digest = MessageDigest.getInstance( "SHA-256" )
     
+    // Generate the hashes to find the labels
     val fileHash = dataFiles.map{ x => 
-      println(x.take(1)(0).path.toString)
-      tagFiles( x.take(1), sample_size = 0.1 ) 
+      tagFiles( x, sample_size = 0.1 ) 
       }
-    println(fileHash)
+    //println(fileHash)
+    fileHash shouldBe 'defined
+    fileHash.get.isRight should be ( true )
+    fileHash.get.right.get.size should be > 1
+    
+    // Are ArrayBuffer good for keys
+    import scala.collection.mutable.ArrayBuffer
+    val a1 = ArrayBuffer(-62, 103, -57, 6, 121, 31, 15, 1, 8, 57, -111, 116, 31, 70, -105, -123, -54, -110, -61, 28, 114, -118, 50, -38, 92, -36, 86, -79, 51, 30, 44, -7) 
+    val a2 = ArrayBuffer(-62, 103, -57, 6, 121, 31, 15, 1, 8, 57, -111, 116, 31, 70, -105, -123, -54, -110, -61, 28, 114, -118, 50, -38, 92, -36, 86, -79, 51, 30, 44, -7) 
+    //println("a1 == a2 = " + (a1 == a2))
+    //println("a1 equals a2 = " + (a1.equals(a2)))    
+    a1 shouldBe a2
+
+    // NOTE: IMPORTANT we list and process all result files because they are the only ones with the labels.
+    // However, we only use the time-stamp and values to generate the hash keys. This means that because the
+    // same data is used by various algorithms, we will generate the same hash several time over. So the 
+    // Map will not contain all the result files (last files overwrite the initial ones). 
         
+    // So pick a file at random
+    val dataMap = fileHash.get.right.get
+    val x = dataMap.values.toList
+    val y = dataMap.toList
+    val tesFile = scala.util.Random.shuffle(y).take(1)(0)
+    //println(labelledp1.toString)
+    println(" dataMap.values.conatains(file) = " + tesFile.toString)
+    val labelledp1 = File(tesFile._2)
+    val w = tesFile._1
+    //println(dataMap)
+
+    // Now calculate the hash for that file and see if we can find it
+    // Make sure we restart the hash generator
+    digest.reset
+    
+    // 256 bits -> / 8 bytes -> * 2 Hex digits (4 bits)
+    val hashlen_256 = (256 / 8) * 2
+    
+    val hashf1e : Either[List[Throwable], ArrayBuffer[Byte]] = tagData(labelledp1, sample_size = 0.1 )
+    hashf1e.isRight should be ( true )
+    val hashf1 = hashf1e.right.get
+    val hexf1 = Hex.valueOf( hashf1 )
+    hexf1.size shouldBe ( hashlen_256 )    
+    
+    // Same hash?
+    Hex.valueOf( w ) shouldBe hexf1
+    w should be (hashf1)
+    
+    // In the Map?
+    dataMap.get( hashf1 ) shouldBe 'defined
+    dataMap.get( hashf1 ).get shouldBe labelledp1.toString
   }
 
   it should "should add the detection correctly" in {
